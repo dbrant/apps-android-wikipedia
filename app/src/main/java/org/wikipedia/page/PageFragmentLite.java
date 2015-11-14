@@ -26,7 +26,6 @@ import org.wikipedia.page.lite.PageStoryHeading;
 import org.wikipedia.page.lite.PageStoryImage;
 import org.wikipedia.page.lite.PageStoryItem;
 import org.wikipedia.page.lite.PageStoryParagraph;
-import org.wikipedia.page.lite.SectionLite;
 import org.wikipedia.page.snippet.CompatActionMode;
 import org.wikipedia.page.snippet.ShareHandler;
 import org.wikipedia.page.tabs.Tab;
@@ -569,12 +568,12 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
             storyItems.add(new PageStoryHeading(PageFragmentLite.this,
                     Html.fromHtml(model.getTitle().getDisplayText()).toString()));
 
-            for (SectionLite section : pageLite.getSectionsLite()) {
+            for (Section section : pageLite.getSectionsLite()) {
                 if (!TextUtils.isEmpty(section.getHeading())) {
                     storyItems.add(new PageStoryHeading(PageFragmentLite.this, section.getHeading()));
                 }
 
-                for (SectionLite.Item item : section.getItems()) {
+                for (Section.Item item : section.getItems()) {
                     if (item.getType().equals("p")) {
                         if (!TextUtils.isEmpty(item.getText())) {
                             storyItems.add(new PageStoryParagraph(PageFragmentLite.this, item.getText(), section.getId()));
@@ -592,7 +591,7 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
             }
 
             storyListAdapter.setStoryItems(storyItems);
-            storyListAdapter.notifyDataSetChanged();
+            storyListAdapter.notifyDataSetInvalidated();
 
             onPageLoadComplete();
         }
