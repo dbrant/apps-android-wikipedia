@@ -2,7 +2,7 @@ package org.wikipedia.server;
 
 import android.support.annotation.Nullable;
 
-import org.wikipedia.page.lite.SectionLite;
+import org.wikipedia.page.Section;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public interface PageLite {
     void logError(String message);
 
     /** Note: before using this check that #hasError is false */
-    List<SectionLite> getSectionsLite();
+    List<Section> getSectionsLite();
 
     String getLeadSectionContent();
 

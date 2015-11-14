@@ -3,7 +3,6 @@ package org.wikipedia.server.restbase;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.page.Section;
-import org.wikipedia.page.lite.SectionLite;
 import org.wikipedia.server.PageLeadProperties;
 import org.wikipedia.server.PageLite;
 import org.wikipedia.util.UriUtil;
@@ -45,7 +44,7 @@ public class RbPageLite implements PageLite, PageLeadProperties {
     @Expose @Nullable private String description;
     @Expose @Nullable private Thumb thumb;
     @Expose @Nullable private Image image;
-    @Expose @Nullable private List<SectionLite> sections;
+    @Expose @Nullable private List<Section> sections;
 
     private transient int leadImageThumbWidth;
 
@@ -67,7 +66,7 @@ public class RbPageLite implements PageLite, PageLeadProperties {
     }
 
     @Override
-    public List<SectionLite> getSectionsLite() {
+    public List<Section> getSectionsLite() {
         return sections;
     }
 

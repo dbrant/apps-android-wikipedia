@@ -1,11 +1,15 @@
 package org.wikipedia.page;
 
+import android.support.annotation.Nullable;
+
 import org.wikipedia.data.GsonUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.gson.annotations.Expose;
+
+import java.util.List;
 
 import static org.wikipedia.util.StringUtil.compareStrings;
 
@@ -19,6 +23,7 @@ public class Section {
     @Expose private String line;
     @Expose private String anchor;
     @Expose private String text;
+    @Expose @Nullable private List<Item> items;
 
     // TODO: can we get rid of this? It's not efficient to
     public static Section fromJson(JSONObject json) {
@@ -115,5 +120,33 @@ public class Section {
 
     public void setContent(String content) {
         this.text = content;
+    }
+
+    public List<Item> getItems() {
+        return items;
+    }
+
+    public static class Item {
+        @Expose private String type;
+        @Expose private String text;
+        @Expose private String name;
+        @Expose private String src;
+        @Expose private String caption;
+
+        public String getType() {
+            return type;
+        }
+        public String getText() {
+            return text;
+        }
+        public String getName() {
+            return name;
+        }
+        public String getSrc() {
+            return src;
+        }
+        public String getCaption() {
+            return caption;
+        }
     }
 }
