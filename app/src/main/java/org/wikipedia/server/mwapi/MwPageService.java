@@ -4,6 +4,7 @@ import org.wikipedia.Site;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.server.PageCombo;
 import org.wikipedia.server.PageLead;
+import org.wikipedia.server.PageLite;
 import org.wikipedia.server.PageRemaining;
 import org.wikipedia.server.PageService;
 import org.wikipedia.settings.RbSwitch;
@@ -73,6 +74,10 @@ public class MwPageService implements PageService {
                 cb.failure(error);
             }
         });
+    }
+
+    @Override
+    public void pageLite(String title, boolean noImages, final PageLite.Callback cb) {
     }
 
     /**

@@ -24,6 +24,7 @@ import com.squareup.picasso.Picasso;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.page.PageActivityLongPressHandler;
+import org.wikipedia.page.PageFragmentBase;
 import org.wikipedia.page.PageLongPressHandler;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.R;
@@ -35,7 +36,6 @@ import org.wikipedia.page.LinkHandler;
 import org.wikipedia.page.LinkMovementMethodExt;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageActivity;
-import org.wikipedia.page.PageFragment;
 import org.wikipedia.page.SuggestionsTask;
 import org.wikipedia.search.SearchResults;
 import org.wikipedia.views.ConfigurableListView;
@@ -53,7 +53,7 @@ public class BottomContentHandler implements BottomContentInterface,
                                                 ObservableWebView.OnScrollChangeListener,
                                                 ObservableWebView.OnContentHeightChangedListener {
     private static final String TAG = "BottomContentHandler";
-    private final PageFragment parentFragment;
+    private final PageFragmentBase parentFragment;
     private final CommunicationBridge bridge;
     private final WebView webView;
     private final LinkHandler linkHandler;
@@ -72,7 +72,7 @@ public class BottomContentHandler implements BottomContentInterface,
     private SuggestedPagesFunnel funnel;
     private SearchResults readMoreItems;
 
-    public BottomContentHandler(PageFragment parentFragment,
+    public BottomContentHandler(PageFragmentBase parentFragment,
                                 CommunicationBridge bridge, ObservableWebView webview,
                                 LinkHandler linkHandler, ViewGroup hidingView) {
         this.parentFragment = parentFragment;

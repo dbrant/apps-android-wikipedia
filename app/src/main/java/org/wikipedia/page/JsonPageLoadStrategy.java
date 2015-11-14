@@ -109,7 +109,7 @@ public class JsonPageLoadStrategy implements PageLoadStrategy {
 
     // copied fields
     private PageViewModel model;
-    private PageFragment fragment;
+    private PageFragmentBase fragment;
     private CommunicationBridge bridge;
     private PageActivity activity;
     private ObservableWebView webView;
@@ -131,7 +131,7 @@ public class JsonPageLoadStrategy implements PageLoadStrategy {
     }
 
     @Override
-    public void setup(PageViewModel model, PageFragment fragment,
+    public void setup(PageViewModel model, PageFragmentBase fragment,
                       SwipeRefreshLayoutWithScroll refreshView,
                       ObservableWebView webView, CommunicationBridge bridge,
                       SearchBarHideHandler searchBarHideHandler, LeadImagesHandler leadImagesHandler) {

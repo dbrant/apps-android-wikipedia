@@ -38,7 +38,7 @@ public interface PageLoadStrategy {
         NONE
     }
 
-    void setup(PageViewModel model, PageFragment fragment,
+    void setup(PageViewModel model, PageFragmentBase fragment,
                SwipeRefreshLayoutWithScroll refreshView, ObservableWebView webView,
                CommunicationBridge bridge, SearchBarHideHandler searchBarHideHandler,
                LeadImagesHandler leadImagesHandler);
