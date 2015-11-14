@@ -20,11 +20,11 @@ import org.json.JSONObject;
 import org.wikipedia.R;
 import org.wikipedia.analytics.GalleryFunnel;
 import org.wikipedia.page.Page;
+import org.wikipedia.page.PageFragmentBase;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.ViewAnimations;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.bridge.CommunicationBridge;
-import org.wikipedia.page.PageFragment;
 import org.wikipedia.page.gallery.GalleryActivity;
 import org.wikipedia.util.DimenUtil;
 import org.wikipedia.views.ArticleHeaderView;
@@ -73,7 +73,7 @@ public class LeadImagesHandler {
         void onLayoutComplete(int sequence);
     }
 
-    @NonNull private final PageFragment parentFragment;
+    @NonNull private final PageFragmentBase parentFragment;
     @NonNull private final CommunicationBridge bridge;
     @NonNull private final ObservableWebView webView;
 
@@ -92,7 +92,7 @@ public class LeadImagesHandler {
     private float faceYOffsetNormalized;
     private float displayDensity;
 
-    public LeadImagesHandler(@NonNull final PageFragment parentFragment,
+    public LeadImagesHandler(@NonNull final PageFragmentBase parentFragment,
                              @NonNull CommunicationBridge bridge,
                              @NonNull ObservableWebView webView,
                              @NonNull ArticleHeaderView articleHeaderView) {

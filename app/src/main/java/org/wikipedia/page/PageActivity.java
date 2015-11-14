@@ -167,10 +167,10 @@ public class PageActivity extends ThemedActionBarActivity {
      * @return The PageViewFragment at the top of the backstack, or null if the current
      * top fragment is not a PageViewFragment.
      */
-    @Nullable public PageFragment getCurPageFragment() {
+    @Nullable public PageFragmentBase getCurPageFragment() {
         Fragment f = getTopFragment();
-        if (f instanceof PageFragment) {
-            return (PageFragment) f;
+        if (f instanceof PageFragmentBase) {
+            return (PageFragmentBase) f;
         } else {
             return null;
         }
@@ -511,11 +511,11 @@ public class PageActivity extends ThemedActionBarActivity {
      * @param allowStateLoss Whether to allow state loss.
      */
     private void resetFragments(boolean allowStateLoss) {
-        while (getTopFragment() != null && !(getTopFragment() instanceof PageFragment)) {
+        while (getTopFragment() != null && !(getTopFragment() instanceof PageFragmentBase)) {
             getSupportFragmentManager().popBackStackImmediate();
         }
         if (getTopFragment() == null) {
-            pushFragment(new PageFragment(), allowStateLoss);
+            pushFragment(new PageFragmentLite(), allowStateLoss);
         }
     }
 
@@ -640,7 +640,7 @@ public class PageActivity extends ThemedActionBarActivity {
         fragmentContainerView.post(new Runnable() {
             @Override
             public void run() {
-                PageFragment frag = getCurPageFragment();
+                PageFragmentBase frag = getCurPageFragment();
                 if (frag == null) {
                     return;
                 }

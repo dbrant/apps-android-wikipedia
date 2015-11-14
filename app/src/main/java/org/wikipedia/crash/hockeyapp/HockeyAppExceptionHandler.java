@@ -34,6 +34,7 @@ import net.hockeyapp.android.ExceptionHandler;
     @Override
     public void uncaughtException(Thread thread, Throwable exception) {
         Log.e(getClass().getName(), "", exception);
+        exception.printStackTrace();
         if (Constants.FILES_PATH == null) {
             // If the files path is null, the exception can't be stored
             // Always call the default handler instead

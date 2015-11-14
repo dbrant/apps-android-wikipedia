@@ -20,6 +20,7 @@ import org.wikipedia.drawable.DrawableUtil;
 import org.wikipedia.page.ImageLicense;
 import org.wikipedia.page.ImageLicenseFetchTask;
 import org.wikipedia.bridge.CommunicationBridge;
+import org.wikipedia.page.PageFragmentBase;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -122,7 +123,7 @@ public class ShareHandler {
 
     /** Call #setFunnel before #shareSnippet. */
     private void shareSnippet(CharSequence input) {
-        final PageFragment curPageFragment = activity.getCurPageFragment();
+        final PageFragmentBase curPageFragment = activity.getCurPageFragment();
         if (curPageFragment == null) {
             return;
         }
