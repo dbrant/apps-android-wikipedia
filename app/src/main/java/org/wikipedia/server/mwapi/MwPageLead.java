@@ -79,6 +79,11 @@ public class MwPageLead implements PageLead {
         }
     }
 
+    @Override
+    public List<Section> getSections() {
+        return mobileview.getSections();
+    }
+
     @Nullable
     @Override
     public String getTitlePronunciationUrl() {

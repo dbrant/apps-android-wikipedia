@@ -1,7 +1,5 @@
 package org.wikipedia.server;
 
-import org.wikipedia.server.restbase.RbPageLite;
-
 /**
  * Generic interface for Page content service.
  * Usually we would use direct Retrofit Callbacks here but since we have two ways of
@@ -43,6 +41,4 @@ public interface PageService {
      * @param cb a Retrofit callback which provides the populated PageCombo object in #success
      */
     void pageCombo(String title, boolean noImages, PageCombo.Callback cb);
-
-    void pageLite(String title, boolean noImages, final RbPageLite.Callback cb);
 }

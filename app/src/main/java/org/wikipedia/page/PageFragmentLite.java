@@ -35,9 +35,10 @@ import org.wikipedia.savedpages.LoadSavedPageUrlMapTask;
 import org.wikipedia.savedpages.SavePageTask;
 import org.wikipedia.savedpages.SavedPageCheckTask;
 import org.wikipedia.search.SearchBarHideHandler;
+import org.wikipedia.server.PageCombo;
 import org.wikipedia.server.PageLead;
-import org.wikipedia.server.PageLite;
 import org.wikipedia.server.PageServiceFactory;
+import org.wikipedia.server.restbase.RbPageCombo;
 import org.wikipedia.server.restbase.RbPageLead;
 import org.wikipedia.server.restbase.RbPageService;
 import org.wikipedia.settings.Prefs;
@@ -527,10 +528,10 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
 
 
 
-        (new RbPageService(model.getTitle().getSite())).pageLite(
+        (new RbPageService(model.getTitle().getSite())).pageCombo(
                 model.getTitle().getPrefixedText(),
                 !app.isImageDownloadEnabled(),
-                rbLiteOnLoadCallback);
+                rbComboOnLoadCallback);
         //TODO
         //pageLoadStrategy.onDisplayNewPage(pushBackStack, cachePreference, stagedScrollY);
 
@@ -548,9 +549,9 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
 
 
 
-    private PageLite.Callback rbLiteOnLoadCallback = new PageLite.Callback() {
+    private PageCombo.Callback rbComboOnLoadCallback = new PageCombo.Callback() {
         @Override
-        public void success(PageLite pageLite, Response response) {
+        public void success(PageCombo pageCombo, Response response) {
             if (!isAdded()) {
                 return;
             }
@@ -561,6 +562,7 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
             storyList.setVisibility(View.VISIBLE);
 
 
+            RbPageCombo combo = (RbPageCombo) pageCombo;
 
 
             List<PageStoryItem> storyItems = new ArrayList<>();
@@ -568,7 +570,10 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
             storyItems.add(new PageStoryHeading(PageFragmentLite.this,
                     Html.fromHtml(model.getTitle().getDisplayText()).toString()));
 
-            for (Section section : pageLite.getSectionsLite()) {
+            for (Section section : combo.getSections()) {
+                if (section.getItems() == null || section.getItems().size() == 0) {
+                    continue;
+                }
                 if (!TextUtils.isEmpty(section.getHeading())) {
                     storyItems.add(new PageStoryHeading(PageFragmentLite.this, section.getHeading()));
                 }
@@ -585,7 +590,8 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
                         }
                     }
                     else if (item.getType().equals("image")) {
-                        storyItems.add(new PageStoryImage(PageFragmentLite.this, item.getName(), item.getSrc(), item.getCaption()));
+                        storyItems.add(new PageStoryImage(PageFragmentLite.this, item.getName(),
+                                item.getSrc(), item.getCaption(), combo.getMedia()));
                     }
                 }
             }

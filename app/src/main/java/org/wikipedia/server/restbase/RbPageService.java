@@ -97,22 +97,6 @@ public class RbPageService implements PageService {
         });
     }
 
-    @Override
-    public void pageLite(String title, boolean noImages, final RbPageLite.Callback cb) {
-        webService.pageLite(title, optional(noImages), new Callback<RbPageLite>() {
-            @Override
-            public void success(RbPageLite pageLite, Response response) {
-                cb.success(pageLite, response);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                RbSwitch.INSTANCE.onRbRequestFailed(error);
-                cb.failure(error);
-            }
-        });
-    }
-
     /**
      * Optional boolean Retrofit parameter.
      * We don't want to send the query parameter at all when it's false since the presence of the parameter
@@ -145,7 +129,7 @@ public class RbPageService implements PageService {
          * @param noImages add the noimages flag to the request if true
          * @param cb a Retrofit callback which provides the populated RbPageLead object in #success
          */
-        @GET("/page/mobile-sections-lead/{title}")
+        @GET("/page/mobile-sections-lite-lead/{title}")
         void pageLead(@Path("title") String title, @Query("noimages") Boolean noImages,
                       Callback<RbPageLead> cb);
 
@@ -156,7 +140,7 @@ public class RbPageService implements PageService {
          * @param noImages add the noimages flag to the request if true
          * @param cb a Retrofit callback which provides the populated RbPageRemaining object in #success
          */
-        @GET("/page/mobile-sections-remaining/{title}")
+        @GET("/page/mobile-sections-lite-remaining/{title}")
         void pageRemaining(@Path("title") String title, @Query("noimages") Boolean noImages,
                            Callback<RbPageRemaining> cb);
 
@@ -168,19 +152,8 @@ public class RbPageService implements PageService {
          * @param noImages add the noimages flag to the request if true
          * @param cb a Retrofit callback which provides the populated RbPageCombo object in #success
          */
-        @GET("/page/mobile-sections/{title}")
+        @GET("/page/mobile-sections-lite/{title}")
         void pageCombo(@Path("title") String title, @Query("noimages") Boolean noImages,
                        Callback<RbPageCombo> cb);
-
-        /**
-         * Gets all page content of a given title -- Lite style.
-         *
-         * @param title the page title to be used including prefix
-         * @param noImages add the noimages flag to the request if true
-         * @param cb a Retrofit callback which provides the populated RbPageCombo object in #success
-         */
-        @GET("/page/mobile-text/{title}")
-        void pageLite(@Path("title") String title, @Query("noimages") Boolean noImages,
-                       Callback<RbPageLite> cb);
     }
 }

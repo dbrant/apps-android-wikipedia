@@ -45,6 +45,7 @@ public class RbPageLead implements PageLead, PageLeadProperties {
     @Expose @Nullable private Image image;
     @Expose @Nullable private Protection protection;
     @Expose @Nullable private List<Section> sections;
+    @Expose @Nullable private Media media;
 
     private transient int leadImageThumbWidth;
 
@@ -175,6 +176,11 @@ public class RbPageLead implements PageLead, PageLeadProperties {
         return sections;
     }
 
+    @Nullable
+    public Media getMedia() {
+        return media;
+    }
+
     public void setLeadImageThumbWidth(int leadImageThumbWidth) {
         this.leadImageThumbWidth = leadImageThumbWidth;
     }
@@ -234,6 +240,31 @@ public class RbPageLead implements PageLead, PageLeadProperties {
         }
     }
 
+    public static class Media {
+        @Expose private List<MediaItem> items;
+        public List<MediaItem> getItems() {
+            return items;
+        }
+    }
+
+    public static class MediaItem {
+        @Expose private String title;
+        @Expose private String url;
+        @Expose private int width;
+        @Expose private int height;
+        public String getTitle() {
+            return title;
+        }
+        public String getUrl() {
+            return url;
+        }
+        public int getWidth() {
+            return width;
+        }
+        public int getHeight() {
+            return height;
+        }
+    }
 
     /**
      * Protection settings for this page
