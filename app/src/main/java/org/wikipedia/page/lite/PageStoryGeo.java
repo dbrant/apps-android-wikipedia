@@ -29,7 +29,7 @@ public class PageStoryGeo extends PageStoryItem {
     @Override
     public View renderIntoView(LayoutInflater inflater, ViewGroup container, LinkMovementMethod lmm) {
         View rootView = inflater.inflate(R.layout.item_page_story_geo, container, false);
-        MapView mapView = (MapView) rootView.findViewById(R.id.mapview);
+        final MapView mapView = (MapView) rootView.findViewById(R.id.mapview);
 
         mapView.setAccessToken(inflater.getContext().getString(R.string.mapbox_public_token));
         mapView.onCreate(null);
@@ -39,7 +39,7 @@ public class PageStoryGeo extends PageStoryItem {
             markerIconPassive = mapView.getSpriteFactory().fromResource(R.drawable.ic_map_marker);
         }
 
-        LatLngZoom pos = new LatLngZoom(latitude, longitude, 10.0);
+        LatLngZoom pos = new LatLngZoom(latitude, longitude, 12.0);
         mapView.setCenterCoordinate(pos, true);
 
         mapView.removeAllAnnotations();
@@ -50,6 +50,22 @@ public class PageStoryGeo extends PageStoryItem {
                 .icon(markerIconPassive);
         mapView.addMarker(options);
 
+        mapView.setLogoVisibility(View.GONE);
+        mapView.post(new Runnable() {
+            @Override
+            public void run() {
+                setMapViewLogoEnabled(mapView, false);
+            }
+        });
+
         return rootView;
+    }
+
+    private void setMapViewLogoEnabled(MapView mapview, boolean enabled) {
+        mapview.removeViewAt(1);
+        mapview.removeViewAt(2);
+        if (mapview.getChildCount() > 2) {
+            mapview.removeViews(1, 2);
+        }
     }
 }
