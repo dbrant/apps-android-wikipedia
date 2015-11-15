@@ -4,6 +4,9 @@ import android.support.annotation.Nullable;
 
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.page.Section;
+
+import java.util.List;
 
 import retrofit.RetrofitError;
 import retrofit.client.Response;
@@ -23,6 +26,8 @@ public interface PageLead {
     Page toPage(PageTitle title);
 
     String getLeadSectionContent();
+
+    List<Section> getSections();
 
     @Nullable
     String getTitlePronunciationUrl();

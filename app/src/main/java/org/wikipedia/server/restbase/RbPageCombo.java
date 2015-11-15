@@ -3,12 +3,16 @@ package org.wikipedia.server.restbase;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.page.Section;
 import org.wikipedia.server.PageCombo;
 import org.wikipedia.util.log.L;
 
 import com.google.gson.annotations.Expose;
 
 import android.support.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -57,6 +61,22 @@ public class RbPageCombo implements PageCombo {
     @Override
     public String getLeadSectionContent() {
         return lead != null ? lead.getLeadSectionContent() : "";
+    }
+
+    @Override
+    public List<Section> getSections() {
+        List<Section> sections = new ArrayList<>();
+        if (lead != null && lead.getSections() != null) {
+            sections.addAll(lead.getSections());
+        }
+        if (remaining != null && remaining.getSections() != null) {
+            sections.addAll(remaining.getSections());
+        }
+        return sections;
+    }
+
+    public RbPageLead.Media getMedia() {
+        return  lead != null ? lead.getMedia() : null;
     }
 
     @Override
