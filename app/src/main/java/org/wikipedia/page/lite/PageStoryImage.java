@@ -38,7 +38,6 @@ public class PageStoryImage extends PageStoryItem {
     private final String fileName;
     private final String caption;
     private final RbPageLead.Media media;
-    private PhotoViewAttacher attacher;
 
     public PageStoryImage(PageFragmentBase parent, String fileName, String thumbUrl, String caption,
                           RbPageLead.Media media) {
@@ -60,22 +59,11 @@ public class PageStoryImage extends PageStoryItem {
     public View renderIntoView(final LayoutInflater inflater, ViewGroup container, LinkMovementMethod lmm) {
         View rootView = inflater.inflate(R.layout.item_page_story_image, container, false);
         final ImageView image = (ImageView) rootView.findViewById(R.id.page_image);
-        TextView imageCaption = (TextView) rootView.findViewById(R.id.page_image_caption);
+        final TextView imageCaption = (TextView) rootView.findViewById(R.id.page_image_caption);
 
         imageCaption.setText(Html.fromHtml(caption));
         imageCaption.setMovementMethod(lmm);
-
-        if (attacher != null) {
-            attacher.cleanup();
-        }
-        attacher = new PhotoViewAttacher(image);
-        attacher.setOnViewTapListener(new PhotoViewAttacher.OnViewTapListener() {
-            @Override
-            public void onViewTap(View view, float v, float v2) {
-                ((PageFragmentLite) parentFragment).onImageClicked(fileName);
-            }
-        });
-
+        imageCaption.setVisibility(TextUtils.isEmpty(caption) ? View.GONE : View.VISIBLE);
         image.setOnClickListener(onClickListener);
 
         boolean mediaFound = false;
@@ -83,7 +71,6 @@ public class PageStoryImage extends PageStoryItem {
             for (RbPageLead.MediaItem item : media.getItems()) {
                 if (("/wiki/" + item.getTitle()).equals(fileName.replace("_", " "))) {
                     mediaFound = true;
-                    final float aspect = item.getHeight() > 0 ? (float) item.getWidth() / (float) item.getHeight() : 1;
                     PageTitle imageTitle = parentFragment.getTitleOriginal().getSite().titleForInternalLink(fileName);
                     new GalleryItemFetchTask(WikipediaApp.getInstance().getPrimarySiteApi(), imageTitle.getSite(), imageTitle, false) {
                         @Override
@@ -91,7 +78,7 @@ public class PageStoryImage extends PageStoryItem {
                             if (result.size() > 0) {
                                 GalleryItem galleryItem = (GalleryItem) result.values().toArray()[0];
                                 if (!TextUtils.isEmpty(galleryItem.getThumbUrl())) {
-                                    loadImage(inflater.getContext(), image, galleryItem.getThumbUrl(), aspect);
+                                    loadImage(inflater.getContext(), image, galleryItem.getThumbUrl());
                                 }
                             }
                         }
@@ -109,57 +96,23 @@ public class PageStoryImage extends PageStoryItem {
 
         if (!mediaFound) {
             Log.d("Wikipedia", ">>>>>>>>> Image not found: " + fileName);
-            loadImage(inflater.getContext(), image, thumbUrl, 1f);
+            loadImage(inflater.getContext(), image, WikipediaApp.getInstance().getNetworkProtocol() + ":" + thumbUrl);
         }
         return rootView;
     }
 
-    private void loadImage(Context context, final ImageView targetView, String url, final float aspect) {
+    private void loadImage(Context context, final ImageView targetView, String url) {
         if (WikipediaApp.getInstance().isImageDownloadEnabled() && !TextUtils.isEmpty(url)) {
             Picasso.with(context)
                     .load(url)
                     .placeholder(R.drawable.lead_default)
                     .error(R.drawable.lead_default)
-                    .into(targetView, new Callback() {
-                        @Override
-                        public void onSuccess() {
-                            attacher.update();
-                            attacher.setZoomable(true);
-                            scaleImageToWindow(targetView, aspect);
-                        }
-
-                        @Override
-                        public void onError() {
-                        }
-                    });
+                    .into(targetView);
         } else {
             Picasso.with(context)
                     .load(R.drawable.lead_default)
-                    .into(targetView, new Callback() {
-                        @Override
-                        public void onSuccess() {
-                            attacher.update();
-                            attacher.setZoomable(false);
-                            scaleImageToWindow(targetView, aspect);
-                        }
-
-                        @Override
-                        public void onError() {
-                        }
-                    });
+                    .into(targetView);
         }
     }
 
-    private void scaleImageToWindow(ImageView view, float aspect) {
-        if (view.getWidth() == 0 || view.getHeight() == 0) {
-            return;
-        }
-        float windowAspect = (float) view.getWidth()
-                / (float) view.getHeight();
-        if (windowAspect > aspect) {
-            attacher.setScale(windowAspect / aspect);
-        } else {
-            attacher.setScale(aspect / windowAspect);
-        }
-    }
 }

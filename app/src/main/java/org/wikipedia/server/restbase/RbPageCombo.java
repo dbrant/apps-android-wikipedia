@@ -79,6 +79,10 @@ public class RbPageCombo implements PageCombo {
         return  lead != null ? lead.getMedia() : null;
     }
 
+    public RbPageLead.Geo getGeo() {
+        return  lead != null ? lead.getGeo() : null;
+    }
+
     @Override
     @Nullable
     public String getTitlePronunciationUrl() {
