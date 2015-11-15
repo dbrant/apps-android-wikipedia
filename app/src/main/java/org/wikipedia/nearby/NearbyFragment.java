@@ -12,15 +12,12 @@ import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.PermissionUtil;
 import org.wikipedia.util.log.L;
 
-import com.mapbox.mapboxsdk.events.MapListener;
-import com.mapbox.mapboxsdk.events.RotateEvent;
-import com.mapbox.mapboxsdk.events.ScrollEvent;
-import com.mapbox.mapboxsdk.events.ZoomEvent;
+import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.annotations.Sprite;
+import com.mapbox.mapboxsdk.constants.MyLocationTracking;
 import com.mapbox.mapboxsdk.geometry.LatLng;
-import com.mapbox.mapboxsdk.overlay.Icon;
-import com.mapbox.mapboxsdk.overlay.Marker;
-import com.mapbox.mapboxsdk.overlay.UserLocationOverlay;
-import com.mapbox.mapboxsdk.tileprovider.tilesource.WebSourceTileLayer;
+import com.mapbox.mapboxsdk.geometry.LatLngZoom;
 import com.mapbox.mapboxsdk.views.MapView;
 import com.squareup.picasso.Picasso;
 
@@ -31,11 +28,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.graphics.PointF;
 import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -49,7 +42,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.util.Log;
@@ -93,12 +85,13 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     private static final int GO_TO_LOCATION_PERMISSION_REQUEST = 51;
 
     private final List<Marker> mMarkerList = new ArrayList<>();
+
     private View nearbyListContainer;
     private ListView nearbyList;
     private MapView mapView;
     private NearbyAdapter adapter;
-    private Icon mMarkerIconPassive;
-    private Icon mMarkerIconActive;
+
+    private Sprite markerIconPassive;
 
     private WikipediaApp app;
     private Site site;
@@ -130,6 +123,8 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     //whether to display distances in imperial units (feet/miles) instead of metric
     private boolean showImperial = false;
 
+    private boolean firstLocationLock = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,12 +142,12 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
 
         nearbyList = (ListView) rootView.findViewById(R.id.nearby_list);
         mapView = (MapView) rootView.findViewById(R.id.mapview);
+        mapView.setAccessToken(getString(R.string.mapbox_public_token));
+        mapView.onCreate(savedInstanceState);
+
         rootView.findViewById(R.id.user_location_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // don't change zoom level: https://github.com/mapbox/mapbox-android-sdk/issues/453
-                mapView.setUserLocationRequiredZoom(mapView.getZoomLevel());
-
                 checkLocationPermissionsToGoToUserLocation();
             }
         });
@@ -185,8 +180,6 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         compassViews = new ArrayList<>();
-        mMarkerIconPassive = makeMarkerIcon(false);
-        mMarkerIconActive = makeMarkerIcon(true);
 
         if (!adapter.isEmpty()) {
             setupGeomagneticField();
@@ -233,7 +226,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     @Override
     public void onResume() {
         super.onResume();
-        mapView.setUserLocationEnabled(true);
+        mapView.setMyLocationEnabled(true);
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_UI);
         mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_UI);
     }
@@ -241,49 +234,50 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     @Override
     public void onPause() {
         super.onPause();
-        mapView.setUserLocationEnabled(false);
+        mapView.setMyLocationEnabled(false);
         mSensorManager.unregisterListener(this);
         compassViews.clear();
     }
 
     private void initializeMap() {
-        WebSourceTileLayer tileSource = new WebSourceTileLayer(
-                "openstreetmap",
-                getString(R.string.map_tile_source_url),
-                true
-        );
+        mapView.setStyleUrl("asset://mapstyle.json");
+        mapView.setMyLocationTrackingMode(MyLocationTracking.TRACKING_NONE);
+        markerIconPassive = mapView.getSpriteFactory().fromResource(R.drawable.ic_map_marker);
 
-        mapView.setBubbleEnabled(false);
-        mapView.setDiskCacheEnabled(true);
-        mapView.setTileSource(tileSource);
-        mapView.setZoom(getResources().getInteger(R.integer.map_default_zoom));
-        mapView.setUserLocationTrackingMode(UserLocationOverlay.TrackingMode.FOLLOW_BEARING);
-
-        mapView.setMapViewListener(new DefaultMapViewListener() {
+        mapView.setOnMyLocationChangeListener(new MapView.OnMyLocationChangeListener() {
             @Override
-            public void onTapMarker(MapView mapView, Marker marker) {
-                highlightMarker(marker);
-                int index = adapter.getPosition((NearbyPage) marker.getRelatedObject());
-                if (index == -1) {
-                    return;
+            public void onMyLocationChange(@Nullable Location location) {
+                makeUseOfNewLocation(location);
+                if (!firstLocationLock) {
+                    goToUserLocation();
+                    firstLocationLock = true;
                 }
-                nearbyList.setSelection(index);
             }
         });
 
-        mapView.addListener(new MapListener() {
+        mapView.setOnScrollListener(new MapView.OnScrollListener() {
             @Override
-            public void onScroll(ScrollEvent scrollEvent) {
+            public void onScroll() {
                 fetchNearbyPages();
             }
+        });
 
+        mapView.setOnMarkerClickListener(new MapView.OnMarkerClickListener() {
             @Override
-            public void onZoom(ZoomEvent zoomEvent) {
-                fetchNearbyPages();
-            }
-
-            @Override
-            public void onRotate(RotateEvent rotateEvent) {
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                //highlightMarker(marker);
+                //int index = adapter.getPosition((NearbyPage) marker.getRelatedObject());
+                //if (index == -1) {
+                //    return;
+                //}
+                //nearbyList.setSelection(index);
+                for (NearbyPage page : lastResult.getList()) {
+                    if (page.getTitle().equals(marker.getTitle())) {
+                        PageTitle title = new PageTitle(page.getTitle(), site, page.getThumblUrl());
+                        ((PageActivity) getActivity()).showLinkPreview(title, HistoryEntry.SOURCE_NEARBY);
+                    }
+                }
+                return true;
             }
         });
     }
@@ -293,7 +287,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestLocationRuntimePermissions(INITIAL_LOCATION_PERMISSION_REQUEST);
         } else {
-            requestLocation();
+            goToUserLocation();
         }
     }
 
@@ -318,7 +312,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
         switch (requestCode) {
             case INITIAL_LOCATION_PERMISSION_REQUEST:
                 if (PermissionUtil.isPermitted(grantResults)) {
-                    requestLocation();
+                    goToUserLocation();
                 } else {
                     setRefreshingState(false);
                     FeedbackUtil.showMessage(getActivity(), R.string.nearby_zoom_to_location);
@@ -326,7 +320,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
                 break;
             case GO_TO_LOCATION_PERMISSION_REQUEST:
                 if (PermissionUtil.isPermitted(grantResults)) {
-                    mapView.goToUserLocation(true);
+                    goToUserLocation();
                 } else {
                     setRefreshingState(false);
                     FeedbackUtil.showMessage(getActivity(), R.string.nearby_zoom_to_location);
@@ -337,58 +331,17 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
         }
     }
 
-    private void requestLocation() {
-        if (mapView.getUserLocationOverlay() == null) {
-            return;
-        }
-        mapView.getUserLocationOverlay().runOnFirstFix(new Runnable() {
-            @Override
-            public void run() {
-                if (!isResumed()) {
-                    return;
-                }
-                // TODO: need to ensure that the following lines will be called eventually;
-                // even in the case where the app goes to the background right when this fragment
-                // is created.
-                currentLocation = mapView.getUserLocationOverlay().getLastFix();
-                makeUseOfNewLocation(currentLocation);
-                fetchNearbyPages();
-            }
-        });
-    }
-
     private void goToUserLocation() {
-        mapView.goToUserLocation(true);
-    }
-
-    private Icon makeMarkerIcon(boolean isActive) {
-        int iconSize = (int) getResources().getDimension(R.dimen.map_marker_icon_size);
-        Bitmap bmp = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        Paint paint = new Paint();
-        paint.setAntiAlias(true);
-        Drawable d;
-        if (isActive) {
-            paint.setColor(getResources().getColor(R.color.blue_liberal));
-            int circleSize = bmp.getWidth() / 2;
-            canvas.drawCircle(circleSize, circleSize, circleSize, paint);
-
-            Drawable drawable = ContextCompat.getDrawable(getActivity(), R.drawable.ic_place_dark);
-            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-            d = new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(bitmap,
-                    iconSize, iconSize, true));
-            d = DrawableCompat.wrap(d).mutate();
-            DrawableCompat.setTint(d, getResources().getColor(R.color.blue_liberal));
-
-        } else {
-            paint.setColor(getResources().getColor(R.color.green_progressive));
-            int circleSize = bmp.getWidth() / 2;
-            canvas.drawCircle(circleSize, circleSize, circleSize / 2, paint);
-            d = new BitmapDrawable(getResources(), bmp);
+        Location location = mapView.getMyLocation();
+        if (location != null) {
+            LatLngZoom pos = new LatLngZoom(location.getLatitude(), location.getLongitude(),
+                    getResources().getInteger(R.integer.map_default_zoom));
+            mapView.setCenterCoordinate(pos, true);
         }
-        return new Icon(d);
+        fetchNearbyPages();
     }
 
+    /*
     private void highlightMarker(Marker marker) {
         for (Marker m : mMarkerList) {
             if (m.equals(marker)) {
@@ -400,6 +353,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
             }
         }
     }
+    */
 
     private void showDialogForSettings() {
         AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
@@ -446,7 +400,8 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
             if (!isResumed()) {
                 return;
             }
-            LatLng latLng = mapView.getCenter();
+
+            LatLng latLng = mapView.getCenterCoordinate();
             setRefreshingState(true);
             new NearbyFetchTask(getActivity(), site, latLng.getLatitude(), latLng.getLongitude(), getMapRadius()) {
                 @Override
@@ -473,17 +428,19 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     };
 
     private double getMapRadius() {
-        LatLng leftTop = new LatLng(mapView.getBoundingBox().getLatNorth(), mapView.getBoundingBox().getLonWest());
-        LatLng rightTop = new LatLng(mapView.getBoundingBox().getLatNorth(), mapView.getBoundingBox().getLonEast());
-        LatLng leftBottom = new LatLng(mapView.getBoundingBox().getLatSouth(), mapView.getBoundingBox().getLonWest());
+        LatLng leftTop = mapView.fromScreenLocation(new PointF(0.0f, 0.0f));
+        LatLng rightTop = mapView.fromScreenLocation(new PointF(mapView.getWidth(), 0.0f));
+        LatLng leftBottom = mapView.fromScreenLocation(new PointF(0.0f, mapView.getHeight()));
         double width = leftTop.distanceTo(rightTop);
         double height = leftTop.distanceTo(leftBottom);
-        return Math.min(width, height) / 2;
+        return Math.max(width, height) / 2;
     }
 
     /** Updates geomagnetic field data, to give us our precise declination from true north. */
     private void setupGeomagneticField() {
-        geomagneticField = new GeomagneticField((float)currentLocation.getLatitude(), (float)currentLocation.getLongitude(), 0, (new Date()).getTime());
+        if (currentLocation != null) {
+            geomagneticField = new GeomagneticField((float) currentLocation.getLatitude(), (float) currentLocation.getLongitude(), 0, (new Date()).getTime());
+        }
     }
 
     /** Determines whether one Location reading is better than the current Location fix.
@@ -552,19 +509,24 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
         addResultsToAdapter(result.getList());
         compassViews.clear();
         mMarkerList.clear();
-        mapView.clear();
-        nearbyListContainer.setVisibility(adapter.isEmpty() ? View.GONE : View.VISIBLE);
+        mapView.removeAllAnnotations();
+
+        List<MarkerOptions> optionsList = new ArrayList<>();
+
+        //nearbyListContainer.setVisibility(adapter.isEmpty() ? View.GONE : View.VISIBLE);
+
         for (int i = 0; i < adapter.getCount(); i++) {
             NearbyPage item = adapter.getItem(i);
             Location location = item.getLocation();
-            Marker marker = new Marker(mapView, item.getTitle(), item.getDescription(),
-                    new LatLng(location.getLatitude(), location.getLongitude()));
-            marker.setIcon(mMarkerIconPassive);
-            marker.setRelatedObject(item);
-            marker.setHotspot(Marker.HotspotPlace.BOTTOM_CENTER);
-            mMarkerList.add(marker);
+            if (location != null) {
+                MarkerOptions options = new MarkerOptions()
+                        .position(new LatLng(location.getLatitude(), location.getLongitude()))
+                        .title(item.getTitle())
+                        .icon(markerIconPassive);
+                optionsList.add(options);
+            }
         }
-        mapView.addMarkers(mMarkerList);
+        mMarkerList.addAll(mapView.addMarkers(optionsList));
     }
 
     private void addResultsToAdapter(List<NearbyPage> result) {
@@ -667,6 +629,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
     }
 
 
+    /*
     private View.OnClickListener markerClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -688,6 +651,7 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
         }
         return result;
     }
+    */
 
     private View.OnLongClickListener markerLongClickListener = new View.OnLongClickListener() {
         @Override
@@ -736,7 +700,13 @@ public class NearbyFragment extends Fragment implements SensorEventListener {
             }
 
             viewHolder.markerButton.setTag(nearbyPage);
-            viewHolder.markerButton.setOnClickListener(markerClickListener);
+
+
+            //TODO
+            //viewHolder.markerButton.setOnClickListener(markerClickListener);
+
+
+
             viewHolder.markerButton.setOnLongClickListener(markerLongClickListener);
 
             viewHolder.thumbnail.setMaskColor(getResources().getColor(getThemedAttributeId(getActivity(), R.attr.page_background_color)));

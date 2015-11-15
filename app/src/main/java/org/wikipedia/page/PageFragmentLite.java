@@ -21,6 +21,7 @@ import org.wikipedia.page.gallery.GalleryActivity;
 import org.wikipedia.page.leadimages.LeadImagesHandler;
 import org.wikipedia.page.linkpreview.LinkPreviewContents;
 import org.wikipedia.page.lite.LinkHandlerLite;
+import org.wikipedia.page.lite.PageStoryGeo;
 import org.wikipedia.page.lite.PageStoryHatnote;
 import org.wikipedia.page.lite.PageStoryHeading;
 import org.wikipedia.page.lite.PageStoryImage;
@@ -569,6 +570,10 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
 
             storyItems.add(new PageStoryHeading(PageFragmentLite.this,
                     Html.fromHtml(model.getTitle().getDisplayText()).toString()));
+
+            if (combo.getGeo() != null) {
+                storyItems.add(new PageStoryGeo(PageFragmentLite.this, combo.getGeo().getLatitude(), combo.getGeo().getLongitude()));
+            }
 
             for (Section section : combo.getSections()) {
                 if (section.getItems() == null || section.getItems().size() == 0) {

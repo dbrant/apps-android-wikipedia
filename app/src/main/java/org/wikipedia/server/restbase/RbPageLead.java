@@ -47,6 +47,7 @@ public class RbPageLead implements PageLead, PageLeadProperties {
     @Expose @Nullable private Protection protection;
     @Expose @Nullable private List<Section> sections;
     @Expose @Nullable private Media media;
+    @Expose @Nullable private Geo geo;
 
     private transient int leadImageThumbWidth;
 
@@ -187,6 +188,11 @@ public class RbPageLead implements PageLead, PageLeadProperties {
         return media;
     }
 
+    @Nullable
+    public Geo getGeo() {
+        return geo;
+    }
+
     public void setLeadImageThumbWidth(int leadImageThumbWidth) {
         this.leadImageThumbWidth = leadImageThumbWidth;
     }
@@ -243,6 +249,17 @@ public class RbPageLead implements PageLead, PageLeadProperties {
                 default:
                     return null;
             }
+        }
+    }
+
+    public static class Geo {
+        @Expose private float latitude;
+        @Expose private float longitude;
+        public float getLatitude() {
+            return latitude;
+        }
+        public float getLongitude() {
+            return longitude;
         }
     }
 
