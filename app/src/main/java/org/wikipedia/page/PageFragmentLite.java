@@ -609,6 +609,7 @@ public class PageFragmentLite extends PageFragmentBase implements BackPressedHan
 
             storyListAdapter.setStoryItems(storyItems);
             storyListAdapter.notifyDataSetInvalidated();
+            storyList.scrollTo(0, 0);
 
             onPageLoadComplete();
         }
