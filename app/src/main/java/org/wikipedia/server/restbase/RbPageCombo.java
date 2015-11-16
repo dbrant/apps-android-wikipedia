@@ -76,11 +76,15 @@ public class RbPageCombo implements PageCombo {
     }
 
     public RbPageLead.Media getMedia() {
-        return  lead != null ? lead.getMedia() : null;
+        return lead != null ? lead.getMedia() : null;
     }
 
     public RbPageLead.Geo getGeo() {
-        return  lead != null ? lead.getGeo() : null;
+        return lead != null ? lead.getGeo() : null;
+    }
+
+    public RbPageLead.Image getImage() {
+        return lead != null ? lead.getImage() : null;
     }
 
     @Override

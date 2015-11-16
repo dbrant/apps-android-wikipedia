@@ -9,13 +9,11 @@
         android:layout_gravity="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:padding="16dp">
-        <LinearLayout
+        android:layout_margin="8dp">
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="8dp">
+            android:layout_margin="8dp">
             <ImageView
                 android:id="@+id/page_image"
                 android:layout_width="match_parent"
@@ -23,16 +21,24 @@
                 android:contentDescription="@null"
                 android:src="?attr/lead_image_drawable"
                 android:scaleType="centerCrop"/>
+            <View
+                android:id="@+id/page_title_gradient"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:layout_gravity="bottom"
+                />
             <TextView
-                android:id="@+id/page_image_caption"
+                android:id="@+id/page_title_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:textColorLink="?attr/link_color"
-                android:textSize="12sp"
+                android:layout_gravity="bottom"
+                android:padding="16dp"
+                android:textColor="@android:color/white"
+                android:textSize="24sp"
+                android:fontFamily="serif"
                 android:textIsSelectable="true"
-                tools:text="Caption text"
+                tools:text="Heading text"
                 />
-        </LinearLayout>
+        </FrameLayout>
     </android.support.v7.widget.CardView>
 </LinearLayout>

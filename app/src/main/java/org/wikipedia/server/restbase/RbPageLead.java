@@ -203,6 +203,11 @@ public class RbPageLead implements PageLead, PageLeadProperties {
         }
     }
 
+    @Nullable
+    public Image getImage() {
+        return image;
+    }
+
     /**
      * For the lead image File: page name
      */
