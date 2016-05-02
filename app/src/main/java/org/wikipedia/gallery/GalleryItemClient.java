@@ -19,7 +19,7 @@ import retrofit2.Response;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
-class GalleryItemClient {
+public class GalleryItemClient {
 
     public interface Callback {
         void success(@NonNull Call<MwQueryResponse> call, @NonNull GalleryItem result);

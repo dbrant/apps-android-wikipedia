@@ -29,6 +29,7 @@ import org.wikipedia.offline.OfflineManager;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.readinglist.AddToReadingListDialog;
 import org.wikipedia.util.DeviceUtil;
+import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.GoneIfEmptyTextView;
@@ -59,6 +60,7 @@ public class SearchResultsFragment extends Fragment {
         void onSearchProgressBar(boolean enabled);
         void navigateToTitle(@NonNull PageTitle item, boolean inNewTab, int position);
         void setSearchText(@NonNull CharSequence text);
+        void showWikidataInfoBox(@NonNull PageTitle title);
         @NonNull SearchFunnel getFunnel();
     }
 
@@ -513,6 +515,12 @@ public class SearchResultsFragment extends Fragment {
             ViewUtil.loadImageUrlInto((SimpleDraweeView) convertView.findViewById(R.id.page_list_item_image),
                     result.getPageTitle().getThumbUrl());
 
+
+            View infoButton = convertView.findViewById(R.id.info_button);
+            infoButton.setTag(position);
+            FeedbackUtil.setToolbarButtonLongPressToast(infoButton);
+            infoButton.setOnClickListener(infoClickListener);
+
             // ...and lastly, if we've scrolled to the last item in the list, then
             // continue searching!
             if (position == (totalResults.size() - 1) && DeviceUtil.isOnline()) {
@@ -539,6 +547,13 @@ public class SearchResultsFragment extends Fragment {
             }
             return -1;
         }
+
+        private View.OnClickListener infoClickListener = view -> {
+            SearchResult result = (SearchResult) getItem((int) view.getTag());
+            if (callback() != null) {
+                callback().showWikidataInfoBox(result.getPageTitle());
+            }
+        };
     }
 
     private void cache(@NonNull List<SearchResult> resultList, @NonNull String searchTerm) {

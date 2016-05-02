@@ -56,6 +56,7 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         void onSearchResultAddToList(@NonNull PageTitle title,
                                      @NonNull AddToReadingListDialog.InvokeSource source);
         void onSearchResultShareLink(@NonNull PageTitle title);
+        void showWikidataInfoBox(@NonNull PageTitle title);
     }
 
     private static final String ARG_INVOKE_SOURCE = "invokeSource";
@@ -209,6 +210,13 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
     @Override
     public void setSearchText(@NonNull CharSequence text) {
         searchView.setQuery(text, false);
+    }
+
+    @Override
+    public void showWikidataInfoBox(@NonNull PageTitle title) {
+        if (callback() != null) {
+            callback().showWikidataInfoBox(title);
+        }
     }
 
     /**

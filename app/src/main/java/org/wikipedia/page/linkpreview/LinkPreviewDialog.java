@@ -60,6 +60,7 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         void onLinkPreviewCopyLink(@NonNull PageTitle title);
         void onLinkPreviewAddToList(@NonNull PageTitle title);
         void onLinkPreviewShareLink(@NonNull PageTitle title);
+        void showWikidataInfoBox(@NonNull PageTitle title);
     }
 
     private boolean navigateSuccess = false;
@@ -108,6 +109,12 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         progressBar = rootView.findViewById(R.id.link_preview_progress);
         toolbarView = rootView.findViewById(R.id.link_preview_toolbar);
         toolbarView.setOnClickListener(goToPageListener);
+        View infoButton = rootView.findViewById(R.id.info_button);
+        infoButton.setOnClickListener(view -> {
+            if (callback() != null) {
+                callback().showWikidataInfoBox(pageTitle);
+            }
+        });
 
         titleText = rootView.findViewById(R.id.link_preview_title);
         setConditionalLayoutDirection(rootView, pageTitle.getWikiSite().languageCode());
