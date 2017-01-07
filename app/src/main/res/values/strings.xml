@@ -347,6 +347,10 @@
     <string name="view_announcement_card_negative_action">No thanks</string>
     <!-- /The Feed -->
 
+    <!-- Offline -->
+    <string name="offline_menu_label">Go offline</string>
+    <!-- /Offline -->
+
     <!-- Description editing -->
     <string name="description_edit_header">Editing</string>
     <string name="description_edit_text_hint">Write a description!</string>
