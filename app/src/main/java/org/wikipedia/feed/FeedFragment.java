@@ -32,6 +32,7 @@ import org.wikipedia.feed.view.FeedAdapter;
 import org.wikipedia.feed.view.FeedView;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.login.LoginActivity;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.settings.Prefs;
 import org.wikipedia.settings.SettingsActivity;
 import org.wikipedia.util.FeedbackUtil;
@@ -369,6 +370,11 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
                     Uri.parse(String.format(getString(R.string.donate_url),
                             BuildConfig.VERSION_NAME,
                             WikipediaApp.getInstance().getSystemLanguageCode())));
+        }
+
+        @Override
+        public void offlineClick() {
+            OfflineHelper.goOffline();
         }
 
         @Override
