@@ -374,7 +374,11 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
         @Override
         public void offlineClick() {
-            OfflineHelper.goOffline();
+            if (OfflineHelper.areWeOffline()) {
+                OfflineHelper.goOnline();
+            } else {
+                OfflineHelper.goOffline();
+            }
         }
 
         @Override

@@ -25,10 +25,12 @@ import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.analytics.SearchFunnel;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.readinglist.AddToReadingListDialog;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.StringUtil;
+import org.wikipedia.util.log.L;
 import org.wikipedia.views.GoneIfEmptyTextView;
 import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
@@ -198,8 +200,34 @@ public class SearchResultsFragment extends Fragment {
                 return true;
             }
             final String mySearchTerm = (String) msg.obj;
-            doTitlePrefixSearch(mySearchTerm);
+            if (OfflineHelper.areWeOffline()) {
+                doOfflineSearch(mySearchTerm);
+            } else {
+                doTitlePrefixSearch(mySearchTerm);
+            }
             return true;
+        }
+    }
+
+    private void doOfflineSearch(final String searchTerm) {
+        searchSuggestion.setVisibility(View.GONE);
+        searchErrorView.setVisibility(View.GONE);
+        updateProgressBar(false);
+
+        List<SearchResult> resultList = new ArrayList<>();
+        try {
+            OfflineHelper.startSearch(searchTerm, BATCH_SIZE);
+            for (int i = 0; i < BATCH_SIZE; i++) {
+                String title = OfflineHelper.getNextSearchResult();
+                resultList.add(new SearchResult(new PageTitle(title, app.getWikiSite())));
+            }
+        } catch (Exception e) {
+            L.d(e);
+        }
+
+        if (!resultList.isEmpty()) {
+            clearResults();
+            displayResults(resultList);
         }
     }
 
@@ -552,7 +580,7 @@ public class SearchResultsFragment extends Fragment {
 
             // ...and lastly, if we've scrolled to the last item in the list, then
             // continue searching!
-            if (position == (totalResults.size() - 1)) {
+            if (position == (totalResults.size() - 1) && !OfflineHelper.areWeOffline()) {
                 if (lastFullTextResults == null) {
                     // the first full text search
                     doFullTextSearch(currentSearchTerm, null, false);
