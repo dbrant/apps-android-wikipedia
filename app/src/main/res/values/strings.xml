@@ -333,6 +333,7 @@
 
     <!-- Offline -->
     <string name="offline_menu_label">Go offline</string>
+    <string name="online_menu_label">Go online</string>
     <!-- /Offline -->
 
     <!-- Description editing -->
