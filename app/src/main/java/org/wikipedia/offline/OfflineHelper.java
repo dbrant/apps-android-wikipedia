@@ -1,5 +1,6 @@
 package org.wikipedia.offline;
 
+import android.net.Uri;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 
@@ -26,34 +27,6 @@ public class OfflineHelper {
     public static void goOffline() {
         boolean success = KIWIX.loadZIM(Environment.getExternalStorageDirectory().getAbsolutePath() + "/wp1.0.8.zim");
         offline = true;
-        /*
-        if (success) {
-
-            JNIKiwix.JNIKiwixString suggestion = new JNIKiwix.JNIKiwixString();
-
-            KIWIX.getRandomPage(suggestion);
-            L.d(suggestion.value);
-
-            success = KIWIX.getPageUrlFromTitle("Barack Obama", suggestion);//
-            //KIWIX.getNextSuggestion(suggestion);
-            L.d(suggestion.value);
-
-            JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
-
-            success = KIWIX.getPageUrlFromTitle(suggestion.value, url);
-            //String mimeType = KIWIX.getMimeType(url.value);
-
-            JNIKiwix.JNIKiwixString mimeType = new JNIKiwix.JNIKiwixString();
-            JNIKiwix.JNIKiwixInt contentSize = new JNIKiwix.JNIKiwixInt();
-
-            byte[] bytes = KIWIX.getContent(suggestion.value, mimeType, contentSize);
-
-            L.d(Byte.toString(bytes[0]));
-
-            String html = new String(bytes);
-            L.d(html.substring(1, 5));
-        }
-        */
     }
 
     public static void startSearch(@NonNull String term, int count) {
@@ -91,4 +64,13 @@ public class OfflineHelper {
         return new String(bytes);
     }
 
+    @NonNull public static String getRandomTitle() {
+        JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
+        boolean success = KIWIX.getRandomPage(url);
+        if (!success) {
+            throw new RuntimeException("Failed to get random page.");
+        }
+        Uri uri = Uri.parse(url.value);
+        return uri.getLastPathSegment().replace(".html", "");
+    }
 }

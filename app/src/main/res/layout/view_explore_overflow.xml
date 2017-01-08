@@ -48,7 +48,7 @@
         <TextView
             android:id="@+id/explore_offline"
             style="@style/OverflowMenuItem"
-            android:text="@string/offline_menu_label"/>
+            android:text="@string/offline_go_offline"/>
 
         <TextView
             android:id="@+id/explore_overflow_settings"
