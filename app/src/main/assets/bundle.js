@@ -504,9 +504,11 @@ bridge.registerListener( "displayFromZim", function( payload ) {
 
             // dress up the header node a bit
             zimNodes[i].setAttribute( "dir", window.directionality );
-            zimNodes[i].id = "id_0"; // <<<<<<<<<<<<<<<<<< FIX
+            zimNodes[i].id = "id_0"; // <<<<<<<<<<<<<<<<<< TODO: FIX
             zimNodes[i].className = "section_heading";
             zimNodes[i].setAttribute( 'data-id', sectionIndex );
+
+            // TODO: send back bridge event with list of sections.
 
         }
         currentSectionNode.appendChild(zimNodes[i]);
@@ -557,9 +559,9 @@ function performZimSectionTransforms( sectionIndex, currentSectionNode ) {
     transformer.transform( "addDarkModeStyles", currentSectionNode );
     transformer.transform( "setDivWidth", currentSectionNode );
 
-    //if (sectionIndex > 0) {
-        //transformer.transform( "hideRefs", currentSectionNode );
-    //}
+    if (sectionIndex > 0) {
+        transformer.transform( "hideRefs", currentSectionNode );
+    }
 
     if (!window.isMainPage) {
         transformer.transform( "hideTables", currentSectionNode );
