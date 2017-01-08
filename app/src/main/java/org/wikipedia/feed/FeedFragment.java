@@ -104,9 +104,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                funnel.refresh(coordinator.getAge());
-                coordinator.reset();
-                coordinator.more(app.getWikiSite());
+                refresh();
             }
         });
 
@@ -221,6 +219,12 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         return FragmentUtil.getCallback(this, Callback.class);
     }
 
+    private void refresh() {
+        funnel.refresh(coordinator.getAge());
+        coordinator.reset();
+        coordinator.more(app.getWikiSite());
+    }
+
     private class FeedCallback implements FeedAdapter.Callback {
         @Override
         public void onRequestMore() {
@@ -312,6 +316,11 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         @Override
         public void onAnnouncementNegativeAction(@NonNull Card card) {
             onRequestDismissCard(card);
+        }
+
+        @Override
+        public void onGoOnline() {
+            refresh();
         }
     }
 
