@@ -21,6 +21,7 @@ class FeedCoordinator extends FeedCoordinatorBase {
     @Override
     protected void buildScript(int age) {
         if (offline) {
+
             if (age == 0) {
                 addPendingClient(new SearchClient());
                 addPendingClient(new OfflineClient());
@@ -30,7 +31,9 @@ class FeedCoordinator extends FeedCoordinatorBase {
             if (age == 0) {
                 addPendingClient(new RandomClient());
             }
+
         } else {
+
             if (age == 0) {
                 addPendingClient(new SearchClient());
                 addPendingClient(new AnnouncementClient());
@@ -44,6 +47,7 @@ class FeedCoordinator extends FeedCoordinatorBase {
             if (age == 0) {
                 addPendingClient(new RandomClient());
             }
+
         }
     }
 }
