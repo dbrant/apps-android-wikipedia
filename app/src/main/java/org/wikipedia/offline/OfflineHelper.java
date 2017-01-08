@@ -68,6 +68,12 @@ public class OfflineHelper {
         return title.value;
     }
 
+    public static boolean titleExists(@NonNull String title) {
+        JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
+        boolean success = KIWIX.getPageUrlFromTitle(title, url);
+        return success;
+    }
+
     @NonNull public static String getHtml(@NonNull String title) {
         JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
         boolean success = KIWIX.getPageUrlFromTitle(title, url);

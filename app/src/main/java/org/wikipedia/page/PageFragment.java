@@ -443,7 +443,9 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             return;
         }
         dismissBottomSheet();
-        if (title.namespace() != Namespace.MAIN || !app.isLinkPreviewEnabled()) {
+        if (title.namespace() != Namespace.MAIN
+                || !app.isLinkPreviewEnabled()
+                || OfflineHelper.areWeOffline()) {
             HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
             loadPage(title, historyEntry);
         } else {
