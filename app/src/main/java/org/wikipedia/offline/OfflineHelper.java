@@ -68,4 +68,17 @@ public class OfflineHelper {
         return title.value;
     }
 
+    @NonNull public static String getHtml(@NonNull String title) {
+        JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
+        boolean success = KIWIX.getPageUrlFromTitle(title, url);
+        if (!success) {
+            throw new RuntimeException("Failed to get contents for " + title);
+        }
+
+        JNIKiwix.JNIKiwixString mimeType = new JNIKiwix.JNIKiwixString();
+        JNIKiwix.JNIKiwixInt contentSize = new JNIKiwix.JNIKiwixInt();
+        byte[] bytes = KIWIX.getContent(url.value, mimeType, contentSize);
+        return new String(bytes);
+    }
+
 }
