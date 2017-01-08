@@ -18,10 +18,9 @@ public class OfflineCardView extends DefaultFeedCardView<OfflineCard> {
         super(context);
         inflate(getContext(), R.layout.view_card_offline, this);
         ButterKnife.bind(this);
-        FeedbackUtil.setToolbarButtonLongPressToast(findViewById(R.id.voice_search_button));
     }
 
-    @OnClick(R.id.search_container) void onGoOnlineClick() {
+    @OnClick(R.id.view_offline_action_go_online) void onGoOnlineClick() {
         if (getCallback() != null) {
             getCallback().onGoOnline();
         }
