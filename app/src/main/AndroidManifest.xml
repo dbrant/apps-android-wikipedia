@@ -188,6 +188,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <provider
+            android:name="org.kiwix.kiwixmobile.ZimContentProvider"
+            android:authorities="org.kiwix.zim.base"
+            android:exported="true" />
+
         <receiver
             android:icon="@mipmap/launcher"
             android:label="@string/widget_name_search"

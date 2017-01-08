@@ -11,6 +11,10 @@ public class OfflineHelper {
     private static JNIKiwix KIWIX = new JNIKiwix();
     private static boolean offline;
 
+    public static JNIKiwix kiwix() {
+        return KIWIX;
+    }
+
     public static boolean areWeOffline() {
         return offline;
     }
