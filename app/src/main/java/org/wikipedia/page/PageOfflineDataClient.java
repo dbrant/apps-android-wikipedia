@@ -5,8 +5,6 @@ import android.content.res.Resources;
 import android.os.Build;
 import android.support.annotation.DimenRes;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.View;
@@ -14,27 +12,16 @@ import android.view.ViewGroup;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.mediawiki.api.json.ApiException;
-import org.wikipedia.Constants;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.bridge.CommunicationBridge;
-import org.wikipedia.database.contract.PageImageHistoryContract;
 import org.wikipedia.edit.EditHandler;
-import org.wikipedia.edit.EditSectionActivity;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.login.User;
 import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.bottomcontent.BottomContentHandler;
 import org.wikipedia.page.bottomcontent.BottomContentInterface;
 import org.wikipedia.page.leadimages.LeadImagesHandler;
-import org.wikipedia.pageimages.PageImage;
-import org.wikipedia.pageimages.PageImagesTask;
-import org.wikipedia.savedpages.LoadSavedPageTask;
-import org.wikipedia.server.PageLead;
-import org.wikipedia.server.PageRemaining;
-import org.wikipedia.server.PageServiceFactory;
-import org.wikipedia.server.ServiceError;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.L10nUtil;
@@ -44,13 +31,9 @@ import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-import static org.wikipedia.util.DimenUtil.calculateLeadImageWidth;
 import static org.wikipedia.util.L10nUtil.getStringsForArticleLanguage;
 
 /**
@@ -64,11 +47,6 @@ import static org.wikipedia.util.L10nUtil.getStringsForArticleLanguage;
  * - and many handlers.
  */
 public class PageOfflineDataClient implements PageLoadStrategy {
-    private interface ErrorCallback {
-        void call(@Nullable Throwable error);
-    }
-
-    private static final String BRIDGE_PAYLOAD_SAVED_PAGE = "savedPage";
 
     private boolean loading;
 
@@ -251,7 +229,7 @@ public class PageOfflineDataClient implements PageLoadStrategy {
             public void onMessage(JSONObject payload) {
                 try {
                     stagedScrollY = payload.getInt("stagedScrollY");
-                    loadOnWebViewReady(Cache.valueOf(payload.getString("cachePreference")));
+                    loadOnWebViewReady();
                 } catch (JSONException e) {
                     L.logRemoteErrorIfProd(e);
                 }
@@ -285,7 +263,7 @@ public class PageOfflineDataClient implements PageLoadStrategy {
         });
     }
 
-    private void loadOnWebViewReady(Cache cachePreference) {
+    private void loadOnWebViewReady() {
         // stage any section-specific link target from the title, since the title may be
         // replaced (normalized)
         sectionTargetFromTitle = model.getTitle().getFragment();
@@ -295,28 +273,27 @@ public class PageOfflineDataClient implements PageLoadStrategy {
 
         L.d("Loading page from ZIM: " + model.getTitleOriginal().getDisplayText());
 
-        // create a Page object from ZIM data
+        try {
+            String html = OfflineHelper.getHtml(model.getTitle().getDisplayText());
+            Section section = new Section(0, 0, "", "", html);
+            List<Section> sections = new ArrayList<>();
+            sections.add(section);
+            Page page = new Page(model.getTitle(), sections, new PageProperties(model.getTitle()));
 
-        String html = OfflineHelper.getHtml(model.getTitle().getDisplayText());
-        Section section = new Section(0, 0, "", "", html);
-        List<Section> sections = new ArrayList<>();
-        sections.add(section);
-        Page page = new Page(model.getTitle(), sections, new PageProperties(model.getTitle()));
+            model.setPage(page);
+            editHandler.setPage(model.getPage());
 
-        model.setPage(page);
-        editHandler.setPage(model.getPage());
+            // Update our history entry, in case the Title was changed (i.e. normalized)
+            HistoryEntry curEntry = model.getCurEntry();
+            model.setCurEntry(
+                    new HistoryEntry(model.getTitle(), curEntry.getSource()));
 
-        // Update our history entry, in case the Title was changed (i.e. normalized)
-        HistoryEntry curEntry = model.getCurEntry();
-        model.setCurEntry(
-                new HistoryEntry(model.getTitle(), curEntry.getSource()));
+            enqueuePageContents();
 
-        enqueuePageContents();
-
-        loading = false;
-
-        // on error:
-        // fragment.onPageLoadError(Exception);
+            loading = false;
+        } catch (Exception e) {
+            fragment.onPageLoadError(e);
+        }
     }
 
     private boolean isFirstPage() {
