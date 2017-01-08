@@ -83,6 +83,11 @@ public enum CardType implements EnumCode {
             return new AnnouncementCardView(ctx);
         }
     },
+    OFFLINE(16) {
+        @NonNull @Override public FeedCardView<?> newView(@NonNull Context ctx) {
+            return new OfflineCardView(ctx);
+        }
+    },
     PROGRESS(99) {
         @NonNull @Override public FeedCardView<?> newView(@NonNull Context ctx) {
             return new ProgressCardView(ctx);
