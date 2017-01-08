@@ -51,6 +51,7 @@ import org.wikipedia.edit.EditHandler;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.history.UpdateHistoryTask;
 import org.wikipedia.language.LangLinksActivity;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.onboarding.PrefsOnboardingStateMachine;
 import org.wikipedia.page.action.PageActionTab;
 import org.wikipedia.page.action.PageActionToolbarHideHandler;
@@ -262,7 +263,8 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         super.onCreate(savedInstanceState);
         app = (WikipediaApp) getActivity().getApplicationContext();
         model = new PageViewModel();
-        pageDataClient = new PageDataClient();
+        pageDataClient = OfflineHelper.areWeOffline()
+                ? new PageOfflineDataClient() : new PageDataClient();
 
         initTabs();
     }
