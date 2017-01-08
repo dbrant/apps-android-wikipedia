@@ -11,6 +11,7 @@ import org.wikipedia.feed.image.FeaturedImageCardView;
 import org.wikipedia.feed.mainpage.MainPageCardView;
 import org.wikipedia.feed.mostread.MostReadCardView;
 import org.wikipedia.feed.news.NewsListCardView;
+import org.wikipedia.feed.offline.OfflineCardView;
 import org.wikipedia.feed.progress.ProgressCardView;
 import org.wikipedia.feed.random.RandomCardView;
 import org.wikipedia.feed.searchbar.SearchCardView;

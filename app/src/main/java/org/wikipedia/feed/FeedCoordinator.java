@@ -11,6 +11,7 @@ import org.wikipedia.feed.mainpage.MainPageClient;
 import org.wikipedia.feed.offline.OfflineClient;
 import org.wikipedia.feed.random.RandomClient;
 import org.wikipedia.feed.searchbar.SearchClient;
+import org.wikipedia.offline.OfflineHelper;
 
 class FeedCoordinator extends FeedCoordinatorBase {
 
@@ -20,14 +21,13 @@ class FeedCoordinator extends FeedCoordinatorBase {
 
     @Override
     protected void buildScript(int age) {
-        if (offline) {
+        if (OfflineHelper.areWeOffline()) {
 
             if (age == 0) {
                 addPendingClient(new SearchClient());
                 addPendingClient(new OfflineClient());
             }
             addPendingClient(new ContinueReadingClient());
-            addPendingClient(new BecauseYouReadClient());
             if (age == 0) {
                 addPendingClient(new RandomClient());
             }
