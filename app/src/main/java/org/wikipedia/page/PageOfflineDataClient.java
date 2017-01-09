@@ -250,16 +250,14 @@ public class PageOfflineDataClient implements PageLoadStrategy {
                     for (int i = 0; i < sections.length(); i++) {
                         JSONObject s = sections.getJSONObject(i);
                         sectionList.add(new Section(s.getInt("id"),
-                                s.getInt("toclevel"),
+                                s.getInt("toclevel") - 1,
                                 s.getString("line"),
                                 s.getString("anchor"),
                                 ""));
                     }
 
                     Page page = model.getPage();
-                    sectionList.remove(0);
-                    sectionList.add(0, page.getSections().get(0));
-                    model.setPage(new Page(page.getTitle(), sectionList, page.getPageProperties()));
+                    page.getSections().addAll(sectionList);
 
                 } catch (JSONException e) {
                     //

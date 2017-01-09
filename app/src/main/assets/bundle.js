@@ -491,8 +491,8 @@ bridge.registerListener( "displayFromZim", function( payload ) {
         if ( zimNodes[i].tagName.length === 2 && zimNodes[i].tagName.substring(0, 1) === 'H' ) {
 
             sectionJson = {};
-            sectionJson.id = sectionIndex;
-            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2); // to int
+            sectionJson.id = sectionIndex + 1;
+            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2);
             sectionJson.line = zimNodes[i].innerHTML;
             sectionJson.anchor = "heading_" + (sectionIndex + 1);
             sectionsJson.push(sectionJson);
