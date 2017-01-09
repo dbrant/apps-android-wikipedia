@@ -4,7 +4,6 @@ import android.content.Context;
 
 import org.wikipedia.R;
 import org.wikipedia.feed.view.DefaultFeedCardView;
-import org.wikipedia.util.FeedbackUtil;
 
 import butterknife.ButterKnife;
 import butterknife.OnClick;
