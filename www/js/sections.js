@@ -98,6 +98,8 @@ bridge.registerListener( "displayFromZim", function( payload ) {
     var zimNodes = zimTextNode.childNodes;
     var sectionIndex = 0;
     var i;
+    var sectionsJson = [];
+    var sectionJson;
 
     var currentSectionNode = document.createElement( "div" );
     currentSectionNode.setAttribute( "dir", window.directionality );
@@ -110,7 +112,14 @@ bridge.registerListener( "displayFromZim", function( payload ) {
             continue;
         }
 
-        if ( zimNodes[i].tagName === 'H2' ) {
+        if ( zimNodes[i].tagName.length === 2 && zimNodes[i].tagName.substring(0, 1) === 'H' ) {
+
+            sectionJson = {};
+            sectionJson.id = sectionIndex;
+            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2); // to int
+            sectionJson.line = zimNodes[i].innerHTML;
+            sectionJson.anchor = "heading_" + (sectionIndex + 1);
+            sectionsJson.push(sectionJson);
 
             // perform transforms on the previous section
             performZimSectionTransforms( sectionIndex, currentSectionNode );
@@ -124,7 +133,7 @@ bridge.registerListener( "displayFromZim", function( payload ) {
 
             // dress up the header node a bit
             zimNodes[i].setAttribute( "dir", window.directionality );
-            zimNodes[i].id = "id_0"; // <<<<<<<<<<<<<<<<<< TODO: FIX
+            zimNodes[i].id = sectionJson.anchor;
             zimNodes[i].className = "section_heading";
             zimNodes[i].setAttribute( 'data-id', sectionIndex );
 
@@ -158,7 +167,8 @@ bridge.registerListener( "displayFromZim", function( payload ) {
     document.getElementById( "loading_sections").className = "";
     bridge.sendMessage( "pageLoadComplete", {
       "sequence": payload.sequence,
-      "savedPage": payload.savedPage });
+      "savedPage": payload.savedPage,
+      "sections": sectionsJson });
 });
 
 function performZimSectionTransforms( sectionIndex, currentSectionNode ) {

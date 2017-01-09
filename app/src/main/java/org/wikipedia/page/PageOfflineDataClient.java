@@ -10,6 +10,7 @@ import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.R;
@@ -238,17 +239,56 @@ public class PageOfflineDataClient implements PageLoadStrategy {
         bridge.addListener("pageLoadComplete", new SynchronousBridgeListener() {
             @Override
             public void onMessage(JSONObject payload) {
-                // Do any other stuff that should happen upon page load completion...
-                if (fragment.callback() != null) {
-                    fragment.callback().onPageUpdateProgressBar(false, true, 0);
+                try {
+                    if (!sequenceNumber.inSync(payload.getInt("sequence"))) {
+                        return;
+                    }
+
+                    // augment our current Page object with updated Sections received from JS
+                    List<Section> sectionList = new ArrayList<>();
+                    JSONArray sections = payload.getJSONArray("sections");
+                    for (int i = 0; i < sections.length(); i++) {
+                        JSONObject s = sections.getJSONObject(i);
+                        sectionList.add(new Section(s.getInt("id"),
+                                s.getInt("toclevel"),
+                                s.getString("line"),
+                                s.getString("anchor"),
+                                ""));
+                    }
+
+                    Page page = model.getPage();
+                    sectionList.remove(0);
+                    sectionList.add(0, page.getSections().get(0));
+                    model.setPage(new Page(page.getTitle(), sectionList, page.getPageProperties()));
+
+                } catch (JSONException e) {
+                    //
                 }
 
-                // trigger layout of the bottom content
-                // Check to see if the page title has changed (e.g. due to following a redirect),
-                // because if it has then the handler needs the new title to make sure it doesn't
-                // accidentally display the current article as a "read more" suggestion
-                bottomContentHandler.setTitle(model.getTitle());
-                bottomContentHandler.beginLayout();
+                // Do any other stuff that should happen upon page load completion...
+
+                if (fragment.isAdded()) {
+                    refreshView.setRefreshing(false);
+
+                    // trigger layout of the bottom content
+                    // Check to see if the page title has changed (e.g. due to following a redirect),
+                    // because if it has then the handler needs the new title to make sure it doesn't
+                    // accidentally display the current article as a "read more" suggestion
+                    bottomContentHandler.setTitle(model.getTitle());
+                    bottomContentHandler.beginLayout();
+
+                    if (webView.getVisibility() != View.VISIBLE) {
+                        webView.setVisibility(View.VISIBLE);
+                    }
+
+                    if (fragment.callback() != null) {
+                        fragment.callback().onPageUpdateProgressBar(false, true, 0);
+                    }
+
+                    fragment.setupToC(model, isFirstPage());
+                    fragment.onPageLoadComplete();
+                }
+
             }
         });
         bridge.addListener("pageInfo", new CommunicationBridge.JSEventListener() {
@@ -327,20 +367,6 @@ public class PageOfflineDataClient implements PageLoadStrategy {
         sendMarginPayload();
         sendZimPayload(page);
         sendMiscPayload(page);
-
-        if (webView.getVisibility() != View.VISIBLE) {
-            webView.setVisibility(View.VISIBLE);
-        }
-
-        refreshView.setRefreshing(false);
-
-        if (fragment.isAdded()) {
-            if (fragment.callback() != null) {
-                fragment.callback().onPageUpdateProgressBar(true, true, 0);
-            }
-            fragment.setupToC(model, isFirstPage());
-            fragment.onPageLoadComplete();
-        }
     }
 
     private void sendMarginPayload() {
