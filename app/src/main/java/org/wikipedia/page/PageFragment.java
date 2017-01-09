@@ -1080,16 +1080,25 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             @Override public void onMessage(String messageType, JSONObject messagePayload) {
                 try {
                     String href = decodeURL(messagePayload.getString("href"));
-                    if (href.startsWith("/wiki/")) {
-                        String filename = UriUtil.removeInternalLinkPrefix(href);
-                        WikiSite wiki = model.getTitle().getWikiSite();
+
+                    if (OfflineHelper.areWeOffline()) {
                         startActivityForResult(GalleryActivity.newIntent(getContext(),
-                                model.getTitleOriginal(), filename, wiki,
+                                model.getTitleOriginal(), href, app.getWikiSite(),
                                 GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
                                 Constants.ACTIVITY_REQUEST_GALLERY);
                     } else {
-                        linkHandler.onUrlClick(href, messagePayload.optString("title"));
+                        if (href.startsWith("/wiki/")) {
+                            String filename = UriUtil.removeInternalLinkPrefix(href);
+                            WikiSite wiki = model.getTitle().getWikiSite();
+                            startActivityForResult(GalleryActivity.newIntent(getContext(),
+                                    model.getTitleOriginal(), filename, wiki,
+                                    GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
+                                    Constants.ACTIVITY_REQUEST_GALLERY);
+                        } else {
+                            linkHandler.onUrlClick(href, messagePayload.optString("title"));
+                        }
                     }
+
                 } catch (JSONException e) {
                     L.logRemoteErrorIfProd(e);
                 }

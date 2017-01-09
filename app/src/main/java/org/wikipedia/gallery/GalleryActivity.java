@@ -39,6 +39,7 @@ import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonMarshaller;
 import org.wikipedia.json.GsonUnmarshaller;
 import org.wikipedia.page.ExclusiveBottomSheetPresenter;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.LinkMovementMethodExt;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageActivity;
@@ -243,6 +244,10 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
                     getIntent().getStringExtra(EXTRA_FEATURED_IMAGE));
             int age = getIntent().getIntExtra(EXTRA_FEATURED_IMAGE_AGE, 0);
             loadGalleryItemFor(featuredImage, age);
+        } else if (pageTitle == null) {
+            throw new IllegalStateException("pageTitle should not be null");
+        } else if (OfflineHelper.areWeOffline()) {
+            loadGalleryItemFor(initialFilename);
         } else {
             // find our Page in the page cache...
             app.getPageCache().get(pageTitle, 0, new PageCache.CacheGetListener() {
@@ -279,6 +284,12 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
     private void loadGalleryItemFor(@NonNull FeaturedImage image, int age) {
         List<GalleryItem> list = new ArrayList<>();
         list.add(new FeaturedImageGalleryItem(image, age));
+        applyGalleryCollection(new GalleryCollection(list));
+    }
+
+    private void loadGalleryItemFor(@NonNull String singleUrl) {
+        List<GalleryItem> list = new ArrayList<>();
+        list.add(new GalleryItem(singleUrl, singleUrl));
         applyGalleryCollection(new GalleryCollection(list));
     }
 
@@ -501,7 +512,7 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
                 // by default in the gallery)
                 initialImagePos = 0;
                 collection.getItemList().add(initialImagePos,
-                        new GalleryItem(initialFilename));
+                        new GalleryItem(initialFilename, null));
             }
         }
 

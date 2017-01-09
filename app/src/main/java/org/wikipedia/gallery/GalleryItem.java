@@ -89,13 +89,13 @@ class GalleryItem {
         return license.getLicenseUrl();
     }
 
-    GalleryItem(String name) {
+    public GalleryItem(String name, String url) {
         this.json = null;
         this.name = name;
-        this.url = null;
+        this.url = url;
         this.mimeType = "*/*";
         this.thumbUrl = null;
-        this.metadata = null;
+        this.metadata = new HashMap<>();
         this.width = 0;
         this.height = 0;
         this.license = new ImageLicense();

@@ -57,7 +57,7 @@ document.onclick = function() {
     // If an element was clicked, check if it or any of its parents are <a>
     // This handles cases like <a>foo</a>, <a><strong>foo</strong></a>, etc.
     while (curNode) {
-        if (curNode.tagName === "A" || curNode.tagName === "AREA") {
+        if (curNode.tagName === "A" || curNode.tagName === "AREA" || (window.isOffline === true && curNode.tagName === "IMG")) {
             sourceNode = curNode;
             break;
         }
@@ -71,6 +71,9 @@ document.onclick = function() {
             for ( var i = 0; i < handlers.length; i++ ) {
                 handlers[i]( sourceNode, event );
             }
+        } else if ( sourceNode.tagName === "IMG" ) {
+            var src = sourceNode.getAttribute( "src" );
+            bridge.sendMessage( 'imageClicked', { "href": src } );
         } else {
             var href = sourceNode.getAttribute( "href" );
             if ( href[0] === "#" ) {
