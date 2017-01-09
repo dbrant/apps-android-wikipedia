@@ -41,9 +41,13 @@ public class RandomCardView extends StaticCardView<RandomCard> {
         public void onClick(View view) {
             if (getCallback() != null && getCard() != null) {
                 if (OfflineHelper.areWeOffline()) {
-                    getCallback().onSelectPage(new HistoryEntry(new PageTitle(OfflineHelper.getRandomTitle(),
-                            WikipediaApp.getInstance().getWikiSite()),
-                            HistoryEntry.SOURCE_FEED_RANDOM));
+                    try {
+                        getCallback().onSelectPage(new HistoryEntry(new PageTitle(OfflineHelper.getRandomTitle(),
+                                WikipediaApp.getInstance().getWikiSite()),
+                                HistoryEntry.SOURCE_FEED_RANDOM));
+                    } catch (Throwable t) {
+                        L.e(t);
+                    }
                 } else {
                     new RandomSummaryClient().request(getCard().wikiSite(), serviceCallback);
                 }

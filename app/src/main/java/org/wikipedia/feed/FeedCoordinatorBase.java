@@ -8,6 +8,7 @@ import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.feed.dataclient.FeedClient;
 import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.progress.ProgressCard;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.settings.Prefs;
 
 import java.util.ArrayList;
@@ -65,7 +66,9 @@ public abstract class FeedCoordinatorBase {
         }
         pendingClients.clear();
         cards.clear();
-        appendProgressCard(cards);
+        if (!OfflineHelper.areWeOffline()) {
+            appendProgressCard(cards);
+        }
     }
 
     public void more(@NonNull WikiSite wiki) {
@@ -125,7 +128,9 @@ public abstract class FeedCoordinatorBase {
                     cards.add(card);
                 }
             }
-            appendProgressCard(cards);
+            if (!OfflineHelper.areWeOffline()) {
+                appendProgressCard(cards);
+            }
             if (updateListener != null) {
                 updateListener.update(cards);
             }

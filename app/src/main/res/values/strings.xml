@@ -336,6 +336,7 @@
     <string name="offline_card_text">You are now browsing Wikipedia in offline mode. Please note that offline articles may not be fully up to date with the online version.</string>
     <string name="offline_go_offline">Go offline</string>
     <string name="offline_go_online">Go online</string>
+    <string name="offline_collection_description">Using collection: %1$s — %2$s</string>
     <!-- /Offline -->
 
     <!-- Description editing -->
