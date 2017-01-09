@@ -19,6 +19,8 @@
 
 package org.kiwix.kiwixmobile;
 
+import android.support.annotation.Nullable;
+
 public class JNIKiwix {
 
     static {
@@ -70,9 +72,9 @@ public class JNIKiwix {
     public static native String indexedQuery(String db, int count);
 
     public static class JNIKiwixString {
-        private String value;
+        @Nullable private String value;
 
-        public String value() {
+        @Nullable public String value() {
             return value;
         }
     }

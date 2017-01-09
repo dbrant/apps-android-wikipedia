@@ -3,8 +3,10 @@ package org.wikipedia.offline;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 
 import org.kiwix.kiwixmobile.JNIKiwix;
+import org.wikipedia.util.StringUtil;
 
 public final class OfflineHelper {
 
@@ -29,6 +31,16 @@ public final class OfflineHelper {
         OFFLINE = true;
     }
 
+    @NonNull public static String getZimName() {
+        JNIKiwix.JNIKiwixString str = new JNIKiwix.JNIKiwixString();
+        KIWIX.getTitle(str);
+        return StringUtil.emptyIfNull(str.value());
+    }
+
+    @NonNull public static String getZimDescription() {
+        return StringUtil.emptyIfNull(KIWIX.getDescription());
+    }
+
     public static void startSearch(@NonNull String term, int count) {
         boolean success = KIWIX.searchSuggestions(term, count);
         if (!success) {
@@ -39,7 +51,7 @@ public final class OfflineHelper {
     @NonNull public static String getNextSearchResult() {
         JNIKiwix.JNIKiwixString title = new JNIKiwix.JNIKiwixString();
         boolean success = KIWIX.getNextSuggestion(title);
-        if (!success) {
+        if (!success || TextUtils.isEmpty(title.value())) {
             throw new RuntimeException("Failed to get next suggestion.");
         }
         return title.value();
@@ -47,8 +59,7 @@ public final class OfflineHelper {
 
     public static boolean titleExists(@NonNull String title) {
         JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
-        boolean success = KIWIX.getPageUrlFromTitle(title, url);
-        return success;
+        return KIWIX.getPageUrlFromTitle(title, url);
     }
 
     @NonNull public static String getHtml(@NonNull String title) {
@@ -67,7 +78,7 @@ public final class OfflineHelper {
     @NonNull public static String getRandomTitle() {
         JNIKiwix.JNIKiwixString url = new JNIKiwix.JNIKiwixString();
         boolean success = KIWIX.getRandomPage(url);
-        if (!success) {
+        if (!success || TextUtils.isEmpty(url.value())) {
             throw new RuntimeException("Failed to get random page.");
         }
         Uri uri = Uri.parse(url.value());
