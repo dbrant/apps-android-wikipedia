@@ -490,17 +490,17 @@ bridge.registerListener( "displayFromZim", function( payload ) {
 
         if ( zimNodes[i].tagName.length === 2 && zimNodes[i].tagName.substring(0, 1) === 'H' ) {
 
-            sectionJson = {};
-            sectionJson.id = sectionIndex + 1;
-            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2);
-            sectionJson.line = zimNodes[i].innerHTML;
-            sectionJson.anchor = "heading_" + (sectionIndex + 1);
-            sectionsJson.push(sectionJson);
-
             // perform transforms on the previous section
             performZimSectionTransforms( sectionIndex, currentSectionNode );
 
             sectionIndex++;
+
+            sectionJson = {};
+            sectionJson.id = sectionIndex;
+            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2);
+            sectionJson.line = zimNodes[i].innerHTML;
+            sectionJson.anchor = "heading_" + sectionIndex;
+            sectionsJson.push(sectionJson);
 
             currentSectionNode = document.createElement( "div" );
             currentSectionNode.setAttribute( "dir", window.directionality );
