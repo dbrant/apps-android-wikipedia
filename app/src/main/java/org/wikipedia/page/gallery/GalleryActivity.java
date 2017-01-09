@@ -38,6 +38,7 @@ import org.wikipedia.feed.image.FeaturedImage;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonMarshaller;
 import org.wikipedia.json.GsonUnmarshaller;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.LinkMovementMethodExt;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageActivity;
@@ -229,6 +230,8 @@ public class GalleryActivity extends ThemedActionBarActivity {
 
         if (pageTitle == null) {
             throw new IllegalStateException("pageTitle should not be null");
+        } else if (OfflineHelper.areWeOffline()) {
+            loadGalleryItemFor(initialFilename);
         } else if (getIntent().hasExtra(EXTRA_IS_FEATURED_IMAGE)
                 && getIntent().getBooleanExtra(EXTRA_IS_FEATURED_IMAGE, false)) {
             FeaturedImage featuredImage = GsonUnmarshaller.unmarshal(FeaturedImage.class,
@@ -272,6 +275,12 @@ public class GalleryActivity extends ThemedActionBarActivity {
     private void loadGalleryItemFor(FeaturedImage image) {
         List<GalleryItem> list = new ArrayList<>();
         list.add(new GalleryItem(image));
+        applyGalleryCollection(new GalleryCollection(list));
+    }
+
+    private void loadGalleryItemFor(@NonNull String singleUrl) {
+        List<GalleryItem> list = new ArrayList<>();
+        list.add(new GalleryItem(singleUrl, singleUrl));
         applyGalleryCollection(new GalleryCollection(list));
     }
 
@@ -470,7 +479,7 @@ public class GalleryActivity extends ThemedActionBarActivity {
                 // by default in the gallery)
                 initialImagePos = 0;
                 collection.getItemList().add(initialImagePos,
-                        new GalleryItem(initialFilename));
+                        new GalleryItem(initialFilename, null));
             }
         }
 

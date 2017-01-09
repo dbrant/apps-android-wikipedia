@@ -58,7 +58,7 @@ document.onclick = function() {
     // If an element was clicked, check if it or any of its parents are <a>
     // This handles cases like <a>foo</a>, <a><strong>foo</strong></a>, etc.
     while (curNode) {
-        if (curNode.tagName === "A" || curNode.tagName === "AREA") {
+        if (curNode.tagName === "A" || curNode.tagName === "AREA" || (window.isOffline === true && curNode.tagName === "IMG")) {
             sourceNode = curNode;
             break;
         }
@@ -72,6 +72,9 @@ document.onclick = function() {
             for ( var i = 0; i < handlers.length; i++ ) {
                 handlers[i]( sourceNode, event );
             }
+        } else if ( sourceNode.tagName === "IMG" ) {
+            var src = sourceNode.getAttribute( "src" );
+            bridge.sendMessage( 'imageClicked', { "href": src } );
         } else {
             var href = sourceNode.getAttribute( "href" );
             if ( href[0] === "#" ) {
@@ -440,6 +443,8 @@ bridge.registerListener( "displayFromZim", function( payload ) {
     clearContents();
 
     document.head.getElementsByTagName("base")[0].setAttribute("href", payload.siteBaseUrl);
+
+    window.isOffline = true;
     window.apiLevel = payload.apiLevel;
     window.string_table_infobox = payload.string_table_infobox;
     window.string_table_other = payload.string_table_other;
@@ -616,6 +621,8 @@ bridge.registerListener( "displayLeadSection", function( payload ) {
     content.id = "content_block_0";
 
     document.head.getElementsByTagName("base")[0].setAttribute("href", payload.siteBaseUrl);
+
+    window.isOffline = false;
     window.apiLevel = payload.apiLevel;
     window.string_table_infobox = payload.string_table_infobox;
     window.string_table_other = payload.string_table_other;
