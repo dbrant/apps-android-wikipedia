@@ -5,28 +5,28 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 
 import org.kiwix.kiwixmobile.JNIKiwix;
-import org.wikipedia.util.log.L;
 
-public class OfflineHelper {
+public final class OfflineHelper {
 
     private static JNIKiwix KIWIX = new JNIKiwix();
-    private static boolean offline;
+    private static boolean OFFLINE;
 
     public static JNIKiwix kiwix() {
         return KIWIX;
     }
 
     public static boolean areWeOffline() {
-        return offline;
+        return OFFLINE;
     }
 
     public static void goOnline() {
-        offline = false;
+        OFFLINE = false;
     }
 
     public static void goOffline() {
+        // TODO: look for ZIM file(s) automatically, and throw if not found
         boolean success = KIWIX.loadZIM(Environment.getExternalStorageDirectory().getAbsolutePath() + "/wp1.0.8.zim");
-        offline = true;
+        OFFLINE = true;
     }
 
     public static void startSearch(@NonNull String term, int count) {
@@ -42,7 +42,7 @@ public class OfflineHelper {
         if (!success) {
             throw new RuntimeException("Failed to get next suggestion.");
         }
-        return title.value;
+        return title.value();
     }
 
     public static boolean titleExists(@NonNull String title) {
@@ -60,7 +60,7 @@ public class OfflineHelper {
 
         JNIKiwix.JNIKiwixString mimeType = new JNIKiwix.JNIKiwixString();
         JNIKiwix.JNIKiwixInt contentSize = new JNIKiwix.JNIKiwixInt();
-        byte[] bytes = KIWIX.getContent(url.value, mimeType, contentSize);
+        byte[] bytes = KIWIX.getContent(url.value(), mimeType, contentSize);
         return new String(bytes);
     }
 
@@ -70,7 +70,10 @@ public class OfflineHelper {
         if (!success) {
             throw new RuntimeException("Failed to get random page.");
         }
-        Uri uri = Uri.parse(url.value);
+        Uri uri = Uri.parse(url.value());
         return uri.getLastPathSegment().replace(".html", "");
+    }
+
+    private OfflineHelper() {
     }
 }

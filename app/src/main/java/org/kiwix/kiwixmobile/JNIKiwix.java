@@ -21,63 +21,75 @@ package org.kiwix.kiwixmobile;
 
 public class JNIKiwix {
 
-  static {
-    System.loadLibrary("kiwix");
-  }
+    static {
+        System.loadLibrary("kiwix");
+    }
 
-  public native String getMainPage();
+    public native String getMainPage();
 
-  public native String getId();
+    public native String getId();
 
-  public native String getLanguage();
+    public native String getLanguage();
 
-  public native String getMimeType(String url);
+    public native String getMimeType(String url);
 
-  public native boolean loadZIM(String path);
+    public native boolean loadZIM(String path);
 
-  public native boolean loadFulltextIndex(String path);
+    public native boolean loadFulltextIndex(String path);
 
-  public native byte[] getContent(String url, JNIKiwixString mimeType, JNIKiwixInt size);
+    public native byte[] getContent(String url, JNIKiwixString mimeType, JNIKiwixInt size);
 
-  public native boolean searchSuggestions(String prefix, int count);
+    public native boolean searchSuggestions(String prefix, int count);
 
-  public native boolean getNextSuggestion(JNIKiwixString title);
+    public native boolean getNextSuggestion(JNIKiwixString title);
 
-  public native boolean getPageUrlFromTitle(String title, JNIKiwixString url);
+    public native boolean getPageUrlFromTitle(String title, JNIKiwixString url);
 
-  public native boolean getTitle(JNIKiwixString title);
+    public native boolean getTitle(JNIKiwixString title);
 
-  public native String getDescription();
+    public native String getDescription();
 
-  public native String getDate();
+    public native String getDate();
 
-  public native String getFavicon();
+    public native String getFavicon();
 
-  public native String getCreator();
+    public native String getCreator();
 
-  public native String getPublisher();
+    public native String getPublisher();
 
-  public native int getFileSize();
+    public native int getFileSize();
 
-  public native int getArticleCount();
+    public native int getArticleCount();
 
-  public native int getMediaCount();
+    public native int getMediaCount();
 
-  public native boolean getRandomPage(JNIKiwixString url);
+    public native boolean getRandomPage(JNIKiwixString url);
 
-  public native void setDataDirectory(String icuDataDir);
+    public native void setDataDirectory(String icuDataDir);
 
-  public static native String indexedQuery(String db, int count);
+    public static native String indexedQuery(String db, int count);
 
-  public static class JNIKiwixString {
-    public String value;
-  }
+    public static class JNIKiwixString {
+        private String value;
 
-  public static class JNIKiwixInt {
-    public int value;
-  }
+        public String value() {
+            return value;
+        }
+    }
 
-  public static class JNIKiwixBool {
-    public boolean value;
-  }
+    public static class JNIKiwixInt {
+        private int value;
+
+        public int value() {
+            return value;
+        }
+    }
+
+    public static class JNIKiwixBool {
+        private boolean value;
+
+        public boolean value() {
+            return value;
+        }
+    }
 }

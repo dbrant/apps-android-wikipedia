@@ -21,7 +21,6 @@ package org.kiwix.kiwixmobile;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
@@ -29,16 +28,13 @@ import android.os.ParcelFileDescriptor.AutoCloseOutputStream;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import org.wikipedia.offline.OfflineHelper;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.regex.Pattern;
 
 public class ZimContentProvider extends ContentProvider {
 
@@ -47,10 +43,6 @@ public class ZimContentProvider extends ContentProvider {
     public static final Uri CONTENT_URI = Uri.parse("content://org.kiwix.zim.base/");
 
     public static final Uri UI_URI = Uri.parse("content://org.kiwix.ui/");
-
-    public static String originalFileName = "";
-
-    public static Boolean canIterate = true;
 
     private static final String VIDEO_PATTERN = "([^\\s]+(\\.(?i)(3gp|mp4|m4a|webm|mkv|ogg|ogv))$)";
 
@@ -183,11 +175,11 @@ public class ZimContentProvider extends ContentProvider {
 
     static class TransferThread extends Thread {
 
-        Uri articleUri;
-        String articleZimUrl;
-        OutputStream out;
+        @NonNull private final Uri articleUri;
+        @NonNull private final String articleZimUrl;
+        @NonNull private final OutputStream out;
 
-        TransferThread(Uri articleUri, OutputStream out) throws IOException {
+        TransferThread(@NonNull Uri articleUri, @NonNull OutputStream out) throws IOException {
             this.articleUri = articleUri;
             Log.d(TAG_KIWIX, "Retrieving: " + articleUri.toString());
 
@@ -207,7 +199,7 @@ public class ZimContentProvider extends ContentProvider {
                 out.flush();
 
                 Log.d(TAG_KIWIX, "reading  " + articleZimUrl
-                        + "(mime: " + mime.value + ", size: " + size.value + ") finished.");
+                        + "(mime: " + mime.value() + ", size: " + size.value() + ") finished.");
             } catch (IOException | NullPointerException e) {
                 Log.e(TAG_KIWIX, "Exception reading article " + articleZimUrl + " from zim file",
                         e);
