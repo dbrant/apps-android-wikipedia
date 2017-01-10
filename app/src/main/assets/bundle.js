@@ -541,9 +541,8 @@ bridge.registerListener( "displayFromZim", function( payload ) {
         contentElem.removeChild(issuesContainer);
     }
 
-    if (payload.scrollY > 0 && !scrolledOnLoad) {
+    if (payload.scrollY > 0) {
         window.scrollTo( 0, payload.scrollY );
-        scrolledOnLoad = true;
     }
     document.getElementById( "loading_sections").className = "";
     bridge.sendMessage( "pageLoadComplete", {
