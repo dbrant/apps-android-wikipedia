@@ -31,6 +31,7 @@ import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -329,7 +330,7 @@ public class PageOfflineDataClient implements PageLoadStrategy {
             enqueuePageContents();
 
             loading = false;
-        } catch (Exception e) {
+        } catch (IOException e) {
             fragment.onPageLoadError(e);
         }
     }

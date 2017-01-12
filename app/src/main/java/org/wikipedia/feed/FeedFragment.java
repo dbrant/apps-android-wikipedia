@@ -46,8 +46,10 @@ import org.wikipedia.settings.SettingsActivity;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.UriUtil;
+import org.wikipedia.util.log.L;
 import org.wikipedia.views.ExploreOverflowView;
 
+import java.io.IOException;
 import java.util.List;
 
 import butterknife.BindView;
@@ -397,8 +399,12 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
         @Override
         public void offlineClick() {
-            OfflineHelper.goOffline();
-            refresh();
+            try {
+                OfflineHelper.goOffline();
+                refresh();
+            } catch(IOException e) {
+                L.e(e);
+            }
         }
 
         @Override
@@ -425,8 +431,12 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
             } else {
 
-                OfflineHelper.goOffline();
-                refresh();
+                try {
+                    OfflineHelper.goOffline();
+                    refresh();
+                } catch (IOException e) {
+                    L.e(e);
+                }
 
             }
         }
