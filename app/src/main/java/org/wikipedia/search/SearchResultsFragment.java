@@ -35,6 +35,7 @@ import org.wikipedia.views.GoneIfEmptyTextView;
 import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
 
+import java.io.IOException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.List;
@@ -219,14 +220,12 @@ public class SearchResultsFragment extends Fragment {
                 String title = OfflineHelper.getNextSearchResult();
                 resultList.add(new SearchResult(new PageTitle(title, app.getWikiSite())));
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             L.d(e);
         }
 
-        if (!resultList.isEmpty()) {
-            clearResults();
-            displayResults(resultList);
-        }
+        clearResults();
+        displayResults(resultList);
     }
 
     private void doTitlePrefixSearch(final String searchTerm) {

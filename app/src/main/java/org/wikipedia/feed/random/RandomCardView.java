@@ -17,6 +17,8 @@ import org.wikipedia.server.restbase.RbPageSummary;
 
 import org.wikipedia.util.log.L;
 
+import java.io.IOException;
+
 import retrofit2.Call;
 
 public class RandomCardView extends StaticCardView<RandomCard> {
@@ -45,8 +47,8 @@ public class RandomCardView extends StaticCardView<RandomCard> {
                         getCallback().onSelectPage(new HistoryEntry(new PageTitle(OfflineHelper.getRandomTitle(),
                                 WikipediaApp.getInstance().getWikiSite()),
                                 HistoryEntry.SOURCE_FEED_RANDOM));
-                    } catch (Throwable t) {
-                        L.e(t);
+                    } catch (IOException e) {
+                        L.e(e);
                     }
                 } else {
                     new RandomSummaryClient().request(getCard().wikiSite(), serviceCallback);
