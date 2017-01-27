@@ -239,15 +239,15 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
 
         updateProgressBar(false, true, 0);
 
-        if (getIntent().hasExtra(EXTRA_FEATURED_IMAGE)) {
+        if (pageTitle == null) {
+            throw new IllegalStateException("pageTitle should not be null");
+        } else if (OfflineHelper.areWeOffline()) {
+            loadGalleryItemFor(initialFilename);
+        } else if (getIntent().hasExtra(EXTRA_FEATURED_IMAGE)) {
             FeaturedImage featuredImage = GsonUnmarshaller.unmarshal(FeaturedImage.class,
                     getIntent().getStringExtra(EXTRA_FEATURED_IMAGE));
             int age = getIntent().getIntExtra(EXTRA_FEATURED_IMAGE_AGE, 0);
             loadGalleryItemFor(featuredImage, age);
-        } else if (pageTitle == null) {
-            throw new IllegalStateException("pageTitle should not be null");
-        } else if (OfflineHelper.areWeOffline()) {
-            loadGalleryItemFor(initialFilename);
         } else {
             // find our Page in the page cache...
             app.getPageCache().get(pageTitle, 0, new PageCache.CacheGetListener() {
