@@ -26,6 +26,7 @@ import org.wikipedia.page.leadimages.LeadImagesHandler;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.L10nUtil;
+import org.wikipedia.util.ReleaseUtil;
 import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
@@ -38,16 +39,6 @@ import java.util.Locale;
 
 import static org.wikipedia.util.L10nUtil.getStringsForArticleLanguage;
 
-/**
- * Our old page load strategy, which uses the JSON MW API directly and loads a page in multiple steps:
- * First it loads the lead section (sections=0).
- * Then it loads the remaining sections (sections=1-).
- * <p/>
- * This class tracks:
- * - the states the page loading goes through,
- * - a backstack of pages and page positions visited,
- * - and many handlers.
- */
 public class PageOfflineDataClient implements PageLoadStrategy {
 
     private boolean loading;
@@ -403,7 +394,7 @@ public class PageOfflineDataClient implements PageLoadStrategy {
                     .put("string_table_other", localizedStrings.get(R.string.table_other))
                     .put("string_table_close", localizedStrings.get(R.string.table_close))
                     .put("string_expand_refs", localizedStrings.get(R.string.expand_refs))
-                    .put("isBeta", app.isPreProdRelease()) // True for any non-production release type
+                    .put("isBeta", ReleaseUtil.isPreProdRelease())
                     .put("siteLanguage", model.getTitle().getWikiSite().languageCode())
                     .put("siteBaseUrl", model.getTitle().getWikiSite().scheme() + "://" + model.getTitle().getWikiSite().host())
                     .put("isMainPage", page.isMainPage())

@@ -5,8 +5,8 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import org.apache.commons.lang3.StringUtils;
 import org.kiwix.kiwixmobile.JNIKiwix;
-import org.wikipedia.util.StringUtil;
 
 import java.io.IOException;
 
@@ -39,11 +39,11 @@ public final class OfflineHelper {
     @NonNull public static String getZimName() {
         JNIKiwix.JNIKiwixString str = new JNIKiwix.JNIKiwixString();
         KIWIX.getTitle(str);
-        return StringUtil.emptyIfNull(str.value());
+        return StringUtils.defaultString(str.value());
     }
 
     @NonNull public static String getZimDescription() {
-        return StringUtil.emptyIfNull(KIWIX.getDescription());
+        return StringUtils.defaultString(KIWIX.getDescription());
     }
 
     public static void startSearch(@NonNull String term, int count) throws IOException {

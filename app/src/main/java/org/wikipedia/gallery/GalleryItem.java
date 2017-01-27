@@ -89,7 +89,18 @@ class GalleryItem {
         return license.getLicenseUrl();
     }
 
-    public GalleryItem(String name, String url) {
+    GalleryItem(String name) {
+        this.json = null;
+        this.name = name;
+        this.mimeType = "*/*";
+        this.thumbUrl = null;
+        this.metadata = new HashMap<>();
+        this.width = 0;
+        this.height = 0;
+        this.license = new ImageLicense();
+    }
+
+    GalleryItem(String name, String url) {
         this.json = null;
         this.name = name;
         this.url = url;
