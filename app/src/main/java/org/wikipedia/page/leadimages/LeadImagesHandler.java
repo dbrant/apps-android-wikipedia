@@ -28,6 +28,7 @@ import org.wikipedia.descriptions.DescriptionEditTutorialActivity;
 import org.wikipedia.gallery.GalleryActivity;
 import org.wikipedia.login.LoginActivity;
 import org.wikipedia.login.User;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageFragment;
 import org.wikipedia.page.PageTitle;
@@ -210,7 +211,7 @@ public class LeadImagesHandler {
      */
     private void loadLeadImage(@Nullable String url) {
         if (!isMainPage() && !TextUtils.isEmpty(url) && isLeadImageEnabled()) {
-            String fullUrl = getTitle().getWikiSite().scheme() + ":" + url;
+            String fullUrl = OfflineHelper.areWeOffline() ? url : getTitle().getWikiSite().scheme() + ":" + url;
             pageHeaderView.loadImage(fullUrl);
         } else {
             pageHeaderView.loadImage(null);

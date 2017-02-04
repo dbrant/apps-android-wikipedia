@@ -69,6 +69,11 @@ android {
         }
     }
 
+    sourceSets.main {
+        jni.srcDirs = []
+        jniLibs.srcDir 'src/main/libs'
+    }
+
     signingConfigs {
         prod {
             setSigningConfigKey(prod, PROD_PROPS)

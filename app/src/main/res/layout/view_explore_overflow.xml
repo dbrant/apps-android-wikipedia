@@ -46,6 +46,11 @@
         android:background="?attr/nav_background_color">
 
         <TextView
+            android:id="@+id/explore_offline"
+            style="@style/OverflowMenuItem"
+            android:text="@string/offline_go_offline"/>
+
+        <TextView
             android:id="@+id/explore_overflow_settings"
             style="@style/OverflowMenuItem"
             android:text="@string/settings_item_preferences"/>

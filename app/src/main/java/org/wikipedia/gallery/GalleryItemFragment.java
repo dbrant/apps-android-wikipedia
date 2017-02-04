@@ -35,6 +35,7 @@ import org.wikipedia.Constants;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.FileUtil;
@@ -249,34 +250,43 @@ public class GalleryItemFragment extends Fragment {
      */
     private void loadGalleryItem() {
         updateProgressBar(true, true, 0);
-        new GalleryItemFetchTask(app.getAPIForSite(imageTitle.getWikiSite()),
-                imageTitle.getWikiSite(), imageTitle, FileUtil.isVideo(mimeType)) {
-            @Override
-            public void onFinish(Map<PageTitle, GalleryItem> result) {
-                if (!isAdded()) {
-                    return;
-                }
-                if (result.size() > 0) {
-                    galleryItem = (GalleryItem) result.values().toArray()[0];
-                    parentActivity.getGalleryCache().put((PageTitle) result.keySet().toArray()[0],
-                            galleryItem);
-                    loadMedia();
-                } else {
-                    updateProgressBar(false, true, 0);
-                    FeedbackUtil.showMessage(getActivity(), R.string.error_network_error);
-                }
-            }
 
-            @Override
-            public void onCatch(Throwable caught) {
-                L.e("caught " + caught.getMessage());
-                if (!isAdded()) {
-                    return;
+        if (OfflineHelper.areWeOffline()) {
+
+            galleryItem = new GalleryItem(imageTitle.getPrefixedText(), imageTitle.getPrefixedText());
+            parentActivity.getGalleryCache().put(imageTitle, galleryItem);
+            loadMedia();
+
+        } else {
+            new GalleryItemFetchTask(app.getAPIForSite(imageTitle.getWikiSite()),
+                    imageTitle.getWikiSite(), imageTitle, FileUtil.isVideo(mimeType)) {
+                @Override
+                public void onFinish(Map<PageTitle, GalleryItem> result) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (result.size() > 0) {
+                        galleryItem = (GalleryItem) result.values().toArray()[0];
+                        parentActivity.getGalleryCache().put((PageTitle) result.keySet().toArray()[0],
+                                galleryItem);
+                        loadMedia();
+                    } else {
+                        updateProgressBar(false, true, 0);
+                        FeedbackUtil.showMessage(getActivity(), R.string.error_network_error);
+                    }
                 }
-                updateProgressBar(false, true, 0);
-                FeedbackUtil.showError(getActivity(), caught);
-            }
-        }.execute();
+
+                @Override
+                public void onCatch(Throwable caught) {
+                    L.e("caught " + caught.getMessage());
+                    if (!isAdded()) {
+                        return;
+                    }
+                    updateProgressBar(false, true, 0);
+                    FeedbackUtil.showError(getActivity(), caught);
+                }
+            }.execute();
+        }
     }
 
     /**
@@ -296,7 +306,7 @@ public class GalleryItemFragment extends Fragment {
             // - in the case of an SVG file:
             //     - we need the thumbnail image anyway, since the ImageView can't
             //       display SVGs.
-            loadImage(galleryItem.getThumbUrl());
+            loadImage(OfflineHelper.areWeOffline() ? galleryItem.getUrl() : galleryItem.getThumbUrl());
         }
 
         parentActivity.supportInvalidateOptionsMenu();

@@ -1,13 +1,14 @@
 package org.wikipedia.util;
 
-import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -15,7 +16,7 @@ import org.wikipedia.feed.announcement.GeoIPCookieUnmarshaller;
 
 public final class GeoUtil {
 
-    public static void sendGeoIntent(@NonNull Activity activity,
+    public static void sendGeoIntent(@NonNull Context context,
                                      @NonNull Location location,
                                      @Nullable String placeName) {
         // Using geo:latitude,longitude doesn't give a point on the map,
@@ -25,10 +26,14 @@ public final class GeoUtil {
         if (!TextUtils.isEmpty(placeName)) {
             geoStr += "(" + Uri.encode(placeName) + ")";
         }
+        sendGeoIntent(context, geoStr);
+    }
+
+    public static void sendGeoIntent(@NonNull Context context, @Nullable String geoStr) {
         try {
-            activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(geoStr)));
+            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(geoStr)));
         } catch (ActivityNotFoundException e) {
-            FeedbackUtil.showMessage(activity, R.string.error_no_maps_app);
+            Toast.makeText(context, R.string.error_no_maps_app, Toast.LENGTH_SHORT).show();
         }
     }
 

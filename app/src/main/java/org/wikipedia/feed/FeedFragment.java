@@ -1,5 +1,10 @@
 package org.wikipedia.feed;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.IntRange;
@@ -32,13 +37,16 @@ import org.wikipedia.feed.view.FeedAdapter;
 import org.wikipedia.feed.view.FeedView;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.login.LoginActivity;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.settings.Prefs;
 import org.wikipedia.settings.SettingsActivity;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.UriUtil;
+import org.wikipedia.util.log.L;
 import org.wikipedia.views.ExploreOverflowView;
 
+import java.io.IOException;
 import java.util.List;
 
 import butterknife.BindView;
@@ -58,6 +66,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
     private FeedScrollListener feedScrollListener = new FeedScrollListener();
     private OverflowCallback overflowCallback = new OverflowCallback();
     private boolean searchIconVisible;
+    private NetworkStateReceiver networkStateReceiver = new NetworkStateReceiver();
 
     public interface Callback {
         void onFeedTabListRequested();
@@ -104,9 +113,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                funnel.refresh(coordinator.getAge());
-                coordinator.reset();
-                coordinator.more(app.getWikiSite());
+                refresh();
             }
         });
 
@@ -139,6 +146,9 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
             }
         });
 
+        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        getContext().registerReceiver(networkStateReceiver, filter);
+
         return view;
     }
 
@@ -150,6 +160,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
     @Override
     public void onDestroyView() {
+        getContext().unregisterReceiver(networkStateReceiver);
         coordinator.setFeedUpdateListener(null);
         swipeRefreshLayout.setOnRefreshListener(null);
         feedView.removeOnScrollListener(feedScrollListener);
@@ -219,6 +230,12 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
     @Nullable private Callback getCallback() {
         return FragmentUtil.getCallback(this, Callback.class);
+    }
+
+    private void refresh() {
+        funnel.refresh(coordinator.getAge());
+        coordinator.reset();
+        coordinator.more(app.getWikiSite());
     }
 
     private class FeedCallback implements FeedAdapter.Callback {
@@ -313,6 +330,12 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         public void onAnnouncementNegativeAction(@NonNull Card card) {
             onRequestDismissCard(card);
         }
+
+        @Override
+        public void onGoOnline() {
+            OfflineHelper.goOnline();
+            refresh();
+        }
     }
 
     private class FeedScrollListener extends RecyclerView.OnScrollListener {
@@ -372,9 +395,43 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         }
 
         @Override
+        public void offlineClick() {
+            try {
+                OfflineHelper.goOffline();
+                refresh();
+            } catch (IOException e) {
+                L.e(e);
+            }
+        }
+
+        @Override
         public void logoutClick() {
             WikipediaApp.getInstance().logOut();
             FeedbackUtil.showMessage(FeedFragment.this, R.string.toast_logout_complete);
+        }
+    }
+
+    private class NetworkStateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager connManager = (ConnectivityManager) context
+                    .getSystemService(Context.CONNECTIVITY_SERVICE);
+            if ((connManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE) != null
+                    && connManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).isConnected())
+                    || (connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI) != null
+                    && connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnected())) {
+
+                OfflineHelper.goOnline();
+                refresh();
+
+            } else {
+                try {
+                    OfflineHelper.goOffline();
+                    refresh();
+                } catch (IOException e) {
+                    L.e(e);
+                }
+            }
         }
     }
 }

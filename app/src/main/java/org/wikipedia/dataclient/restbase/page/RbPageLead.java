@@ -13,12 +13,14 @@ import org.wikipedia.dataclient.page.PageLeadProperties;
 import org.wikipedia.dataclient.page.Protection;
 import org.wikipedia.dataclient.restbase.RbServiceError;
 import org.wikipedia.login.User;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.GeoTypeAdapter;
 import org.wikipedia.page.Namespace;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.page.Section;
+import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.UriUtil;
 import org.wikipedia.util.log.L;
 
@@ -128,6 +130,11 @@ public class RbPageLead implements PageLead, PageLeadProperties {
     @Override
     @Nullable
     public String getTitlePronunciationUrl() {
+        if (OfflineHelper.areWeOffline()) {
+            return titlePronunciation == null
+                    ? null
+                    : OfflineHelper.getOfflineMediaUrl(titlePronunciation.getUrl());
+        }
         return titlePronunciation == null
                 ? null
                 : UriUtil.resolveProtocolRelativeUrl(titlePronunciation.getUrl());
@@ -254,6 +261,9 @@ public class RbPageLead implements PageLead, PageLeadProperties {
 
         @Nullable
         public String getUrl(int leadImageThumbWidth) {
+            if (OfflineHelper.areWeOffline()) {
+                return urls != null ? OfflineHelper.getOfflineMediaUrl(urls.get(DimenUtil.calculateLeadImageWidth())) : null;
+            }
             return urls != null ? urls.get(leadImageThumbWidth) : null;
         }
     }

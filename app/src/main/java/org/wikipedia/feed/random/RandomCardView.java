@@ -6,13 +6,17 @@ import android.support.annotation.Nullable;
 import android.view.View;
 
 import org.wikipedia.R;
+import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.restbase.page.RbPageSummary;
 import org.wikipedia.feed.view.FeedAdapter;
 import org.wikipedia.feed.view.StaticCardView;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.random.RandomSummaryClient;
 import org.wikipedia.util.log.L;
+
+import java.io.IOException;
 
 import retrofit2.Call;
 
@@ -37,7 +41,17 @@ public class RandomCardView extends StaticCardView<RandomCard> {
         @Override
         public void onClick(View view) {
             if (getCallback() != null && getCard() != null) {
-                new RandomSummaryClient().request(getCard().wikiSite(), serviceCallback);
+                if (OfflineHelper.areWeOffline()) {
+                    try {
+                        getCallback().onSelectPage(new HistoryEntry(new PageTitle(OfflineHelper.getRandomTitle(),
+                                WikipediaApp.getInstance().getWikiSite()),
+                                HistoryEntry.SOURCE_FEED_RANDOM));
+                    } catch (IOException e) {
+                        L.e(e);
+                    }
+                } else {
+                    new RandomSummaryClient().request(getCard().wikiSite(), serviceCallback);
+                }
             }
         }
 

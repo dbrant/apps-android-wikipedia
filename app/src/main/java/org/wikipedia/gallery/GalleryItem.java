@@ -92,10 +92,21 @@ class GalleryItem {
     GalleryItem(String name) {
         this.json = null;
         this.name = name;
-        this.url = null;
         this.mimeType = "*/*";
         this.thumbUrl = null;
-        this.metadata = null;
+        this.metadata = new HashMap<>();
+        this.width = 0;
+        this.height = 0;
+        this.license = new ImageLicense();
+    }
+
+    GalleryItem(String name, String url) {
+        this.json = null;
+        this.name = name;
+        this.url = url;
+        this.mimeType = "*/*";
+        this.thumbUrl = null;
+        this.metadata = new HashMap<>();
         this.width = 0;
         this.height = 0;
         this.license = new ImageLicense();

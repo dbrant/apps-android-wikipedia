@@ -53,6 +53,7 @@ import org.wikipedia.gallery.GalleryActivity;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.history.UpdateHistoryTask;
 import org.wikipedia.language.LangLinksActivity;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.onboarding.PrefsOnboardingStateMachine;
 import org.wikipedia.page.action.PageActionTab;
 import org.wikipedia.page.action.PageActionToolbarHideHandler;
@@ -420,7 +421,9 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             return;
         }
         dismissBottomSheet();
-        if (title.namespace() != Namespace.MAIN || !app.isLinkPreviewEnabled()) {
+        if (title.namespace() != Namespace.MAIN
+                || !app.isLinkPreviewEnabled()
+                || OfflineHelper.areWeOffline()) {
             HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
             loadPage(title, historyEntry);
         } else {
@@ -1110,16 +1113,25 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             @Override public void onMessage(String messageType, JSONObject messagePayload) {
                 try {
                     String href = decodeURL(messagePayload.getString("href"));
-                    if (href.startsWith("/wiki/")) {
-                        String filename = UriUtil.removeInternalLinkPrefix(href);
-                        WikiSite wiki = model.getTitle().getWikiSite();
+
+                    if (OfflineHelper.areWeOffline()) {
                         startActivityForResult(GalleryActivity.newIntent(getContext(),
-                                model.getTitleOriginal(), filename, wiki,
+                                model.getTitleOriginal(), href, app.getWikiSite(),
                                 GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
                                 Constants.ACTIVITY_REQUEST_GALLERY);
                     } else {
-                        linkHandler.onUrlClick(href, messagePayload.optString("title"));
+                        if (href.startsWith("/wiki/")) {
+                            String filename = UriUtil.removeInternalLinkPrefix(href);
+                            WikiSite wiki = model.getTitle().getWikiSite();
+                            startActivityForResult(GalleryActivity.newIntent(getContext(),
+                                    model.getTitleOriginal(), filename, wiki,
+                                    GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
+                                    Constants.ACTIVITY_REQUEST_GALLERY);
+                        } else {
+                            linkHandler.onUrlClick(href, messagePayload.optString("title"));
+                        }
                     }
+
                 } catch (JSONException e) {
                     L.logRemoteErrorIfProd(e);
                 }

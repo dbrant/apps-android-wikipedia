@@ -38,6 +38,7 @@ import org.wikipedia.feed.image.FeaturedImage;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonMarshaller;
 import org.wikipedia.json.GsonUnmarshaller;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.ExclusiveBottomSheetPresenter;
 import org.wikipedia.page.LinkMovementMethodExt;
 import org.wikipedia.page.PageActivity;
@@ -234,7 +235,11 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
 
         updateProgressBar(false, true, 0);
 
-        if (getIntent().hasExtra(EXTRA_FEATURED_IMAGE)) {
+        if (pageTitle == null) {
+            throw new IllegalStateException("pageTitle should not be null");
+        } else if (OfflineHelper.areWeOffline()) {
+            loadGalleryItemFor(initialFilename);
+        } else if (getIntent().hasExtra(EXTRA_FEATURED_IMAGE)) {
             FeaturedImage featuredImage = GsonUnmarshaller.unmarshal(FeaturedImage.class,
                     getIntent().getStringExtra(EXTRA_FEATURED_IMAGE));
             int age = getIntent().getIntExtra(EXTRA_FEATURED_IMAGE_AGE, 0);
@@ -253,6 +258,12 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
     private void loadGalleryItemFor(@NonNull FeaturedImage image, int age) {
         List<GalleryItem> list = new ArrayList<>();
         list.add(new FeaturedImageGalleryItem(image, age));
+        applyGalleryCollection(new GalleryCollection(list));
+    }
+
+    private void loadGalleryItemFor(@NonNull String singleUrl) {
+        List<GalleryItem> list = new ArrayList<>();
+        list.add(new GalleryItem(singleUrl, singleUrl));
         applyGalleryCollection(new GalleryCollection(list));
     }
 
@@ -470,7 +481,7 @@ public class GalleryActivity extends ThemedActionBarActivity implements LinkPrev
                 // by default in the gallery)
                 initialImagePos = 0;
                 collection.getItemList().add(initialImagePos,
-                        new GalleryItem(initialFilename));
+                        new GalleryItem(initialFilename, null));
             }
         }
 

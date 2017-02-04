@@ -11,6 +11,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.bridge.CommunicationBridge;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.util.GeoUtil;
 import org.wikipedia.util.UriUtil;
 
 import static org.wikipedia.util.UriUtil.decodeURL;
@@ -58,6 +59,8 @@ public abstract class LinkHandler implements CommunicationBridge.JSEventListener
             onInternalLinkClicked(title);
         } else if (href.startsWith("#")) {
             onPageLinkClicked(href.substring(1));
+        } else if (href.startsWith("geo:")) {
+            GeoUtil.sendGeoIntent(context, href);
         } else {
             Uri uri = Uri.parse(href);
             String authority = uri.getAuthority();

@@ -81,6 +81,8 @@ bridge.registerListener( "displayLeadSection", function( payload ) {
     content.id = "content_block_0";
 
     document.head.getElementsByTagName("base")[0].setAttribute("href", payload.siteBaseUrl);
+
+    window.isOffline = payload.isOffline;
     window.apiLevel = payload.apiLevel;
     window.string_table_infobox = payload.string_table_infobox;
     window.string_table_other = payload.string_table_other;
@@ -119,6 +121,10 @@ bridge.registerListener( "displayLeadSection", function( payload ) {
         if (!window.isNetworkMetered) {
             transformer.transform( "widenImages", content ); // offsetWidth
         }
+    }
+
+    if (window.isOffline) {
+        rewriteImageUrlsForOffline( content );
     }
 
     transformer.transform("displayDisambigLink", content);
@@ -192,7 +198,21 @@ function elementsForSection( section ) {
         }
     }
 
+    if (window.isOffline) {
+        rewriteImageUrlsForOffline( content );
+    }
+
     return [ heading, content ];
+}
+
+function rewriteImageUrlsForOffline( currentSectionNode ) {
+    var imgTags = currentSectionNode.querySelectorAll( 'img' );
+    for ( var i = 0; i < imgTags.length; i++ ) {
+        var imgSrc = imgTags[i].getAttribute( 'src' );
+        if (imgSrc !== null) {
+            imgTags[i].setAttribute( 'src', imgSrc.replace("m/", "content://org.kiwix.zim.base/I/m/") );
+        }
+    }
 }
 
 var scrolledOnLoad = false;

@@ -24,10 +24,13 @@ import org.wikipedia.dataclient.ServiceError;
 import org.wikipedia.dataclient.page.PageLead;
 import org.wikipedia.dataclient.page.PageRemaining;
 import org.wikipedia.dataclient.page.PageServiceFactory;
+import org.wikipedia.dataclient.restbase.page.RbPageCombo;
 import org.wikipedia.edit.EditHandler;
 import org.wikipedia.edit.EditSectionActivity;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.json.GsonUnmarshaller;
 import org.wikipedia.login.User;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.bottomcontent.BottomContentHandler;
 import org.wikipedia.page.bottomcontent.BottomContentInterface;
 import org.wikipedia.page.leadimages.LeadImagesHandler;
@@ -43,6 +46,7 @@ import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -251,13 +255,28 @@ public class PageDataClient implements PageLoadStrategy {
     @VisibleForTesting
     protected void loadLeadSection(final int startSequenceNum) {
         app.getSessionFunnel().leadSectionFetchStart();
+        if (OfflineHelper.areWeOffline()) {
+            try {
+                RbPageCombo combo = GsonUnmarshaller.unmarshal(RbPageCombo.class,
+                        OfflineHelper.getHtml(model.getTitle().getDisplayText()));
+                if (combo == null) {
+                    throw new IOException("Sorry, this page is not included in the current offline collection.");
+                }
+                app.getSessionFunnel().leadSectionFetchEnd();
+                onLeadSectionLoaded(combo.toPage(model.getTitle()), null, startSequenceNum);
+            } catch (IOException e) {
+                commonSectionFetchOnCatch(e, startSequenceNum);
+                fragment.onPageLoadError(e);
+            }
+            return;
+        }
         PageServiceFactory.create(model.getTitle().getWikiSite(), model.getTitle().namespace())
                 .pageLead(model.getTitle().getPrefixedText(), calculateLeadImageWidth(),
                 !app.isImageDownloadEnabled(), new PageLead.Callback() {
                     @Override
                     public void success(PageLead pageLead) {
                         app.getSessionFunnel().leadSectionFetchEnd();
-                        onLeadSectionLoaded(pageLead, startSequenceNum);
+                        onLeadSectionLoaded(null, pageLead, startSequenceNum);
                     }
 
                     @Override
@@ -407,19 +426,24 @@ public class PageDataClient implements PageLoadStrategy {
         // stage any section-specific link target from the title, since the title may be
         // replaced (normalized)
         sectionTargetFromTitle = model.getTitle().getFragment();
+        L10nUtil.setupDirectionality(model.getTitle().getWikiSite().languageCode(),
+                Locale.getDefault().getLanguage(), bridge);
 
-        L10nUtil.setupDirectionality(model.getTitle().getWikiSite().languageCode(), Locale.getDefault().getLanguage(),
-                bridge);
-
-        loadFromNetwork(new ErrorCallback() {
-            @Override public void call(final Throwable networkError) {
-                loadSavedPage(new ErrorCallback() {
-                    @Override public void call(Throwable savedError) {
-                        fragment.onPageLoadError(networkError);
-                    }
-                });
-            }
-        });
+        if (OfflineHelper.areWeOffline()) {
+            performActionForState(state);
+        } else {
+            loadFromNetwork(new ErrorCallback() {
+                @Override
+                public void call(final Throwable networkError) {
+                    loadSavedPage(new ErrorCallback() {
+                        @Override
+                        public void call(Throwable savedError) {
+                            fragment.onPageLoadError(networkError);
+                        }
+                    });
+                }
+            });
+        }
     }
 
     private void loadFromNetwork(final ErrorCallback errorCallback) {
@@ -428,9 +452,11 @@ public class PageDataClient implements PageLoadStrategy {
         performActionForState(state);
     }
 
-    private void updateThumbnail(String thumbUrl) {
+    private void updateThumbnail(@NonNull String thumbUrl) {
         model.getTitle().setThumbUrl(thumbUrl);
         model.getTitleOriginal().setThumbUrl(thumbUrl);
+        PageImage pi = new PageImage(model.getTitle(), thumbUrl);
+        app.getDatabaseClient(PageImage.class).upsert(pi, PageImageHistoryContract.Image.SELECTION);
         fragment.invalidateTabs();
     }
 
@@ -511,7 +537,8 @@ public class PageDataClient implements PageLoadStrategy {
                     .put("isMainPage", page.isMainPage())
                     .put("fromRestBase", page.isFromRestBase())
                     .put("isNetworkMetered", DeviceUtil.isNetworkMetered(app))
-                    .put("apiLevel", Build.VERSION.SDK_INT);
+                    .put("apiLevel", Build.VERSION.SDK_INT)
+                    .put("isOffline", OfflineHelper.areWeOffline());
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -606,11 +633,11 @@ public class PageDataClient implements PageLoadStrategy {
         }
     }
 
-    private void onLeadSectionLoaded(PageLead pageLead, int startSequenceNum) {
+    private void onLeadSectionLoaded(@Nullable Page page, @Nullable PageLead pageLead, int startSequenceNum) {
         if (!fragment.isAdded() || !sequenceNumber.inSync(startSequenceNum)) {
             return;
         }
-        if (pageLead.hasError()) {
+        if (pageLead != null && pageLead.hasError()) {
             ServiceError error = pageLead.getError();
             if (error != null) {
                 ApiException apiException = new ApiException(error.getTitle(), error.getDetails());
@@ -623,7 +650,9 @@ public class PageDataClient implements PageLoadStrategy {
             return;
         }
 
-        Page page = pageLead.toPage(model.getTitle());
+        if (page == null) {
+            page = pageLead.toPage(model.getTitle());
+        }
         model.setPage(page);
         model.setTitle(page.getTitle());
 
@@ -642,27 +671,34 @@ public class PageDataClient implements PageLoadStrategy {
         model.setCurEntry(
                 new HistoryEntry(model.getTitle(), curEntry.getTimestamp(), curEntry.getSource()));
 
-        // Fetch larger thumbnail URL from the network, and save it to our DB.
-        (new PageImagesTask(app.getAPIForSite(model.getTitle().getWikiSite()), model.getTitle().getWikiSite(),
-                Arrays.asList(new PageTitle[]{model.getTitle()}), Constants.PREFERRED_THUMB_SIZE) {
-            @Override
-            public void onFinish(Map<PageTitle, String> result) {
-                if (result.containsKey(model.getTitle())) {
-                    PageImage pi = new PageImage(model.getTitle(), result.get(model.getTitle()));
-                    app.getDatabaseClient(PageImage.class).upsert(pi, PageImageHistoryContract.Image.SELECTION);
-                    updateThumbnail(result.get(model.getTitle()));
+        if (OfflineHelper.areWeOffline()) {
+            updateThumbnail(page.getPageProperties().getLeadImageUrl());
+        } else {
+            // Fetch larger thumbnail URL from the network, and save it to our DB.
+            (new PageImagesTask(app.getAPIForSite(model.getTitle().getWikiSite()), model.getTitle().getWikiSite(),
+                    Arrays.asList(new PageTitle[]{model.getTitle()}), Constants.PREFERRED_THUMB_SIZE) {
+                @Override
+                public void onFinish(Map<PageTitle, String> result) {
+                    if (result.containsKey(model.getTitle())) {
+                        updateThumbnail(result.get(model.getTitle()));
+                    }
                 }
-            }
 
-            @Override
-            public void onCatch(Throwable caught) {
-                L.w(caught);
-            }
-        }).execute();
+                @Override
+                public void onCatch(Throwable caught) {
+                    L.w(caught);
+                }
+            }).execute();
+        }
     }
 
     private void loadRemainingSections(final int startSequenceNum) {
         app.getSessionFunnel().restSectionsFetchStart();
+        if (OfflineHelper.areWeOffline()) {
+            app.getSessionFunnel().restSectionsFetchEnd();
+            onRemainingSectionsLoaded(null, startSequenceNum);
+            return;
+        }
         PageServiceFactory.create(model.getTitle().getWikiSite(), model.getTitle().namespace())
                 .pageRemaining(model.getTitle().getPrefixedText(), !app.isImageDownloadEnabled(),
                 new PageRemaining.Callback() {
@@ -680,13 +716,15 @@ public class PageDataClient implements PageLoadStrategy {
                 });
     }
 
-    private void onRemainingSectionsLoaded(PageRemaining pageRemaining, int startSequenceNum) {
+    private void onRemainingSectionsLoaded(@Nullable PageRemaining pageRemaining, int startSequenceNum) {
         networkErrorCallback = null;
         if (!fragment.isAdded() || !sequenceNumber.inSync(startSequenceNum)) {
             return;
         }
 
-        pageRemaining.mergeInto(model.getPage());
+        if (pageRemaining != null) {
+            pageRemaining.mergeInto(model.getPage());
+        }
 
         displayNonLeadSectionForUnsavedPage(1);
         setState(STATE_COMPLETE_FETCH);
