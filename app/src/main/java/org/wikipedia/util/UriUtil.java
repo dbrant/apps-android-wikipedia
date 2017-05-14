@@ -99,6 +99,12 @@ public final class UriUtil {
                 && uri.getPath().startsWith("/wiki"));
     }
 
+    public static boolean isValidOfflinePageLink(@NonNull Uri uri) {
+        return (!TextUtils.isEmpty(uri.getAuthority())
+                && !TextUtils.isEmpty(uri.getPath())
+                && uri.getPath().endsWith(".html"));
+    }
+
     public static void handleExternalLink(final Context context, final Uri uri) {
         final WikipediaZeroHandler zeroHandler = WikipediaApp.getInstance()
                 .getWikipediaZeroHandler();

@@ -1,5 +1,10 @@
 package org.wikipedia.feed;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.IntRange;
@@ -54,6 +59,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
     private FeedScrollListener feedScrollListener = new FeedScrollListener();
     private OverflowCallback overflowCallback = new OverflowCallback();
     private boolean searchIconVisible;
+    private NetworkStateReceiver networkStateReceiver = new NetworkStateReceiver();
 
     public interface Callback {
         void onFeedTabListRequested();
@@ -103,10 +109,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                funnel.refresh(coordinator.getAge());
-                coordinator.reset();
-                feedAdapter.notifyDataSetChanged();
-                coordinator.more(app.getWikiSite());
+                refresh();
             }
         });
 
@@ -138,6 +141,9 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
                 }
             }
         });
+
+        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        getContext().registerReceiver(networkStateReceiver, filter);
 
         return view;
     }
@@ -182,6 +188,7 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
 
     @Override
     public void onDestroyView() {
+        getContext().unregisterReceiver(networkStateReceiver);
         coordinator.setFeedUpdateListener(null);
         swipeRefreshLayout.setOnRefreshListener(null);
         feedView.removeOnScrollListener(feedScrollListener);
@@ -247,6 +254,13 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
     @Override
     public boolean onBackPressed() {
         return false;
+    }
+
+    private void refresh() {
+        funnel.refresh(coordinator.getAge());
+        coordinator.reset();
+        feedAdapter.notifyDataSetChanged();
+        coordinator.more(app.getWikiSite());
     }
 
     @Nullable private Callback getCallback() {
@@ -381,6 +395,11 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         public void onAnnouncementNegativeAction(@NonNull Card card) {
             onRequestDismissCard(card);
         }
+
+        @Override
+        public void onViewCompilations() {
+            // TODO
+        }
     }
 
     private class FeedScrollListener extends RecyclerView.OnScrollListener {
@@ -441,9 +460,21 @@ public class FeedFragment extends Fragment implements BackPressedHandler {
         }
 
         @Override
+        public void viewCompilationsClick() {
+            // TODO
+        }
+
+        @Override
         public void logoutClick() {
             WikipediaApp.getInstance().logOut();
             FeedbackUtil.showMessage(FeedFragment.this, R.string.toast_logout_complete);
+        }
+    }
+
+    private class NetworkStateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            refresh();
         }
     }
 }

@@ -12,10 +12,12 @@ import android.widget.ListView;
 
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.readinglist.AddToReadingListDialog;
 
 import static org.wikipedia.util.DeviceUtil.hideSoftKeyboard;
+import static org.wikipedia.util.UriUtil.isValidOfflinePageLink;
 import static org.wikipedia.util.UriUtil.isValidPageLink;
 
 public class LongPressHandler implements View.OnCreateContextMenuListener,
@@ -42,7 +44,10 @@ public class LongPressHandler implements View.OnCreateContextMenuListener,
             WebView.HitTestResult result = ((WebView) view).getHitTestResult();
             if (result.getType() == WebView.HitTestResult.SRC_ANCHOR_TYPE) {
                 Uri uri = Uri.parse(result.getExtra());
-                if (isValidPageLink(uri)) {
+                if (OfflineHelper.haveCompilation() && isValidOfflinePageLink(uri)) {
+                    title = ((WebViewContextMenuListener) contextMenuListener).getWikiSite()
+                            .titleForInternalLink(uri.getLastPathSegment().replace(".html", ""));
+                } else if (isValidPageLink(uri)) {
                     title = ((WebViewContextMenuListener) contextMenuListener).getWikiSite()
                             .titleForInternalLink(uri.getPath());
                 }

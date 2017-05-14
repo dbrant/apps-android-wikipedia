@@ -28,6 +28,7 @@ public class ExploreOverflowView extends FrameLayout {
         void logoutClick();
         void settingsClick();
         void donateClick();
+        void viewCompilationsClick();
     }
 
     @BindView(R.id.explore_overflow_account_name) TextView accountName;
@@ -53,7 +54,8 @@ public class ExploreOverflowView extends FrameLayout {
     }
 
     @OnClick({R.id.explore_overflow_settings, R.id.explore_overflow_donate,
-            R.id.explore_overflow_account_container, R.id.explore_overflow_log_out})
+            R.id.explore_overflow_account_container, R.id.explore_overflow_log_out,
+            R.id.explore_view_compilations})
     void onItemClick(View view) {
         if (popupWindowHost != null) {
             popupWindowHost.dismiss();
@@ -67,6 +69,9 @@ public class ExploreOverflowView extends FrameLayout {
                 if (!User.isLoggedIn()) {
                     callback.loginClick();
                 }
+                break;
+            case R.id.explore_view_compilations:
+                callback.viewCompilationsClick();
                 break;
             case R.id.explore_overflow_settings:
                 callback.settingsClick();

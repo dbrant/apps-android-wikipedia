@@ -58,7 +58,7 @@ document.onclick = function() {
     // If an element was clicked, check if it or any of its parents are <a>
     // This handles cases like <a>foo</a>, <a><strong>foo</strong></a>, etc.
     while (curNode) {
-        if (curNode.tagName === "A" || curNode.tagName === "AREA") {
+        if (curNode.tagName === "A" || curNode.tagName === "AREA" || (window.isOffline === true && curNode.tagName === "IMG")) {
             sourceNode = curNode;
             break;
         }
@@ -72,6 +72,9 @@ document.onclick = function() {
             for ( var i = 0; i < handlers.length; i++ ) {
                 handlers[i]( sourceNode, event );
             }
+        } else if ( sourceNode.tagName === "IMG" ) {
+            var src = sourceNode.getAttribute( "src" );
+            bridge.sendMessage( 'imageClicked', { "href": src } );
         } else {
             var href = sourceNode.getAttribute( "href" );
             if ( href[0] === "#" ) {
@@ -410,6 +413,156 @@ bridge.registerListener( "getTextSelection", function( payload ) {
     bridge.sendMessage( "onGetTextSelection", { "purpose" : payload.purpose, "text" : text, "sectionID" : getCurrentSection() } );
 });
 
+bridge.registerListener( "displayFromZim", function( payload ) {
+    // This might be a refresh! Clear out all contents!
+    clearContents();
+
+    document.head.getElementsByTagName("base")[0].setAttribute("href", payload.siteBaseUrl);
+
+    window.isOffline = true;
+    window.apiLevel = payload.apiLevel;
+    window.string_table_infobox = payload.string_table_infobox;
+    window.string_table_other = payload.string_table_other;
+    window.string_table_close = payload.string_table_close;
+    window.string_expand_refs = payload.string_expand_refs;
+    window.pageTitle = payload.title;
+    window.isMainPage = payload.isMainPage;
+    window.fromRestBase = payload.fromRestBase;
+    window.isBeta = payload.isBeta;
+    window.siteLanguage = payload.siteLanguage;
+    window.isNetworkMetered = payload.isNetworkMetered;
+
+    var contentElem = document.getElementById( "content" );
+
+    // create an empty div to act as the title anchor
+    var titleDiv = document.createElement( "div" );
+    titleDiv.id = "heading_0";
+    titleDiv.setAttribute( "data-id", 0 );
+    titleDiv.className = "section_heading";
+    contentElem.appendChild( titleDiv );
+
+    var issuesContainer = document.createElement( "div" );
+    issuesContainer.setAttribute( "dir", window.directionality );
+    issuesContainer.id = "issues_container";
+    contentElem.appendChild( issuesContainer );
+
+    var parser = new DOMParser();
+    var zimDoc = parser.parseFromString(payload.zimhtml, "text/html");
+    var zimTextNode = zimDoc.getElementById( "mw-content-text" );
+    zimTextNode.parentNode.removeChild( zimTextNode );
+
+    var zimNodes = zimTextNode.childNodes;
+    var sectionIndex = 0;
+    var i;
+    var sectionsJson = [];
+    var sectionJson;
+
+    var currentSectionNode = document.createElement( "div" );
+    currentSectionNode.setAttribute( "dir", window.directionality );
+    currentSectionNode.id = "content_block_" + sectionIndex;
+    contentElem.appendChild( currentSectionNode );
+
+    for ( i = 0; i < zimNodes.length; i++ ) {
+
+        if (zimNodes[i].tagName === undefined) {
+            continue;
+        }
+
+        if ( zimNodes[i].tagName.length === 2 && zimNodes[i].tagName.substring(0, 1) === 'H' ) {
+
+            // perform transforms on the previous section
+            performZimSectionTransforms( sectionIndex, currentSectionNode );
+
+            sectionIndex++;
+
+            sectionJson = {};
+            sectionJson.id = sectionIndex;
+            sectionJson.toclevel = zimNodes[i].tagName.substring(1, 2);
+            sectionJson.line = zimNodes[i].innerHTML;
+            sectionJson.anchor = "heading_" + sectionIndex;
+            sectionsJson.push(sectionJson);
+
+            currentSectionNode = document.createElement( "div" );
+            currentSectionNode.setAttribute( "dir", window.directionality );
+            currentSectionNode.id = "content_block_" + sectionIndex;
+            contentElem.appendChild( currentSectionNode );
+
+            // dress up the header node a bit
+            zimNodes[i].setAttribute( "dir", window.directionality );
+            zimNodes[i].id = sectionJson.anchor;
+            zimNodes[i].className = "section_heading";
+            zimNodes[i].setAttribute( 'data-id', sectionIndex );
+        }
+        currentSectionNode.appendChild(zimNodes[i]);
+    }
+
+    // perform transforms on the last section
+    performZimSectionTransforms( sectionIndex, currentSectionNode );
+
+    bridge.sendMessage( "pageInfo", {
+      "issues" : collectIssues(),
+      "disambiguations" : collectDisambig()
+    });
+    //if there were no page issues, then hide the container
+    if (!issuesContainer.hasChildNodes()) {
+        contentElem.removeChild(issuesContainer);
+    }
+
+    if (payload.scrollY > 0) {
+        window.scrollTo( 0, payload.scrollY );
+    }
+    document.getElementById( "loading_sections").className = "";
+    bridge.sendMessage( "pageLoadComplete", {
+      "sequence": payload.sequence,
+      "savedPage": payload.savedPage,
+      "sections": sectionsJson });
+});
+
+function performZimSectionTransforms( sectionIndex, currentSectionNode ) {
+    // Content service transformations
+    if (!window.fromRestBase) {
+
+        if (sectionIndex === 0) {
+            transformer.transform( "moveFirstGoodParagraphUp" );
+        }
+
+        transformer.transform( "hideRedLinks", currentSectionNode );
+        transformer.transform( "anchorPopUpMediaTransforms", currentSectionNode );
+        transformer.transform( "hideIPA", currentSectionNode );
+    } else {
+        clickHandlerSetup.addIPAonClick( currentSectionNode );
+    }
+
+    transformer.transform( "addDarkModeStyles", currentSectionNode );
+    transformer.transform( "setDivWidth", currentSectionNode );
+
+    if (sectionIndex > 0) {
+        transformer.transform( "hideRefs", currentSectionNode );
+    }
+
+    if (!window.isMainPage) {
+        transformer.transform( "hideTables", currentSectionNode );
+        if (!window.isNetworkMetered) {
+            transformer.transform( "widenImages", currentSectionNode );
+        }
+    }
+
+    if (sectionIndex === 0) {
+        transformer.transform("displayDisambigLink", currentSectionNode);
+        transformer.transform("displayIssuesLink", currentSectionNode);
+    }
+
+    var i;
+    var imgTags = currentSectionNode.querySelectorAll( 'img' );
+    for ( i = 0; i < imgTags.length; i++ ) {
+        var imgSrc = imgTags[i].getAttribute( 'src' );
+        if (imgSrc !== null) {
+            imgTags[i].setAttribute( 'src', imgSrc.replace("../I/", "content://org.kiwix.zim.base/I/") );
+        }
+    }
+}
+
+
 bridge.registerListener( "displayLeadSection", function( payload ) {
     // This might be a refresh! Clear out all contents!
     clearContents();
@@ -432,6 +585,8 @@ bridge.registerListener( "displayLeadSection", function( payload ) {
     content.id = "content_block_0";
 
     document.head.getElementsByTagName("base")[0].setAttribute("href", payload.siteBaseUrl);
+
+    window.isOffline = false;
     window.apiLevel = payload.apiLevel;
     window.string_table_infobox = payload.string_table_infobox;
     window.string_table_other = payload.string_table_other;

@@ -12,6 +12,7 @@ import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mediawiki.api.json.ApiException;
@@ -30,6 +31,7 @@ import org.wikipedia.edit.EditHandler;
 import org.wikipedia.edit.EditSectionActivity;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.login.User;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.bottomcontent.BottomContentHandler;
 import org.wikipedia.page.bottomcontent.BottomContentInterface;
 import org.wikipedia.page.leadimages.LeadImagesHandler;
@@ -44,6 +46,7 @@ import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -261,6 +264,10 @@ public class PageFragmentLoadState {
                     }
 
                     @Override public void onFailure(Call<PageLead> call, Throwable t) {
+                        if (OfflineHelper.titleExists(model.getTitle().getDisplayText())) {
+                            loadFromCompilation();
+                            return;
+                        }
                         L.e("PageLead error: ", t);
                         commonSectionFetchOnCatch(t, startSequenceNum);
                     }
@@ -313,6 +320,30 @@ public class PageFragmentLoadState {
                     fragment.callback().onPageUpdateProgressBar(false, true, 0);
                 }
 
+                try {
+                    if (payload.has("sections")) {
+                        // augment our current Page object with updated Sections received from JS
+                        List<Section> sectionList = new ArrayList<>();
+                        JSONArray sections = payload.getJSONArray("sections");
+                        for (int i = 0; i < sections.length(); i++) {
+                            JSONObject s = sections.getJSONObject(i);
+                            sectionList.add(new Section(s.getInt("id"),
+                                    s.getInt("toclevel") - 1,
+                                    s.getString("line"),
+                                    s.getString("anchor"),
+                                    ""));
+                        }
+                        Page page = model.getPage();
+                        page.getSections().addAll(sectionList);
+
+                        loading = false;
+                        networkErrorCallback = null;
+                        fragment.onPageLoadComplete();
+                    }
+                } catch (JSONException e) {
+                    //
+                }
+
                 // trigger layout of the bottom content
                 // Check to see if the page title has changed (e.g. due to following a redirect),
                 // because if it has then the handler needs the new title to make sure it doesn't
@@ -338,8 +369,8 @@ public class PageFragmentLoadState {
         // replaced (normalized)
         sectionTargetFromTitle = model.getTitle().getFragment();
 
-        L10nUtil.setupDirectionality(model.getTitle().getWikiSite().languageCode(), Locale.getDefault().getLanguage(),
-                bridge);
+        L10nUtil.setupDirectionality(model.getTitle().getWikiSite().languageCode(),
+                Locale.getDefault().getLanguage(), bridge);
 
         loadFromNetwork(new ErrorCallback() {
             @Override public void call(final Throwable networkError) {
@@ -360,6 +391,87 @@ public class PageFragmentLoadState {
         }
         loadLeadSection(sequenceNumber.get());
     }
+
+    private void loadFromCompilation() {
+        List<Section> sections = new ArrayList<>();
+        sections.add(new Section());
+        Page page = new Page(model.getTitle(), sections, new PageProperties(model.getTitle()));
+
+        model.setPage(page);
+        editHandler.setPage(model.getPage());
+
+        leadImagesHandler.beginLayout(new LeadImagesHandler.OnLeadImageLayoutListener() {
+            @Override
+            public void onLayoutComplete(int sequence) {
+                if (!fragment.isAdded() || !sequenceNumber.inSync(sequence)) {
+                    return;
+                }
+                toolbarHideHandler.setFadeEnabled(leadImagesHandler.isLeadImageEnabled());
+                loadContentsFromCompilation();
+            }
+        }, sequenceNumber.get());
+
+        if (webView.getVisibility() != View.VISIBLE) {
+            webView.setVisibility(View.VISIBLE);
+        }
+
+        refreshView.setRefreshing(false);
+        if (fragment.callback() != null) {
+            fragment.callback().onPageUpdateProgressBar(true, true, 0);
+        }
+    }
+
+    private void loadContentsFromCompilation() {
+        try {
+            Page page = model.getPage();
+            sendMarginPayload();
+            SparseArray<String> localizedStrings = localizedStrings(page);
+            JSONObject zimPayload = new JSONObject()
+                    .put("sequence", sequenceNumber.get())
+                    .put("title", page.getDisplayTitle())
+                    .put("zimhtml", OfflineHelper.getHtml(model.getTitle().getDisplayText()))
+                    .put("string_table_infobox", localizedStrings.get(R.string.table_infobox))
+                    .put("string_table_other", localizedStrings.get(R.string.table_other))
+                    .put("string_table_close", localizedStrings.get(R.string.table_close))
+                    .put("string_expand_refs", localizedStrings.get(R.string.expand_refs))
+                    .put("isBeta", ReleaseUtil.isPreProdRelease()) // True for any non-production release type
+                    .put("siteLanguage", model.getTitle().getWikiSite().languageCode())
+                    .put("siteBaseUrl", model.getTitle().getWikiSite().scheme() + "://" + model.getTitle().getWikiSite().host())
+                    .put("isMainPage", page.isMainPage())
+                    .put("fromRestBase", false)
+                    .put("isNetworkMetered", DeviceUtil.isNetworkMetered(app))
+                    .put("apiLevel", Build.VERSION.SDK_INT);
+
+            if (sectionTargetFromTitle != null) {
+                //if we have a section to scroll to (from our PageTitle):
+                zimPayload.put("fragment", sectionTargetFromTitle);
+            } else if (!TextUtils.isEmpty(model.getTitle().getFragment())) {
+                // It's possible that the link was a redirect and the new title has a fragment
+                // scroll to it, if there was no fragment so far
+                zimPayload.put("fragment", model.getTitle().getFragment());
+            }
+
+            //give it our expected scroll position, in case we need the page to be pre-scrolled upon loading.
+            zimPayload.put("scrollY", (int) (stagedScrollY / DimenUtil.getDensityScalar()));
+
+            bridge.sendMessage("displayFromZim", zimPayload);
+
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            fragment.onPageLoadError(e);
+        }
+        loading = false;
+    }
+
+
+
+
+
+
+
+
+
 
     private void updateThumbnail(String thumbUrl) {
         model.getTitle().setThumbUrl(thumbUrl);

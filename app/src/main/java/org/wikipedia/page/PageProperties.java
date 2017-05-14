@@ -86,6 +86,24 @@ public class PageProperties implements Parcelable {
         wikiBaseItem = core.getWikiBaseItem();
     }
 
+    public PageProperties(@NonNull PageTitle title) {
+        pageId = 0;
+        namespace = title.namespace();
+        revisionId = 0;
+        displayTitleText = title.getDisplayText();
+        titlePronunciationUrl = null;
+        geo = null;
+        editProtectionStatus = "";
+        languageCount = 1;
+        leadImageUrl = null;
+        leadImageName = "";
+        lastModified = new Date();
+        canEdit = false;
+        isMainPage = false;
+        isDisambiguationPage = false;
+        wikiBaseItem = null;
+    }
+
     /**
      * Create a new PageProperties object.
      * @param json JSON object from which this item will be built.

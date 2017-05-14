@@ -51,6 +51,11 @@
             android:text="@string/settings_item_preferences"/>
 
         <TextView
+            android:id="@+id/explore_view_compilations"
+            style="@style/OverflowMenuItem"
+            android:text="@string/offline_my_compilations"/>
+
+        <TextView
             android:id="@+id/explore_overflow_donate"
             style="@style/OverflowMenuItem"
             android:text="@string/nav_item_donate"/>

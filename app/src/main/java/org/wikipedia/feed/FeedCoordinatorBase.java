@@ -29,7 +29,7 @@ public abstract class FeedCoordinatorBase {
         void remove(Card card, int pos);
     }
 
-    @NonNull private Context context;
+    @NonNull protected Context context;
     @Nullable private WikiSite wiki;
     @Nullable private FeedUpdateListener updateListener;
     @NonNull private final List<Card> cards = new ArrayList<>();

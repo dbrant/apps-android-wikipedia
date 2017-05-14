@@ -13,6 +13,7 @@ import com.squareup.otto.Subscribe;
 
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.events.WikipediaZeroEnterEvent;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.settings.Prefs;
 
 public abstract class BaseActivity extends AppCompatActivity {
@@ -39,6 +40,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         busMethods = new EventBusMethods();
         WikipediaApp.getInstance().getBus().register(busMethods);
+
+        OfflineHelper.loadCompilation();
     }
 
     @Override protected void onDestroy() {

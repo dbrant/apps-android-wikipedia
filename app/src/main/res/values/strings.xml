@@ -430,4 +430,12 @@
     <string name="description_edit_revert_history"><![CDATA[If you are interested, see the <a href="%1$s">edit history</a>.]]></string>
     <!-- /Description editing revert help -->
 
+    <!-- Offline -->
+    <string name="offline_title">Offline</string>
+    <string name="offline_card_text">You are now browsing Wikipedia in offline mode. Please note that offline articles may not be fully up to date with the online version.</string>
+    <string name="offline_go_offline">Go offline</string>
+    <string name="offline_go_online">Go online</string>
+    <string name="offline_my_compilations">My compilations</string>
+    <string name="offline_compilation_description">Using compilation: %1$s — %2$s</string>
+    <!-- /Offline -->
 </resources>

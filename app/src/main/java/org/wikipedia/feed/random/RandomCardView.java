@@ -11,10 +11,13 @@ import org.wikipedia.dataclient.restbase.page.RbPageSummary;
 import org.wikipedia.feed.view.FeedAdapter;
 import org.wikipedia.feed.view.StaticCardView;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.offline.OfflineHelper;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.random.RandomSummaryClient;
 import org.wikipedia.readinglist.page.database.ReadingListPageDao;
 import org.wikipedia.util.log.L;
+
+import java.io.IOException;
 
 import retrofit2.Call;
 
@@ -57,12 +60,26 @@ public class RandomCardView extends StaticCardView<RandomCard> {
             @Override
             public void onError(@NonNull Call<RbPageSummary> call, @NonNull Throwable t) {
                 L.w("Failed to get random card from network. Falling back to reading lists.", t);
-                getRandomReadingListPage(t);
+                getRandomPageFromCompilation(t);
                 setProgress(false);
             }
         };
 
-        private void getRandomReadingListPage(@NonNull final Throwable throwableIfEmpty) {
+        private void getRandomPageFromCompilation(@NonNull final Throwable throwableIfEmpty) {
+            if (OfflineHelper.haveCompilation()) {
+                try {
+                    getCallback().onSelectPage(getCard(), new HistoryEntry(
+                            new PageTitle(OfflineHelper.getRandomTitle(), getCard().wikiSite()),
+                            HistoryEntry.SOURCE_FEED_RANDOM));
+                } catch (IOException e) {
+                    L.e(e);
+                }
+            } else {
+                getRandomPageFromReadingLists(throwableIfEmpty);
+            }
+        }
+
+        private void getRandomPageFromReadingLists(@NonNull final Throwable throwableIfEmpty) {
             ReadingListPageDao.instance().randomPage(new CallbackTask.Callback<PageTitle>() {
                 @Override public void success(@Nullable PageTitle title) {
                     if (getCallback() != null && getCard() != null) {
