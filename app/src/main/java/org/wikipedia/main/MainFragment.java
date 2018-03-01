@@ -59,6 +59,7 @@ import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.PermissionUtil;
 import org.wikipedia.util.ShareUtil;
 import org.wikipedia.util.log.L;
+import org.wikipedia.wikidata.WikidataInfoDialog;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -359,6 +360,12 @@ public class MainFragment extends Fragment implements BackPressedHandler, FeedFr
     @Override
     public void onSearchResultShareLink(@NonNull PageTitle title) {
         ShareUtil.shareText(getContext(), title);
+    }
+
+    @Override
+    public void showWikidataInfoBox(@NonNull PageTitle title) {
+        bottomSheetPresenter.show(getChildFragmentManager(),
+                WikidataInfoDialog.newInstance(title));
     }
 
     @Override

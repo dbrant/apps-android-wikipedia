@@ -69,6 +69,7 @@ import org.wikipedia.util.ShareUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.widgets.WidgetProviderFeaturedPage;
+import org.wikipedia.wikidata.WikidataInfoDialog;
 import org.wikipedia.wiktionary.WiktionaryDialog;
 
 import butterknife.BindView;
@@ -681,6 +682,12 @@ public class PageActivity extends BaseActivity implements PageFragment.Callback,
     @Override
     public void onLinkPreviewShareLink(@NonNull PageTitle title) {
         ShareUtil.shareText(this, title);
+    }
+
+    @Override
+    public void showWikidataInfoBox(@NonNull PageTitle title) {
+        bottomSheetPresenter.show(getSupportFragmentManager(),
+                WikidataInfoDialog.newInstance(title));
     }
 
     @Override

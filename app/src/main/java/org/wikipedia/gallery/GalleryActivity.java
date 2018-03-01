@@ -53,6 +53,7 @@ import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ViewAnimations;
 import org.wikipedia.views.WikiErrorView;
+import org.wikipedia.wikidata.WikidataInfoDialog;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -426,6 +427,12 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
 
     @Override public void onLinkPreviewShareLink(@NonNull PageTitle title) {
         ShareUtil.shareText(this, title);
+    }
+
+    @Override
+    public void showWikidataInfoBox(@NonNull PageTitle title) {
+        bottomSheetPresenter.show(getSupportFragmentManager(),
+                WikidataInfoDialog.newInstance(title));
     }
 
     void showError(@Nullable Throwable caught, boolean backOnError) {
