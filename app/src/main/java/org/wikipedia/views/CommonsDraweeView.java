@@ -1,11 +1,10 @@
 package org.wikipedia.views;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
-
-import com.facebook.drawee.view.SimpleDraweeView;
 
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.mwapi.MwQueryResponse;
@@ -15,7 +14,7 @@ import org.wikipedia.page.PageTitle;
 
 import retrofit2.Call;
 
-public class CommonsDraweeView extends SimpleDraweeView {
+public class CommonsDraweeView extends FaceAndColorDetectImageView {
 
     public CommonsDraweeView(Context context) {
         super(context);
@@ -38,7 +37,7 @@ public class CommonsDraweeView extends SimpleDraweeView {
                 new GalleryItemClient.Callback() {
                     @Override
                     public void success(@NonNull Call<MwQueryResponse> call, @NonNull GalleryItem result) {
-                        ViewUtil.loadImageUrlInto(CommonsDraweeView.this, result.getThumbUrl());
+                        loadImage(Uri.parse(result.getThumbUrl()));
                     }
 
                     @Override

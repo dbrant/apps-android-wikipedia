@@ -40,15 +40,12 @@
 
         <org.wikipedia.views.CommonsDraweeView
             android:id="@+id/info_image"
-            android:layout_width="72dp"
-            android:layout_height="56dp"
+            android:layout_width="120dp"
+            android:layout_height="72dp"
             android:layout_gravity="end"
             android:contentDescription="@null"
-            app:placeholderImage="@drawable/ic_image_gray_opaque_24dp"
-            app:placeholderImageScaleType="centerCrop"
-            app:failureImage="@drawable/ic_image_gray_opaque_24dp"
-            app:failureImageScaleType="centerCrop"
-            app:actualImageScaleType="centerCrop"/>
+            style="@style/SimpleDraweeViewPlaceholder.Article"
+            app:actualImageScaleType="centerInside"/>
 
     </FrameLayout>
 

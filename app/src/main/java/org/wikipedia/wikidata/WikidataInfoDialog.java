@@ -23,6 +23,7 @@ import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.server.wikidata.WdEntities;
 import org.wikipedia.server.wikidata.WdEntityService;
+import org.wikipedia.util.DateUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.log.L;
@@ -88,25 +89,20 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.dialog_wikidata_info, container);
-        progressBar = (ProgressBar) rootView.findViewById(R.id.info_progress);
+        progressBar = rootView.findViewById(R.id.info_progress);
 
-        RecyclerView readingListView = (RecyclerView) rootView.findViewById(R.id.info_list);
+        RecyclerView readingListView = rootView.findViewById(R.id.info_list);
         readingListView.setLayoutManager(new LinearLayoutManager(getActivity()));
         readingListView.setAdapter(adapter);
 
         View closeButton = rootView.findViewById(R.id.close_button);
         FeedbackUtil.setToolbarButtonLongPressToast(closeButton);
-        closeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-            }
-        });
+        closeButton.setOnClickListener(v -> dismiss());
 
-        TextView infoTitle = (TextView) rootView.findViewById(R.id.info_title);
+        TextView infoTitle = rootView.findViewById(R.id.info_title);
         infoTitle.setText(pageTitle.getDisplayText());
 
         progressBar.setVisibility(View.VISIBLE);
@@ -119,7 +115,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
 
     private WdEntityService.EntityCallback onLoadCallback = new WdEntityService.EntityCallback() {
         @Override
-        public void success(WdEntities entities) {
+        public void success(@NonNull WdEntities entities) {
             if (!isAdded()) {
                 return;
             }
@@ -161,7 +157,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         }
 
         @Override
-        public void failure(Throwable error) {
+        public void failure(@NonNull Throwable error) {
             if (!isAdded()) {
                 return;
             }
@@ -175,8 +171,8 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         WdEntityService service = new WdEntityService();
         service.entityLabelsForIds(entitiesToRetrieve, new WdEntityService.EntityCallback() {
             @Override
-            public void success(WdEntities entities) {
-                if (!isAdded() || entities == null || entities.getQItems() == null) {
+            public void success(@NonNull WdEntities entities) {
+                if (!isAdded() || entities.getQItems() == null) {
                     return;
                 }
                 for (Object key : entities.getQItems().keySet()) {
@@ -194,7 +190,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
             }
 
             @Override
-            public void failure(Throwable error) {
+            public void failure(@NonNull Throwable error) {
                 if (!isAdded()) {
                     return;
                 }
@@ -217,10 +213,20 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
             case "quantity":
                 WdEntities.QuantityValue quantityVal = gson.fromJson(value, WdEntities.QuantityValue.class);
                 infoVal = quantityVal.getAmount();
+                try {
+                    infoVal = Long.toString(Long.parseLong(infoVal));
+                } catch (NumberFormatException e) {
+                    //
+                }
                 break;
             case "time":
                 WdEntities.TimeValue timeVal = gson.fromJson(value, WdEntities.TimeValue.class);
-                infoVal = timeVal.getTime();
+                infoVal = timeVal.getTime().replace("+", "");
+                try {
+                    infoVal = DateUtil.getShortDateString(DateUtil.getIso8601DateFormat().parse(infoVal));
+                } catch (Exception e) {
+                    //
+                }
                 break;
             case "globecoordinate":
                 WdEntities.LocationValue locationVal = gson.fromJson(value, WdEntities.LocationValue.class);
@@ -257,7 +263,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         public void bindItem(int position) {
             this.itemPosition = position;
             int key = infoItems.get(position).getP();
-            propertyText.setText(StringUtils.capitalize(key < PropertyNames.NAMES.length ? PropertyNames.NAMES[key] : "Unknown property"));
+            propertyText.setText(StringUtils.capitalize(key < PropertyNames.NAMES.length ? PropertyNames.NAMES[key] : "P" + key));
             String infoValue = infoItems.get(position).getValue();
             valueText.setText(infoValue);
 
@@ -310,7 +316,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         @Override
         public void onClick(View view) {
             PageTitle title = new PageTitle(((TextView) view).getText().toString(), pageTitle.getWikiSite());
-            startActivity(PageActivity.newIntentForNewTab(getActivity(),
+            startActivity(PageActivity.newIntentForCurrentTab(getActivity(),
                     new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title));
             dismiss();
         }

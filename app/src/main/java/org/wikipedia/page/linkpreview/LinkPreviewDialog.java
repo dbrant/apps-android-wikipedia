@@ -112,7 +112,7 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         View infoButton = rootView.findViewById(R.id.info_button);
         infoButton.setOnClickListener(view -> {
             if (callback() != null) {
-                callback().showWikidataInfoBox(pageTitle);
+                callback().showWikidataInfoBox(new PageTitle(titleText.getText().toString(), pageTitle.getWikiSite()));
             }
         });
 

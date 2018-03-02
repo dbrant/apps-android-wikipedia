@@ -4,13 +4,12 @@ public final class PropertiesPreferred {
 
     public static final int[] PREFERRED_PROPS = {
 
+            Properties.IMAGE,
             Properties.NAMED_AFTER,
             Properties.HEAD_OF_GOVERNMENT,
             Properties.HEAD_OF_STATE,
             Properties.CAPITAL_OF,
             Properties.CAPITAL,
-
-            Properties.OCCUPATION,
 
             Properties.FATHER,
             Properties.MOTHER,
@@ -18,6 +17,7 @@ public final class PropertiesPreferred {
             Properties.SISTER,
             Properties.CHILD,
 
+            Properties.DATE_OF_BIRTH,
             Properties.PLACE_OF_BIRTH,
             Properties.PLACE_OF_DEATH,
 
@@ -25,6 +25,9 @@ public final class PropertiesPreferred {
             Properties.SISTER_CITY,
             Properties.CURRENCY,
             Properties.CONTINENT,
+
+            Properties.INSTANCE_OF,
+            Properties.OCCUPATION,
 
             Properties.DISCOVERER_OR_INVENTOR,
             Properties.DISCOVERY_METHOD,
@@ -57,6 +60,20 @@ public final class PropertiesPreferred {
             Properties.SISTER_CITY,
             Properties.CURRENCY,
             Properties.CONTINENT,
+
+            Properties.INSTANCE_OF,
+            Properties.OCCUPATION,
+            Properties.SPOUSE,
+            Properties.COUNTRY_OF_CITIZENSHIP,
+            Properties.COUNTRY_OF_ORIGIN,
+            Properties.EDUCATED_AT,
+            Properties.EMPLOYER,
+            Properties.AWARD_RECEIVED,
+            Properties.ETHNIC_GROUP,
+            Properties.COUNTRY,
+            Properties.COUNTRY,
+            Properties.COUNTRY,
+            Properties.COUNTRY,
 
             Properties.DISCOVERER_OR_INVENTOR,
             Properties.DISCOVERY_METHOD,

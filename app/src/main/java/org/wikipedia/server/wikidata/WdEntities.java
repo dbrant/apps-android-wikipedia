@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.dataclient.mwapi.MwServiceError;
 import org.wikipedia.util.log.L;
 
@@ -147,10 +148,8 @@ public class WdEntities {
     }
 
     public static class EntityIdValue {
-        @SerializedName("entity-type")
-        @Nullable private String entityType;
-        @SerializedName("numeric-id")
-        private int numericId;
+        @SerializedName("entity-type") @Nullable private String entityType;
+        @SerializedName("numeric-id") private int numericId;
 
         @Nullable public String getEntityType() {
             return entityType;
@@ -180,8 +179,8 @@ public class WdEntities {
         private int precision;
         @Nullable private String calendarModel;
 
-        @Nullable public String getTime() {
-            return time;
+        @NonNull public String getTime() {
+            return StringUtils.defaultString(time);
         }
 
         public int getPrecision() {
