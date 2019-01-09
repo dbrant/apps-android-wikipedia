@@ -247,6 +247,7 @@ public class GalleryItemFragment extends Fragment {
 
         parentActivity.supportInvalidateOptionsMenu();
         parentActivity.layOutGalleryDescription();
+        parentActivity.updateGalleryItemControls();
     }
 
     private View.OnClickListener videoThumbnailClickListener = new View.OnClickListener() {

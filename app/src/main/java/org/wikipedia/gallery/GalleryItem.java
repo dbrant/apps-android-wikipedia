@@ -30,6 +30,7 @@ public class GalleryItem implements Serializable {
     @SuppressWarnings("unused") private double duration;
     @SuppressWarnings("unused") @NonNull private ImageLicense license;
     @SuppressWarnings("unused") @Nullable private TextInfo description;
+    private boolean isPanorama;
     // FIXME: The type of credit will return either string or another type of object
     // @SuppressWarnings("unused") @Nullable private String credit;
 
@@ -48,6 +49,10 @@ public class GalleryItem implements Serializable {
     @NonNull
     public String getType() {
         return StringUtils.defaultString(type);
+    }
+
+    public boolean isStl() {
+        return original != null && original.getMimeType().contains("/sla");
     }
 
     @NonNull
@@ -150,6 +155,14 @@ public class GalleryItem implements Serializable {
             description = new TextInfo();
         }
         return description;
+    }
+
+    public boolean isPanorama() {
+        return isPanorama;
+    }
+
+    public void setPanorama(boolean panorama) {
+        isPanorama = panorama;
     }
 
     // TODO: Move the following models into a folder

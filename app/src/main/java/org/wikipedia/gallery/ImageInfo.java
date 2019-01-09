@@ -23,7 +23,7 @@ public class ImageInfo implements Serializable {
     @SuppressWarnings("unused") @SerializedName("url") @Nullable private String originalUrl;
     @SuppressWarnings("unused") @SerializedName("descriptionurl") @Nullable private String descriptionUrl;
     @SuppressWarnings("unused") @SerializedName("descriptionshorturl") @Nullable private String descriptionShortUrl;
-    @SuppressWarnings("unused,NullableProblems") @SerializedName("mime") @NonNull private String mimeType = "*/*";
+    @SuppressWarnings("unused,NullableProblems") @SerializedName("mime") @NonNull private String mimeType;
     @SuppressWarnings("unused") @SerializedName("extmetadata")@Nullable private ExtMetadata metadata;
 
     @NonNull
@@ -45,6 +45,10 @@ public class ImageInfo implements Serializable {
 
     public int getHeight() {
         return height;
+    }
+
+    @NonNull public String getMimeType() {
+        return StringUtils.defaultString(mimeType, "*/*");
     }
 
     @NonNull public String getThumbUrl() {

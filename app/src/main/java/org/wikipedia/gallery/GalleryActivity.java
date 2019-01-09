@@ -2,6 +2,7 @@ package org.wikipedia.gallery;
 
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -34,8 +35,10 @@ import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.BaseActivity;
 import org.wikipedia.analytics.GalleryFunnel;
+import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.dataclient.mwapi.MwQueryPage;
 import org.wikipedia.feed.image.FeaturedImage;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonMarshaller;
@@ -105,6 +108,8 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
     @BindView(R.id.gallery_credit_text) TextView creditText;
     @BindView(R.id.gallery_item_pager) ViewPager galleryPager;
     @BindView(R.id.view_gallery_error) WikiErrorView errorView;
+    @BindView(R.id.view_3d_button) View button3d;
+    @BindView(R.id.view_vr_button) View buttonVr;
     @Nullable private Unbinder unbinder;
     private CompositeDisposable disposables = new CompositeDisposable();
 
@@ -590,6 +595,68 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
         creditText.setText(creditStr);
 
         infoContainer.setVisibility(View.VISIBLE);
+    }
+
+    public void updateGalleryItemControls() {
+        GalleryItem currentItem = getCurrentItem();
+        button3d.setVisibility(View.GONE);
+        buttonVr.setVisibility(View.GONE);
+        if (currentItem == null) {
+            return;
+        }
+        WikiSite wiki = new WikiSite(currentItem.getFilePage());
+        PageTitle title = wiki.titleForUri(Uri.parse(currentItem.getFilePage()));
+        disposables.clear();
+        disposables.add(ServiceFactory.get(wiki).getCategories(title.getPrefixedText())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(response -> {
+                    GalleryItem item = getCurrentItem();
+                    if (item == null) {
+                        return;
+                    }
+                    if (item.isStl()) {
+                        button3d.setVisibility(View.VISIBLE);
+                        buttonVr.setVisibility(View.VISIBLE);
+                    } else {
+                        // check if it's a 360-degree panorama by looking at categories.
+                        boolean is360 = false;
+                        for (MwQueryPage.Category cat : response.query().firstPage().categories()) {
+                            if (cat.title().contains("360")) {
+                                is360 = true;
+                            }
+                        }
+                        if (is360) {
+                            item.setPanorama(true);
+                            button3d.setVisibility(View.VISIBLE);
+                            buttonVr.setVisibility(View.VISIBLE);
+                        }
+                    }
+                }, L::e));
+    }
+
+    @OnClick({R.id.view_3d_button, R.id.view_vr_button}) void onClick3d(View v) {
+        GalleryItem item = getCurrentItem();
+        if (item == null) {
+            return;
+        }
+        try {
+            Intent intent = new Intent();
+            intent.setData(Uri.parse(item.getOriginal().getSource()));
+            if (item.isPanorama()) {
+                intent.setClassName("com.dmitrybrant.photo360", "com.dmitrybrant.photo360.VideoActivity");
+                intent.setData(Uri.parse(item.getPreferredSizedImageUrl()));
+            } else {
+                intent.setClassName("com.dmitrybrant.modelviewer", "com.dmitrybrant.modelviewer.MainActivity");
+            }
+            if (v.getId() == R.id.view_vr_button) {
+                intent.putExtra("EXTRA_VR", true);
+            }
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            L.d(e);
+            // TODO: show message indicating that no app was found to handle this intent.
+        }
     }
 
     /**

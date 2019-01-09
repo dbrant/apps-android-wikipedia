@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/gallery_container"
     android:layout_width="match_parent"
@@ -59,21 +60,72 @@
             android:id="@+id/gallery_info_gradient"
             android:layout_width="match_parent"
             android:layout_height="80dp"/>
-        <org.wikipedia.views.AppTextView
-            android:id="@+id/gallery_description_text"
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingLeft="@dimen/activity_horizontal_margin"
-            android:paddingRight="@dimen/activity_horizontal_margin"
-            android:maxHeight="128dp"
-            android:textIsSelectable="true"
-            android:scrollbarStyle="insideInset"
-            android:scrollbars="vertical"
-            android:fadeScrollbars="false"
-            android:background="@color/black38"
-            tools:text="Sample image description text"
-            android:textColor="@color/base90"
-            android:textColorLink="@color/base90"/>
+            android:background="@color/black38">
+
+            <org.wikipedia.views.AppTextView
+                android:id="@+id/gallery_description_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_gravity="bottom"
+                android:paddingLeft="@dimen/activity_horizontal_margin"
+                android:paddingRight="@dimen/activity_horizontal_margin"
+                android:maxHeight="128dp"
+                android:textIsSelectable="true"
+                android:scrollbarStyle="insideInset"
+                android:scrollbars="vertical"
+                android:fadeScrollbars="false"
+                tools:text="Sample image description text"
+                android:textColor="@color/base90"
+                android:textColorLink="@color/base90"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="bottom|end">
+
+                <android.support.design.widget.FloatingActionButton
+                    android:id="@+id/view_3d_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_gravity="bottom|end"
+                    android:contentDescription="@string/nearby_zoom_to_location"
+                    app:backgroundTint="?attr/colorAccent"
+                    app:borderWidth="0dp"
+                    app:elevation="4dp"
+                    app:srcCompat="@drawable/ic_3d_rotation_24px"
+                    app:tint="@android:color/white"
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
+
+                <android.support.design.widget.FloatingActionButton
+                    android:id="@+id/view_vr_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginEnd="16dp"
+                    android:contentDescription="@string/nearby_zoom_to_location"
+                    app:backgroundTint="?attr/colorAccent"
+                    app:borderWidth="0dp"
+                    app:elevation="4dp"
+                    app:srcCompat="@drawable/ic_vr_24dp"
+                    app:tint="@android:color/white"
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/license_container"
@@ -101,4 +153,5 @@
                 tools:text="Credits" />
         </LinearLayout>
     </LinearLayout>
+
 </FrameLayout>
