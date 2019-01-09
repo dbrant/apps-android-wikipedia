@@ -47,6 +47,11 @@ public class ImageInfo implements Serializable {
         return height;
     }
 
+    @NonNull
+    public String getMimeType() {
+        return mimeType;
+    }
+
     @NonNull public String getThumbUrl() {
         return StringUtils.defaultString(thumbUrl);
     }

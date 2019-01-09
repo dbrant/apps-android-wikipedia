@@ -32,7 +32,11 @@ import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.dataclient.okhttp.OkHttpConnectionFactory;
 import org.wikipedia.feed.image.FeaturedImage;
+import org.wikipedia.gallery.threed.Model;
+import org.wikipedia.gallery.threed.ModelSurfaceView;
+import org.wikipedia.gallery.threed.StlModel;
 import org.wikipedia.page.Namespace;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.util.FeedbackUtil;
@@ -43,9 +47,17 @@ import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ZoomableDraweeViewWithBackground;
 
+import java.io.ByteArrayInputStream;
+import java.util.concurrent.Callable;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import static org.wikipedia.util.PermissionUtil.hasWriteExternalStoragePermission;
 import static org.wikipedia.util.PermissionUtil.requestWriteStorageRuntimePermissions;
@@ -61,6 +73,7 @@ public class GalleryItemFragment extends Fragment {
         void onShare(@NonNull GalleryItem item, @Nullable Bitmap bitmap, @NonNull String subject, @NonNull PageTitle title);
     }
 
+    @BindView(R.id.gallery_item_container) ViewGroup containerView;
     @BindView(R.id.gallery_item_progress_bar) ProgressBar progressBar;
     @BindView(R.id.gallery_video_container) View videoContainer;
     @BindView(R.id.gallery_video) VideoView videoView;
@@ -239,8 +252,10 @@ public class GalleryItemFragment extends Fragment {
      * Load the actual media associated with our gallery item into the UI.
      */
     private void loadMedia() {
-        if (FileUtil.isVideo(galleryItem.getType())) {
+        if (FileUtil.isVideo(galleryItem.getMimeType())) {
             loadVideo();
+        } else if (FileUtil.isStl(galleryItem.getMimeType())) {
+            loadStl(galleryItem.getOriginal().getSource());
         } else {
             loadImage(galleryItem.getPreferredSizedImageUrl());
         }
@@ -341,6 +356,25 @@ public class GalleryItemFragment extends Fragment {
                     }
                 })
                 .build());
+    }
+
+    private void loadStl(String url) {
+        imageView.setVisibility(View.GONE);
+        L.v("Loading STL model from url: " + url);
+
+        Observable.fromCallable((Callable<Model>) () -> {
+            Request request = new Request.Builder().url(url).build();
+            Response response = OkHttpConnectionFactory.getClient().newCall(request).execute();
+            // TODO: figure out how to NOT need to read the whole file at once.
+            return new StlModel(new ByteArrayInputStream(response.body().bytes()));
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(model -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    containerView.addView(new ModelSurfaceView(getContext(), model));
+                }, throwable -> FeedbackUtil.showMessage(requireActivity(), "Failed to load the 3D model."));
     }
 
     private void shareImage() {

@@ -3,11 +3,15 @@ package org.wikipedia.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.RawRes;
 
 import org.wikipedia.R;
+import org.wikipedia.WikipediaApp;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,6 +58,31 @@ public final class FileUtil {
         }
     }
 
+    @NonNull
+    public static String readTextFileFromRawRes(@RawRes int resourceId) {
+        InputStream inputStream = WikipediaApp.getInstance().getResources().openRawResource(resourceId);
+        try {
+            byte[] bytes = new byte[inputStream.available()];
+            inputStream.read(bytes);
+            return new String(bytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            closeSilently(inputStream);
+        }
+        throw new RuntimeException("Failed to read raw resource id " + resourceId);
+    }
+
+    public static void closeSilently(@Nullable Closeable c) {
+        try {
+            if (c != null) {
+                c.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void deleteRecursively(@NonNull File f) {
         if (f.isDirectory()) {
             for (File child : f.listFiles()) {
@@ -77,6 +106,10 @@ public final class FileUtil {
 
     public static boolean isImage(String mimeType) {
         return mimeType.contains("image");
+    }
+
+    public static boolean isStl(String mimeType) {
+        return mimeType.contains("/sla") || mimeType.contains("/stl");
     }
 
 

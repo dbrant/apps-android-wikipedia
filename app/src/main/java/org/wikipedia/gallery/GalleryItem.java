@@ -2,6 +2,7 @@ package org.wikipedia.gallery;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -48,6 +49,11 @@ public class GalleryItem implements Serializable {
     @NonNull
     public String getType() {
         return StringUtils.defaultString(type);
+    }
+
+    @NonNull
+    public String getMimeType() {
+        return original != null ? StringUtils.defaultString(original.getMimeType()) : "*/*";
     }
 
     @NonNull
