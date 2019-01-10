@@ -644,7 +644,7 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
             Intent intent = new Intent();
             intent.setData(Uri.parse(item.getOriginal().getSource()));
             if (item.isPanorama()) {
-                intent.setClassName("com.dmitrybrant.photo360", "com.dmitrybrant.photo360.VideoActivity");
+                intent.setClassName("com.dmitrybrant.photo360", "com.dmitrybrant.photo360.MainActivity");
                 intent.setData(Uri.parse(item.getPreferredSizedImageUrl()));
             } else {
                 intent.setClassName("com.dmitrybrant.modelviewer", "com.dmitrybrant.modelviewer.MainActivity");
