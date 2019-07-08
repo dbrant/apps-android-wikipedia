@@ -316,7 +316,7 @@ public interface Service {
                                                      @Query("sites") @NonNull String sites);
 
     @GET(MW_API_PREFIX + "action=wbgetentities&props=labels&languagefallback=1")
-    @NonNull Call<Entities> getWikidataLabels(@Query("ids") @NonNull String idList,
+    @NonNull Observable<Entities> getWikidataLabels(@Query("ids") @NonNull String idList,
                                               @Query("languages") @NonNull String langList);
 
     @GET(MW_API_PREFIX + "action=wbgetentities&props=descriptions|labels|sitelinks")

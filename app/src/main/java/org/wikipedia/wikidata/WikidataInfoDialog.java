@@ -1,9 +1,6 @@
 package org.wikipedia.wikidata;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,18 +8,25 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.R;
+import org.wikipedia.WikipediaApp;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.dataclient.ServiceFactory;
+import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.json.GsonUtil;
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment;
 import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.server.wikidata.WdEntities;
-import org.wikipedia.server.wikidata.WdEntityService;
 import org.wikipedia.util.DateUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ResourceUtil;
@@ -35,11 +39,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
+
 public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
     private PageTitle pageTitle;
     private InfoAdapter adapter;
     private ProgressBar progressBar;
     private List<ListItem> infoItems = new ArrayList<>();
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     private class ListItem {
         private int p;
@@ -89,6 +98,12 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        disposables.clear();
+    }
+
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.dialog_wikidata_info, container);
@@ -106,112 +121,89 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         infoTitle.setText(pageTitle.getDisplayText());
 
         progressBar.setVisibility(View.VISIBLE);
-        WdEntityService service = new WdEntityService();
-        service.entitiesForTitle(pageTitle.getDisplayText(), onLoadCallback);
+        getEntities();
 
         return rootView;
     }
 
+    private void getEntities() {
+        disposables.add(ServiceFactory.get(new WikiSite(Service.WIKIDATA_URL)).getEntitiesByTitle(pageTitle.getDisplayText(), "enwiki")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(entities -> {
+                    infoItems.clear();
+                    List<String> entitiesToRetrieve = new ArrayList<>();
+                    Map<String, List<Entities.Claim>> claims = entities.getFirst().claims();
+                    for (String key : claims.keySet()) {
+                        List<Entities.Claim> claimList = claims.get(key) != null ? claims.get(key) : Collections.emptyList();
+                        for (Entities.Claim claim : claimList) {
+                            if (claim.getMainsnak() == null || claim.getMainsnak().getDataValue() == null
+                                    || claim.getMainsnak().getProperty() == null) {
+                                continue;
+                            }
 
-    private WdEntityService.EntityCallback onLoadCallback = new WdEntityService.EntityCallback() {
-        @Override
-        public void success(@NonNull WdEntities entities) {
-            if (!isAdded()) {
-                return;
-            }
+                            int prop = Integer.parseInt(claim.getMainsnak().getProperty().replace("P", ""));
 
-            infoItems.clear();
-            List<String> entitiesToRetrieve = new ArrayList<>();
+                            String valueType = claim.getMainsnak().getDataValue().getType();
+                            String infoVal = getDataValueString(GsonUtil.getDefaultGson(), claim.getMainsnak().getDataValue());
 
-            Gson gson = new Gson();
-            Map<Object, WdEntities.Claim[]> claims = entities.getClaims();
-            if (claims != null) {
-                for (Object key : claims.keySet()) {
-                    for (WdEntities.Claim claim : claims.get(key)) {
-                        if (claim.getMainsnak() == null || claim.getMainsnak().getDataValue() == null
-                                || claim.getMainsnak().getProperty() == null) {
-                            continue;
-                        }
-
-                        int prop = Integer.parseInt(claim.getMainsnak().getProperty().replace("P", ""));
-
-                        String valueType = claim.getMainsnak().getDataValue().getType();
-                        String infoVal = getDataValueString(gson, claim.getMainsnak().getDataValue());
-
-                        if (valueType.equals("wikibase-entityid")) {
-                            entitiesToRetrieve.add(infoVal);
-                        }
-                        infoItems.add(new ListItem(prop, infoVal));
-                    }
-                }
-            }
-
-            Collections.sort(infoItems, listItemComparator);
-
-            if (!entitiesToRetrieve.isEmpty()) {
-                populateEntityLabels(entitiesToRetrieve);
-            } else {
-                adapter.notifyDataSetChanged();
-                progressBar.setVisibility(View.GONE);
-            }
-        }
-
-        @Override
-        public void failure(@NonNull Throwable error) {
-            if (!isAdded()) {
-                return;
-            }
-            L.e("Wikidata fetch error: " + error);
-            progressBar.setVisibility(View.GONE);
-        }
-    };
-
-    private void populateEntityLabels(List<String> entitiesToRetrieve) {
-
-        WdEntityService service = new WdEntityService();
-        service.entityLabelsForIds(entitiesToRetrieve, new WdEntityService.EntityCallback() {
-            @Override
-            public void success(@NonNull WdEntities entities) {
-                if (!isAdded() || entities.getQItems() == null) {
-                    return;
-                }
-                for (Object key : entities.getQItems().keySet()) {
-                    String qid = entities.getQItems().get(key).getId();
-                    for (ListItem item : infoItems) {
-                        String label = entities.getQItems().get(key).getLabel("en");
-                        if (qid != null && qid.equals(item.getValue()) && !TextUtils.isEmpty(label)) {
-                            item.setValue(label);
+                            final int maxEntities = 50;
+                            if (valueType.equals("wikibase-entityid") && entitiesToRetrieve.size() < maxEntities) {
+                                entitiesToRetrieve.add(infoVal);
+                            }
+                            infoItems.add(new ListItem(prop, infoVal));
                         }
                     }
-                }
 
-                adapter.notifyDataSetChanged();
-                progressBar.setVisibility(View.GONE);
-            }
+                    Collections.sort(infoItems, listItemComparator);
 
-            @Override
-            public void failure(@NonNull Throwable error) {
-                if (!isAdded()) {
-                    return;
-                }
-                L.e("Wikidata fetch error: " + error);
-                progressBar.setVisibility(View.GONE);
-            }
-        });
+                    if (!entitiesToRetrieve.isEmpty()) {
+                        populateEntityLabels(entitiesToRetrieve);
+                    } else {
+                        adapter.notifyDataSetChanged();
+                        progressBar.setVisibility(View.GONE);
+                    }
+                }, t -> {
+                    L.e(t);
+                    progressBar.setVisibility(View.GONE);
+                }));
     }
 
-    private String getDataValueString(Gson gson, @NonNull WdEntities.DataValue dataValue) {
+    private void populateEntityLabels(List<String> entitiesToRetrieve) {
+        disposables.add(ServiceFactory.get(new WikiSite(Service.WIKIDATA_URL)).getWikidataLabels(StringUtils.join(entitiesToRetrieve, '|'), WikipediaApp.getInstance().getAppOrSystemLanguageCode())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(entities -> {
+                    for (String key : entities.entities().keySet()) {
+                        for (ListItem item : infoItems) {
+                            if (key.equals(item.getValue())) {
+                                String label = entities.entities().get(key).getLabelForLang(WikipediaApp.getInstance().getAppOrSystemLanguageCode());
+                                if (!TextUtils.isEmpty(label)) {
+                                    item.setValue(label);
+                                }
+                            }
+                        }
+                    }
+                    adapter.notifyDataSetChanged();
+                    progressBar.setVisibility(View.GONE);
+                }, t -> {
+                    L.e(t);
+                    progressBar.setVisibility(View.GONE);
+                }));
+    }
+
+    private String getDataValueString(Gson gson, @NonNull Entities.DataValue dataValue) {
         JsonElement value = dataValue.getValue();
         String valueType = dataValue.getType();
         String infoVal;
 
         switch (valueType) {
             case "wikibase-entityid":
-                WdEntities.EntityIdValue entityVal = gson.fromJson(value, WdEntities.EntityIdValue.class);
+                Entities.EntityIdValue entityVal = gson.fromJson(value, Entities.EntityIdValue.class);
                 infoVal = "Q" + entityVal.getNumericId();
                 break;
             case "quantity":
-                WdEntities.QuantityValue quantityVal = gson.fromJson(value, WdEntities.QuantityValue.class);
+                Entities.QuantityValue quantityVal = gson.fromJson(value, Entities.QuantityValue.class);
                 infoVal = quantityVal.getAmount();
                 try {
                     infoVal = Long.toString(Long.parseLong(infoVal));
@@ -220,20 +212,20 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
                 }
                 break;
             case "time":
-                WdEntities.TimeValue timeVal = gson.fromJson(value, WdEntities.TimeValue.class);
+                Entities.TimeValue timeVal = gson.fromJson(value, Entities.TimeValue.class);
                 infoVal = timeVal.getTime().replace("+", "");
                 try {
-                    infoVal = DateUtil.getShortDateString(DateUtil.getIso8601DateFormat().parse(infoVal));
+                    infoVal = DateUtil.getShortDateString(DateUtil.iso8601DateParse(infoVal));
                 } catch (Exception e) {
                     //
                 }
                 break;
             case "globecoordinate":
-                WdEntities.LocationValue locationVal = gson.fromJson(value, WdEntities.LocationValue.class);
+                Entities.LocationValue locationVal = gson.fromJson(value, Entities.LocationValue.class);
                 infoVal = locationVal.getLatitude() + ", " + locationVal.getLongitude();
                 break;
             case "monolingualtext":
-                WdEntities.MonolingualTextValue textVal = gson.fromJson(value, WdEntities.MonolingualTextValue.class);
+                Entities.MonolingualTextValue textVal = gson.fromJson(value, Entities.MonolingualTextValue.class);
                 infoVal = textVal.getText();
                 break;
             case "string":

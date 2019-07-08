@@ -41,6 +41,7 @@ import org.wikipedia.util.log.L;
 import org.wikipedia.views.CabSearchView;
 import org.wikipedia.views.LanguageScrollView;
 import org.wikipedia.views.ViewUtil;
+import org.wikipedia.wikidata.WikidataInfoDialog;
 
 import java.util.Locale;
 
@@ -294,9 +295,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
 
     @Override
     public void showWikidataInfoBox(@NonNull PageTitle title) {
-        if (callback() != null) {
-            callback().showWikidataInfoBox(title);
-        }
+        bottomSheetPresenter.show(requireActivity().getSupportFragmentManager(), WikidataInfoDialog.newInstance(title));
     }
 
     @Override

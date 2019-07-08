@@ -44,7 +44,7 @@
             android:layout_height="72dp"
             android:layout_gravity="end"
             android:contentDescription="@null"
-            style="@style/SimpleDraweeViewPlaceholder.Article"
+            style="@style/SimpleDraweeViewPlaceholder"
             app:actualImageScaleType="centerInside"/>
 
     </FrameLayout>

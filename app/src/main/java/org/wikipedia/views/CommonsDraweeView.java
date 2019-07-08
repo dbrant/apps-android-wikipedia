@@ -2,19 +2,21 @@ package org.wikipedia.views;
 
 import android.content.Context;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.util.AttributeSet;
-import android.util.Log;
 
-import org.wikipedia.WikipediaApp;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
-import org.wikipedia.gallery.GalleryItem;
-import org.wikipedia.gallery.GalleryItemClient;
-import org.wikipedia.page.PageTitle;
+import androidx.annotation.Nullable;
 
-import retrofit2.Call;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.dataclient.ServiceFactory;
+import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.util.log.L;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class CommonsDraweeView extends FaceAndColorDetectImageView {
+    @Nullable private Disposable disposable;
 
     public CommonsDraweeView(Context context) {
         super(context);
@@ -32,20 +34,25 @@ public class CommonsDraweeView extends FaceAndColorDetectImageView {
     }
 
     public void loadImage(String commonsTitle) {
-        new GalleryItemClient().request(WikipediaApp.getInstance().getWikiSite(),
-                new PageTitle(commonsTitle, WikipediaApp.getInstance().getWikiSite()),
-                new GalleryItemClient.Callback() {
-                    @Override
-                    public void success(@NonNull Call<MwQueryResponse> call, @NonNull GalleryItem result) {
-                        loadImage(Uri.parse(result.getThumbUrl()));
-                    }
+        cancel();
+        disposable = ServiceFactory.get(new WikiSite(Service.COMMONS_URL))
+                .getImageExtMetadata(commonsTitle)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(response -> loadImage(Uri.parse(response.query().firstPage().imageInfo().getThumbUrl())),
+                        L::e);
+    }
 
-                    @Override
-                    public void failure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable caught) {
-                        Log.e("Wikipedia", "caught " + caught.getMessage());
-                        // error...
-                    }
-                }, false);
+    private void cancel() {
+        if (disposable != null) {
+            disposable.dispose();
+            disposable = null;
+        }
+    }
+
+    @Override public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        cancel();
     }
 
     private void init() {

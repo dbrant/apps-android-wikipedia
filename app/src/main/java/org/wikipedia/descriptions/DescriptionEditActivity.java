@@ -22,6 +22,7 @@ import org.wikipedia.util.ClipboardUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ShareUtil;
 import org.wikipedia.views.ImagePreviewDialog;
+import org.wikipedia.wikidata.WikidataInfoDialog;
 
 import static org.wikipedia.Constants.INTENT_EXTRA_INVOKE_SOURCE;
 import static org.wikipedia.Constants.InvokeSource;
@@ -107,6 +108,11 @@ public class DescriptionEditActivity extends SingleFragmentActivity<DescriptionE
     @Override
     public void onLinkPreviewShareLink(@NonNull PageTitle title) {
         ShareUtil.shareText(this, title);
+    }
+
+    @Override
+    public void showWikidataInfoBox(@NonNull PageTitle title) {
+        bottomSheetPresenter.show(getSupportFragmentManager(), WikidataInfoDialog.newInstance(title));
     }
 
     public void updateStatusBarColor(int color) {
