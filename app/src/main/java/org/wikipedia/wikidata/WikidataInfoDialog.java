@@ -137,8 +137,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
                     for (String key : claims.keySet()) {
                         List<Entities.Claim> claimList = claims.get(key) != null ? claims.get(key) : Collections.emptyList();
                         for (Entities.Claim claim : claimList) {
-                            if (claim.getMainsnak() == null || claim.getMainsnak().getDataValue() == null
-                                    || claim.getMainsnak().getProperty() == null) {
+                            if (claim.getMainsnak() == null || claim.getMainsnak().getDataValue() == null) {
                                 continue;
                             }
 
@@ -261,10 +260,10 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
 
             if (ArrayUtils.contains(PropertiesPreferred.WIKILINK_PROPS, key)) {
                 valueText.setOnClickListener(wikiValueClickListener);
-                valueText.setTextColor(getResources().getColor(ResourceUtil.getThemedAttributeId(getContext(), R.attr.colorAccent)));
+                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.colorAccent));
             } else {
                 valueText.setOnClickListener(null);
-                valueText.setTextColor(getResources().getColor(ResourceUtil.getThemedAttributeId(getContext(), R.attr.colorPrimaryDark)));
+                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.colorPrimaryDark));
             }
 
             // FIXME: HACK
@@ -293,7 +292,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         }
 
         @Override
-        public InfoItemHolder onCreateViewHolder(ViewGroup parent, int pos) {
+        public InfoItemHolder onCreateViewHolder(@NonNull ViewGroup parent, int pos) {
             View view = LayoutInflater.from(getContext()).inflate(R.layout.item_wikidata_info_entry, parent, false);
             return new InfoItemHolder(view);
         }
@@ -308,7 +307,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         @Override
         public void onClick(View view) {
             PageTitle title = new PageTitle(((TextView) view).getText().toString(), pageTitle.getWikiSite());
-            startActivity(PageActivity.newIntentForCurrentTab(getActivity(),
+            startActivity(PageActivity.newIntentForCurrentTab(requireActivity(),
                     new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title));
             dismiss();
         }
