@@ -13,8 +13,7 @@ public final class PropertiesPreferred {
 
             Properties.FATHER,
             Properties.MOTHER,
-            Properties.BROTHER,
-            Properties.SISTER,
+            Properties.SIBLING,
             Properties.CHILD,
 
             Properties.DATE_OF_BIRTH,
@@ -22,7 +21,7 @@ public final class PropertiesPreferred {
             Properties.PLACE_OF_DEATH,
 
             Properties.COUNTRY,
-            Properties.SISTER_CITY,
+            Properties.TWINNED_ADMINISTRATIVE_BODY,
             Properties.CURRENCY,
             Properties.CONTINENT,
 
@@ -49,15 +48,14 @@ public final class PropertiesPreferred {
 
             Properties.FATHER,
             Properties.MOTHER,
-            Properties.BROTHER,
-            Properties.SISTER,
+            Properties.SIBLING,
             Properties.CHILD,
 
             Properties.PLACE_OF_BIRTH,
             Properties.PLACE_OF_DEATH,
 
             Properties.COUNTRY,
-            Properties.SISTER_CITY,
+            Properties.TWINNED_ADMINISTRATIVE_BODY,
             Properties.CURRENCY,
             Properties.CONTINENT,
 
