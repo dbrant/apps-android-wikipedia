@@ -1,17 +1,16 @@
 package org.wikipedia.feed.featured;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.TextView;
 
-import com.squareup.otto.Subscribe;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
-import org.wikipedia.concurrency.CallbackTask;
 import org.wikipedia.events.ArticleSavedOrDeletedEvent;
 import org.wikipedia.feed.view.ActionFooterView;
 import org.wikipedia.feed.view.CardHeaderView;
@@ -23,6 +22,8 @@ import org.wikipedia.readinglist.ReadingListBookmarkMenu;
 import org.wikipedia.readinglist.database.ReadingListDbHelper;
 import org.wikipedia.readinglist.database.ReadingListPage;
 import org.wikipedia.util.ResourceUtil;
+import org.wikipedia.util.StringUtil;
+import org.wikipedia.util.log.L;
 import org.wikipedia.views.FaceAndColorDetectImageView;
 import org.wikipedia.views.GoneIfEmptyTextView;
 import org.wikipedia.views.ItemTouchHelperSwipeAdapter;
@@ -30,6 +31,11 @@ import org.wikipedia.views.ItemTouchHelperSwipeAdapter;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 
 public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticleCard>
         implements ItemTouchHelperSwipeAdapter.SwipeableView {
@@ -40,7 +46,8 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
     @BindView(R.id.view_featured_article_card_article_title) TextView articleTitleView;
     @BindView(R.id.view_featured_article_card_article_subtitle) GoneIfEmptyTextView articleSubtitleView;
     @BindView(R.id.view_featured_article_card_extract) TextView extractView;
-    @NonNull private final EventBusMethods eventBusMethods = new EventBusMethods();
+    @BindView(R.id.view_featured_article_card_text_container) View textContainerView;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     public FeaturedArticleCardView(Context context) {
         super(context);
@@ -50,6 +57,7 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
 
     public void setCard(@NonNull FeaturedArticleCard card) {
         super.setCard(card);
+        setLayoutDirectionByWikiSite(card.wikiSite(), textContainerView);
 
         String articleTitle = card.articleTitle();
         String articleSubtitle = card.articleSubtitle();
@@ -68,12 +76,12 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        WikipediaApp.getInstance().getBus().register(eventBusMethods);
+        disposables.add(WikipediaApp.getInstance().getBus().subscribe(new EventBusConsumer()));
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        WikipediaApp.getInstance().getBus().unregister(eventBusMethods);
+        disposables.clear();
         super.onDetachedFromWindow();
     }
 
@@ -99,7 +107,7 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
     }
 
     private void extract(@Nullable String extract) {
-        extractView.setText(extract);
+        extractView.setText(StringUtil.fromHtml(extract));
     }
 
     private void header(@NonNull FeaturedArticleCard card) {
@@ -107,37 +115,38 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
                 .setSubtitle(card.subtitle())
                 .setImage(R.drawable.ic_star_black_24dp)
                 .setImageCircleColor(R.color.yellow50)
+                .setLangCode(card.wikiSite().languageCode())
                 .setCard(card)
                 .setCallback(getCallback());
     }
 
+    @SuppressLint("CheckResult")
     private void footer(@NonNull FeaturedArticleCard card) {
         PageTitle title = new PageTitle(card.articleTitle(), card.wikiSite());
-        CallbackTask.execute(() -> ReadingListDbHelper.instance().findPageInAnyList(title), new CallbackTask.DefaultCallback<ReadingListPage>() {
-            @Override
-            public void success(ReadingListPage page) {
-                boolean pageInList = page != null;
-                int actionIcon = pageInList
-                        ? R.drawable.ic_bookmark_white_24dp
-                        : R.drawable.ic_bookmark_border_black_24dp;
+        Observable.fromCallable(() -> ReadingListDbHelper.instance().findPageInAnyList(title) != null)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(pageInList -> {
+                    int actionIcon = pageInList
+                            ? R.drawable.ic_bookmark_white_24dp
+                            : R.drawable.ic_bookmark_border_black_24dp;
 
-                int actionText = pageInList
-                        ? R.string.view_featured_article_footer_saved_button_label
-                        : R.string.view_featured_article_footer_save_button_label;
+                    int actionText = pageInList
+                            ? R.string.view_featured_article_footer_saved_button_label
+                            : R.string.view_featured_article_footer_save_button_label;
 
-                footerView.actionIcon(actionIcon)
-                        .actionText(actionText)
-                        .onActionListener(pageInList
-                                ? new CardBookmarkMenuListener()
-                                : new CardAddToListListener())
-                        .onShareListener(new CardShareListener());
+                    footerView.actionIcon(actionIcon)
+                            .actionText(actionText)
+                            .onActionListener(pageInList
+                                    ? new CardBookmarkMenuListener()
+                                    : new CardAddToListListener())
+                            .onShareListener(new CardShareListener());
 
-                footerView.actionIconColor(ResourceUtil.getThemedAttributeId(getContext(),
-                        pageInList ? R.attr.colorAccent : R.attr.secondary_text_color));
-                footerView.actionTextColor(ResourceUtil.getThemedAttributeId(getContext(),
-                        pageInList ? R.attr.colorAccent : R.attr.secondary_text_color));
-            }
-        });
+                    footerView.actionIconColor(ResourceUtil.getThemedAttributeId(getContext(),
+                            pageInList ? R.attr.colorAccent : R.attr.secondary_text_color));
+                    footerView.actionTextColor(ResourceUtil.getThemedAttributeId(getContext(),
+                            pageInList ? R.attr.colorAccent : R.attr.secondary_text_color));
+                }, L::w);
     }
 
     private void image(@Nullable Uri uri) {
@@ -180,6 +189,11 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
                             getCallback().onRemovePageFromList(getEntry());
                         }
                     }
+
+                    @Override
+                    public void onShare() {
+                        // ignore
+                    }
                 }).show(getEntry().getTitle());
             }
         }
@@ -194,15 +208,17 @@ public class FeaturedArticleCardView extends DefaultFeedCardView<FeaturedArticle
         }
     }
 
-    private class EventBusMethods {
-        @Subscribe
-        public void on(@NonNull ArticleSavedOrDeletedEvent event) {
-            if (getCard() == null) {
-                return;
-            }
-            for (ReadingListPage page : event.getPages()) {
-                if (page.title().equals(getCard().articleTitle())) {
-                    footer(getCard());
+    private class EventBusConsumer implements Consumer<Object> {
+        @Override
+        public void accept(Object event) {
+            if (event instanceof ArticleSavedOrDeletedEvent) {
+                if (getCard() == null) {
+                    return;
+                }
+                for (ReadingListPage page : ((ArticleSavedOrDeletedEvent) event).getPages()) {
+                    if (page.title().equals(getCard().articleTitle())) {
+                        footer(getCard());
+                    }
                 }
             }
         }

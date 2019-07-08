@@ -1,88 +1,61 @@
 package org.wikipedia.feed.becauseyouread;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
+import androidx.annotation.NonNull;
+
+import org.wikipedia.Constants;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
+import org.wikipedia.dataclient.restbase.page.RbPageSummary;
+import org.wikipedia.feed.FeedCoordinator;
 import org.wikipedia.feed.dataclient.FeedClient;
-import org.wikipedia.feed.model.Card;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.page.bottomcontent.MainPageReadMoreTopicTask;
-import org.wikipedia.search.FullTextSearchClient;
-import org.wikipedia.search.SearchResult;
-import org.wikipedia.search.SearchResults;
-import org.wikipedia.util.log.L;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import retrofit2.Call;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
-import static org.wikipedia.Constants.SUGGESTION_REQUEST_ITEMS;
-
-public class BecauseYouReadClient extends FullTextSearchClient implements FeedClient {
-    @Nullable private MainPageReadMoreTopicTask readMoreTopicTask;
-    @Nullable private Call<MwQueryResponse> fullTextSearchCall;
+public class BecauseYouReadClient implements FeedClient {
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Override public void request(@NonNull Context context, @NonNull final WikiSite wiki, int age,
                                   @NonNull final FeedClient.Callback cb) {
         cancel();
-        readMoreTopicTask = new MainPageReadMoreTopicTask(age) {
-            @Override public void onFinish(@Nullable HistoryEntry entry) {
-                if (entry == null) {
-                    cb.success(Collections.emptyList());
-                    return;
-                }
-                getCardForHistoryEntry(entry, cb);
-            }
-
-            @Override public void onCatch(Throwable caught) {
-                L.e("Error fetching 'because you read' suggestions", caught);
-                cb.error(caught);
-            }
-        };
-        readMoreTopicTask.execute();
+        disposables.add(Observable.fromCallable(new MainPageReadMoreTopicTask(age))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(entry -> getCardForHistoryEntry(entry, cb),
+                        throwable -> cb.success(Collections.emptyList())));
     }
 
     @Override public void cancel() {
-        if (readMoreTopicTask != null) {
-            readMoreTopicTask.cancel();
-            readMoreTopicTask = null;
-        }
-        if (fullTextSearchCall != null) {
-            fullTextSearchCall.cancel();
-            fullTextSearchCall = null;
-        }
+        disposables.clear();
     }
 
     private void getCardForHistoryEntry(@NonNull final HistoryEntry entry,
                                         final FeedClient.Callback cb) {
-        requestMoreLike(entry.getTitle().getWikiSite(), entry.getTitle().getDisplayText(),
-                null, null, SUGGESTION_REQUEST_ITEMS, new FullTextSearchClient.Callback() {
-            @Override public void success(@NonNull Call<MwQueryResponse> call,
-                                          @NonNull SearchResults results) {
-                SearchResults filteredResults = SearchResults
-                        .filter(results, entry.getTitle().getText(), false);
-                cb.success(filteredResults.getResults().isEmpty()
-                        ? Collections.<Card>emptyList()
-                        : Collections.singletonList(toBecauseYouReadCard(results, entry)));
-            }
 
-            @Override public void failure(@NonNull Call<MwQueryResponse> call,
-                                          @NonNull Throwable caught) {
-                cb.error(caught);
-            }
-        });
+        disposables.add(ServiceFactory.getRest(entry.getTitle().getWikiSite()).getRelatedPages(entry.getTitle().getConvertedText())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(response -> response.getPages(Constants.SUGGESTION_REQUEST_ITEMS))
+                .subscribe(results -> FeedCoordinator.postCardsToCallback(cb, (results == null || results.size() == 0)
+                            ? Collections.emptyList() : Collections.singletonList(toBecauseYouReadCard(results, entry))),
+                        cb::error));
     }
 
-    @NonNull private BecauseYouReadCard toBecauseYouReadCard(@NonNull SearchResults results,
+    @NonNull private BecauseYouReadCard toBecauseYouReadCard(@NonNull List<RbPageSummary> results,
                                                              @NonNull HistoryEntry entry) {
         List<BecauseYouReadItemCard> itemCards = new ArrayList<>();
-        for (SearchResult result : results.getResults()) {
-            itemCards.add(new BecauseYouReadItemCard(result.getPageTitle()));
+        for (RbPageSummary result : results) {
+            itemCards.add(new BecauseYouReadItemCard(result.getPageTitle(entry.getTitle().getWikiSite())));
         }
         return new BecauseYouReadCard(entry, itemCards);
     }

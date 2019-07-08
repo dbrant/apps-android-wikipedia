@@ -13,11 +13,10 @@
   <string name="menu_page_other_languages" fuzzy="true">Les á øðrum málum</string>
   <string name="menu_page_share" fuzzy="true">Deil</string>
   <string name="nav_item_nearby">Nærindis</string>
-  <string name="last_updated_text">Seinast dagført %1$s</string>
+  <string name="last_updated_text">Seinast dagført %s</string>
   <string name="content_license_html">Innihaldið er tøkt undir &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; um ikki annað er viðmerkt</string>
   <string name="preference_title_language">Wikipediamál</string>
-  <string name="preference_languages_filter_hint">Leita</string>
-  <string name="langlinks_filter_hint">Leita</string>
+    <string name="langlinks_filter_hint">Leita</string>
   <string name="langlinks_empty">Henda síðan er ikki tøk á øðrum málum.</string>
   <string name="langlinks_activity_title">Onnur mál</string>
   <string name="menu_save_changes">Goym broytingar</string>
@@ -52,17 +51,7 @@
   <string name="create_account_email_error">Ógyldug t-post adressa</string>
   <string name="create_account_generic_error">Tað bar ikki til at upprætta kontu</string>
   <string name="preferences_general_heading">Generelt</string>
-  <string name="zero_charged_verbiage">Wikipedia Zero er sløkt</string>
-  <string name="zero_warn_when_leaving">Ávara meg um eg fari frá Wikipedia Zero</string>
-  <string name="zero_webpage_title">Wikipedia Zero OSS</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Tú fert frá Wikipedia Zero</string>
-  <string name="zero_interstitial_continue">Far frá appini</string>
-  <string name="zero_interstitial_cancel">Ver verandi her</string>
-  <string name="zero_learn_more">Ongin kostnaður verður kravdur fyri hesa Wikipedia appina.</string>
-  <string name="zero_learn_more_learn_more">Les meira</string>
-  <string name="zero_learn_more_dismiss">Lat aftur</string>
-  <string name="send_feedback">Send app afturmelding</string>
+    <string name="send_feedback">Send app afturmelding</string>
   <string name="create_account_account_created_toast">Konto upprættað!</string>
   <string name="preference_title_eventlogging_opt_in">Send frágreiðingar um brúkara</string>
   <string name="preference_summary_eventlogging_opt_in">Loyv Wikimedia at savna kunning um hvussu tú nýtir appina, fyri at appin kann gerast betri</string>
@@ -77,7 +66,7 @@
   <string name="settings_activity_title" fuzzy="true">Innstillingar</string>
   <string name="about_description">Um Wikipedia-appina</string>
   <string name="about_contributors_heading" fuzzy="true">høvundar</string>
-  <string name="about_wmf">Ein app frá &lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Wikimedia Foundation&lt;/a&gt;</string>
+  <string name="about_wmf">Ein app frá &lt;a href=\"https://wikimediafoundation.org/\"&gt;Wikimedia Foundation&lt;/a&gt;</string>
   <string name="about_activity_title">Um</string>
   <string name="edit_abandon_confirm">Síðan er broytt. Ert tú sikkur í at tú ynskir at fara frá síðuni uttan at goyma tínar broytingar?</string>
   <string name="user_blocked_from_editing_title">Sperrað</string>

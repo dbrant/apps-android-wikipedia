@@ -2,9 +2,6 @@ package org.wikipedia.theme;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +9,10 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.squareup.otto.Subscribe;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.ContextCompat;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -30,6 +30,8 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
 import butterknife.Unbinder;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
 
 public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     @BindView(R.id.buttonDecreaseTextSize) TextView buttonDecreaseTextSize;
@@ -39,9 +41,11 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     @BindView(R.id.button_theme_light) TextView buttonThemeLight;
     @BindView(R.id.button_theme_dark) TextView buttonThemeDark;
     @BindView(R.id.button_theme_black) TextView buttonThemeBlack;
+    @BindView(R.id.button_theme_sepia) TextView buttonThemeSepia;
     @BindView(R.id.button_theme_light_highlight) View buttonThemeLightHighlight;
     @BindView(R.id.button_theme_dark_highlight) View buttonThemeDarkHighlight;
     @BindView(R.id.button_theme_black_highlight) View buttonThemeBlackHighlight;
+    @BindView(R.id.button_theme_sepia_highlight) View buttonThemeSepiaHighlight;
     @BindView(R.id.theme_chooser_dark_mode_dim_images_switch) SwitchCompat dimImagesSwitch;
     @BindView(R.id.font_change_progress_bar) ProgressBar fontChangeProgressBar;
 
@@ -55,11 +59,12 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     private WikipediaApp app;
     private Unbinder unbinder;
     private AppearanceChangeFunnel funnel;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     private boolean updatingFont = false;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.dialog_theme_chooser, container);
         unbinder = ButterKnife.bind(this, rootView);
         buttonDecreaseTextSize.setOnClickListener(new FontSizeButtonListener(FontSizeAction.DECREASE));
@@ -68,6 +73,7 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
         buttonThemeLight.setOnClickListener(new ThemeButtonListener(Theme.LIGHT));
         buttonThemeDark.setOnClickListener(new ThemeButtonListener(Theme.DARK));
         buttonThemeBlack.setOnClickListener(new ThemeButtonListener(Theme.BLACK));
+        buttonThemeSepia.setOnClickListener(new ThemeButtonListener(Theme.SEPIA));
 
         textSizeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -75,12 +81,12 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
                 if (!fromUser) {
                     return;
                 }
-                float currentSize = app.getFontSize(getDialog().getWindow());
+                int currentMultiplier = Prefs.getTextSizeMultiplier();
                 boolean changed = app.setFontSizeMultiplier(textSizeSeekBar.getValue());
                 if (changed) {
                     updatingFont = true;
                     updateFontSize();
-                    funnel.logFontSizeChange(currentSize, app.getFontSize(getDialog().getWindow()));
+                    funnel.logFontSizeChange(currentMultiplier, Prefs.getTextSizeMultiplier());
                 }
             }
 
@@ -102,7 +108,7 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         app = WikipediaApp.getInstance();
-        app.getBus().register(this);
+        disposables.add(app.getBus().subscribe(new EventBusConsumer()));
         funnel = new AppearanceChangeFunnel(app, app.getWikiSite());
     }
 
@@ -115,7 +121,7 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        app.getBus().unregister(this);
+        disposables.clear();
     }
 
     @Override
@@ -125,11 +131,6 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
             // noinspection ConstantConditions
             callback().onCancel();
         }
-    }
-
-    @Subscribe public void on(WebViewInvalidateEvent event) {
-        updatingFont = false;
-        updateComponents();
     }
 
     @OnCheckedChanged(R.id.theme_chooser_dark_mode_dim_images_switch)
@@ -168,6 +169,8 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
     private void updateThemeButtons() {
         buttonThemeLightHighlight.setVisibility(app.getCurrentTheme() == Theme.LIGHT ? View.VISIBLE : View.GONE);
         buttonThemeLight.setClickable(app.getCurrentTheme() != Theme.LIGHT);
+        buttonThemeSepiaHighlight.setVisibility(app.getCurrentTheme() == Theme.SEPIA ? View.VISIBLE : View.GONE);
+        buttonThemeSepia.setClickable(app.getCurrentTheme() != Theme.SEPIA);
         buttonThemeDarkHighlight.setVisibility(app.getCurrentTheme() == Theme.DARK ? View.VISIBLE : View.GONE);
         buttonThemeDark.setClickable(app.getCurrentTheme() != Theme.DARK);
         buttonThemeBlackHighlight.setVisibility(app.getCurrentTheme() == Theme.BLACK ? View.VISIBLE : View.GONE);
@@ -178,8 +181,8 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
         dimImagesSwitch.setChecked(Prefs.shouldDimDarkModeImages());
         dimImagesSwitch.setEnabled(app.getCurrentTheme().isDark());
         dimImagesSwitch.setTextColor(dimImagesSwitch.isEnabled()
-                ? ResourceUtil.getThemedColor(getContext(), R.attr.section_title_color)
-                : ContextCompat.getColor(getContext(), R.color.black26));
+                ? ResourceUtil.getThemedColor(requireContext(), R.attr.section_title_color)
+                : ContextCompat.getColor(requireContext(), R.color.black26));
     }
 
     private final class ThemeButtonListener implements View.OnClickListener {
@@ -192,8 +195,8 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
         @Override
         public void onClick(View v) {
             if (app.getCurrentTheme() != theme) {
-                app.setCurrentTheme(theme);
                 funnel.logThemeChange(app.getCurrentTheme(), theme);
+                app.setCurrentTheme(theme);
             }
         }
     }
@@ -208,7 +211,7 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
         @Override
         public void onClick(View view) {
             boolean changed = false;
-            float currentSize = app.getFontSize(getDialog().getWindow());
+            int currentMultiplier = Prefs.getTextSizeMultiplier();
             if (action == FontSizeAction.INCREASE) {
                 changed = app.setFontSizeMultiplier(Prefs.getTextSizeMultiplier() + 1);
             } else if (action == FontSizeAction.DECREASE) {
@@ -219,7 +222,17 @@ public class ThemeChooserDialog extends ExtendedBottomSheetDialogFragment {
             if (changed) {
                 updatingFont = true;
                 updateFontSize();
-                funnel.logFontSizeChange(currentSize, app.getFontSize(getDialog().getWindow()));
+                funnel.logFontSizeChange(currentMultiplier, Prefs.getTextSizeMultiplier());
+            }
+        }
+    }
+
+    private class EventBusConsumer implements Consumer<Object> {
+        @Override
+        public void accept(Object event) throws Exception {
+            if (event instanceof WebViewInvalidateEvent) {
+                updatingFont = false;
+                updateComponents();
             }
         }
     }

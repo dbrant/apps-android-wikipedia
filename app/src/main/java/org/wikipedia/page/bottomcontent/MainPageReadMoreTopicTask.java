@@ -8,20 +8,21 @@ import android.os.RemoteException;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
-import org.wikipedia.concurrency.SaneAsyncTask;
 import org.wikipedia.database.contract.PageHistoryContract;
 import org.wikipedia.database.contract.PageImageHistoryContract;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.util.ContentProviderClientCompat;
 
+import java.util.concurrent.Callable;
+
 /**
  * Get a Read More topic for the main page. This is looking at the history table.
  * We're looking at the last history entry that is not of source main page or random.
  */
-public class MainPageReadMoreTopicTask extends SaneAsyncTask<HistoryEntry> {
+public class MainPageReadMoreTopicTask implements Callable<HistoryEntry> {
     private int age;
 
-    public MainPageReadMoreTopicTask() {
+    MainPageReadMoreTopicTask() {
         this(0);
     }
 
@@ -30,17 +31,14 @@ public class MainPageReadMoreTopicTask extends SaneAsyncTask<HistoryEntry> {
     }
 
     @Override
-    public HistoryEntry performTask() throws Throwable {
-        Cursor c = getInterestedHistoryEntry();
-        try {
+    public HistoryEntry call() {
+        try (Cursor c = getInterestedHistoryEntry()) {
             if (c.moveToPosition(age)) {
                 HistoryEntry entry = HistoryEntry.DATABASE_TABLE.fromCursor(c);
                 entry.getTitle().setThumbUrl(PageImageHistoryContract.Col.IMAGE_NAME.val(c));
                 return entry.getTitle().isMainPage() ? null : entry;
             }
             return null;
-        } finally {
-            c.close();
         }
     }
 
@@ -49,7 +47,6 @@ public class MainPageReadMoreTopicTask extends SaneAsyncTask<HistoryEntry> {
         ContentProviderClient client = HistoryEntry.DATABASE_TABLE.acquireClient(context);
         try {
             Uri uri = PageHistoryContract.PageWithImage.URI;
-            final String[] projection = null;
             String selection = ":sourceCol != ? and :sourceCol != ? and :sourceCol != ? and :timeSpentCol >= ?"
                     .replaceAll(":sourceCol", PageHistoryContract.Page.SOURCE.qualifiedName())
                     .replaceAll(":timeSpentCol", PageHistoryContract.Page.TIME_SPENT.qualifiedName());
@@ -58,7 +55,7 @@ public class MainPageReadMoreTopicTask extends SaneAsyncTask<HistoryEntry> {
                     Integer.toString(HistoryEntry.SOURCE_FEED_MAIN_PAGE),
                     Integer.toString(context.getResources().getInteger(R.integer.article_engagement_threshold_sec))};
             String order = PageHistoryContract.PageWithImage.ORDER_MRU;
-            return client.query(uri, projection, selection, selectionArgs, order);
+            return client.query(uri, null, selection, selectionArgs, order);
         } catch (RemoteException e) {
             throw new RuntimeException(e);
         } finally {

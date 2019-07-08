@@ -1,28 +1,28 @@
 package org.wikipedia.espresso.page;
 
 import android.Manifest;
-import android.support.test.espresso.DataInteraction;
-import android.support.test.rule.ActivityTestRule;
-import android.support.test.rule.GrantPermissionRule;
-import android.support.test.runner.AndroidJUnit4;
+
+import androidx.test.espresso.DataInteraction;
+import androidx.test.rule.ActivityTestRule;
+import androidx.test.rule.GrantPermissionRule;
+import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wikipedia.R;
-import org.wikipedia.espresso.search.SearchTest;
+import org.wikipedia.espresso.search.SearchBehaviors;
 import org.wikipedia.espresso.util.ScreenshotTools;
 import org.wikipedia.page.PageActivity;
 
-import static android.support.test.espresso.Espresso.onData;
-import static android.support.test.espresso.Espresso.onView;
-import static android.support.test.espresso.action.ViewActions.click;
-import static android.support.test.espresso.action.ViewActions.swipeDown;
-import static android.support.test.espresso.action.ViewActions.swipeUp;
-import static android.support.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.Espresso.onData;
+import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.wikipedia.espresso.util.CompareTools.assertScreenshotWithinTolerance;
+import static org.wikipedia.espresso.util.InstrumentationViewUtils.switchPageModeToBlack;
+import static org.wikipedia.espresso.util.InstrumentationViewUtils.switchPageModeToDark;
 import static org.wikipedia.espresso.util.ViewTools.WAIT_FOR_1000;
 import static org.wikipedia.espresso.util.ViewTools.WAIT_FOR_2000;
 import static org.wikipedia.espresso.util.ViewTools.WAIT_FOR_3000;
@@ -35,7 +35,7 @@ import static org.wikipedia.espresso.util.ViewTools.whileWithMaxSteps;
 public final class PageActivityTest {
 
     @Rule
-    public ActivityTestRule<PageActivity> mActivityTestRule = new ActivityTestRule<>(PageActivity.class);
+    public ActivityTestRule<PageActivity> activityTestRule = new ActivityTestRule<>(PageActivity.class);
 
     @Rule
     public GrantPermissionRule runtimePermissionRule = GrantPermissionRule.grant(
@@ -44,7 +44,21 @@ public final class PageActivityTest {
     @Test
     public void testArticleLoad() throws Exception {
 
-        SearchTest.searchKeywordAndGo("Barack Obama", true);
+        testPage();
+        switchPageModeToDark();
+        waitFor(WAIT_FOR_1000);
+        ScreenshotTools.snap("PageActivityWithObama_Dark");
+        switchPageModeToBlack();
+        waitFor(WAIT_FOR_1000);
+        ScreenshotTools.snap("PageActivityWithObama_Black");
+
+
+        //Todo: Create espresso.screenshots to show hide/show of tab layout and actionBar
+        runComparisons();
+    }
+
+    private void testPage() {
+        SearchBehaviors.searchKeywordAndGo("Barack Obama", true);
 
         whileWithMaxSteps(
                 () -> !viewIsDisplayed(R.id.search_results_list),
@@ -64,19 +78,14 @@ public final class PageActivityTest {
 
         waitFor(WAIT_FOR_3000);
         ScreenshotTools.snap("PageActivityWithObama");
-        onView(withId(R.id.view_page_header_image))
-                .perform(swipeUp());
-        onView(withId(R.id.page_fragment))
-                .perform(swipeUp());
-        onView(withId(R.id.page_fragment))
-                .perform(swipeUp());
-        onView(withId(R.id.page_fragment))
-                .perform(swipeDown());
-        ScreenshotTools.snap("ArticleSwipeDownActionBarAndTabSeen");
+
+    }
+
+    private void runComparisons() throws Exception {
         assertScreenshotWithinTolerance("PageActivityWithObama");
+        assertScreenshotWithinTolerance("PageActivityWithObama_Dark");
+        assertScreenshotWithinTolerance("PageActivityWithObama_Black");
         assertScreenshotWithinTolerance("SearchSuggestionPage");
         assertScreenshotWithinTolerance("SearchPage");
-        //assertScreenshotWithinTolerance("ArticleSwipeDownActionBarAndTabSeen");
-
     }
 }

@@ -7,10 +7,13 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SyncResult;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 
 import org.wikipedia.BuildConfig;
+import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.csrf.CsrfTokenClient;
@@ -110,7 +113,7 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static void manualSync(@NonNull Bundle extras) {
-        if (AccountUtil.account() == null) {
+        if (AccountUtil.account() == null || !WikipediaApp.getInstance().isOnline()) {
             if (extras.containsKey(SYNC_EXTRAS_REFRESHING)) {
                 SavedPageSyncService.sendSyncEvent();
             }
@@ -148,6 +151,7 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
 
         WikiSite wiki = WikipediaApp.getInstance().getWikiSite();
         ReadingListClient client = new ReadingListClient(wiki);
+        ReadingListSyncNotification readingListSyncNotification = ReadingListSyncNotification.getInstance();
 
         String lastSyncTime = Prefs.getReadingListsLastSyncTime();
         boolean shouldSendSyncEvent = extras.containsKey(SYNC_EXTRAS_REFRESHING);
@@ -194,7 +198,7 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                             // with the remote collection, or delete them.
                             // However, let's issue a request to the changes endpoint, so that
                             // it can throw an exception if lists are not set up for the user.
-                            client.getChangesSince(DateUtil.getIso8601DateFormat().format(new Date()));
+                            client.getChangesSince(DateUtil.iso8601DateFormat(new Date()));
                             // Exception wasn't thrown, so post the bus event.
                             WikipediaApp.getInstance().getBus().post(new ReadingListsMergeLocalDialogEvent());
                             return;
@@ -265,8 +269,13 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
             // Notify any event consumers that reading lists are, in fact, enabled.
             WikipediaApp.getInstance().getBus().post(new ReadingListsEnabledStatusEvent());
 
+            // setup syncing indicator for remote to local
+            int remoteItemsTotal = remoteListsModified.size();
+            int remoteItemsSynced = 0;
+
             // First, update our list hierarchy to match the remote hierarchy.
             for (RemoteReadingList remoteList : remoteListsModified) {
+                readingListSyncNotification.setNotificationProgress(getContext(), remoteItemsTotal, remoteItemsSynced++);
                 // Find the remote list in our local lists...
                 ReadingList localList = null;
                 boolean upsertNeeded = false;
@@ -284,10 +293,15 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                         localList = list;
                         break;
                     } else if (StringUtil.normalizedEquals(list.title(), remoteList.name())) {
-                        list.remoteId(remoteList.id());
-                        upsertNeeded = true;
                         localList = list;
+                        localList.remoteId(remoteList.id());
+                        upsertNeeded = true;
+                        break;
                     }
+                }
+                if (remoteList.isDefault() && localList != null && !localList.isDefault()) {
+                    L.logRemoteError(new RuntimeException("Unexpected: remote default list corresponds to local non-default list."));
+                    localList = ReadingListDbHelper.instance().getDefaultList();
                 }
 
                 if (remoteList.isDeleted()) {
@@ -304,7 +318,12 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (localList == null) {
                     // A new list needs to be created locally.
                     L.d("Creating local list " + remoteList.name());
-                    localList = ReadingListDbHelper.instance().createList(remoteList.name(), remoteList.description());
+                    if (remoteList.isDefault()) {
+                        L.logRemoteError(new RuntimeException("Unexpected: local default list no longer matches remote."));
+                        localList = ReadingListDbHelper.instance().getDefaultList();
+                    } else {
+                        localList = ReadingListDbHelper.instance().createList(remoteList.name(), remoteList.description());
+                    }
                     localList.remoteId(remoteList.id());
                     allLocalLists.add(localList);
                     upsertNeeded = true;
@@ -397,8 +416,15 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                 pageIdsDeleted.remove(id);
             }
 
+
+            // setup syncing indicator for local to remote
+            int localItemsTotal = allLocalLists.size();
+            int localItemsSynced = 0;
+
             // Determine whether any remote lists need to be created or updated
             for (ReadingList localList : allLocalLists) {
+                readingListSyncNotification.setNotificationProgress(getContext(), localItemsTotal, localItemsSynced++);
+
                 RemoteReadingList remoteList =
                         new RemoteReadingList(localList.title(), localList.description());
 
@@ -432,9 +458,11 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                         newEntries.add(remoteEntryFromLocalPage(localPage));
                     }
                 }
+                // Note: newEntries.size() is guaranteed to be equal to localPages.size()
                 if (newEntries.isEmpty()) {
                     continue;
                 }
+                boolean tryOneAtATime = false;
                 try {
                     if (localPages.size() == 1) {
                         L.d("Creating new remote page " + localPages.get(0).title());
@@ -460,9 +488,41 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
                         break;
                     } else if (client.isErrorType(t, "entry-limit")) {
                         // TODO: handle more meaningfully than ignoring, for now.
+                    } else if (client.isErrorType(t, "no-such-project")) {
+                        // Something is malformed in the page domain, but we don't know which page
+                        // in the batch caused the error. Therefore, let's retry uploading the pages
+                        // one at a time, and single out the one that fails.
+                        tryOneAtATime = true;
                     } else {
                         throw t;
                     }
+                }
+
+                if (tryOneAtATime) {
+                    for (int i = 0; i < localPages.size(); i++) {
+                        ReadingListPage localPage = localPages.get(i);
+                        try {
+                            L.d("Creating new remote page " + localPage.title());
+                            localPage.remoteId(client.addPageToList(getCsrfToken(wiki, csrfToken), localList.remoteId(), newEntries.get(i)));
+                        } catch (Throwable t) {
+                            if (client.isErrorType(t, "duplicate-page")) {
+                                shouldRetryWithForce = true;
+                                break;
+                            } else if (client.isErrorType(t, "entry-limit")) {
+                                // TODO: handle more meaningfully than ignoring, for now.
+                            } else if (client.isErrorType(t, "no-such-project")) {
+                                // Ignore the error, and give this malformed page a bogus remoteID,
+                                // so that we won't try syncing it again.
+                                localPage.remoteId(Integer.MAX_VALUE);
+                                // ...and also log it:
+                                L.logRemoteError(new RuntimeException("Attempted to sync malformed page: "
+                                        + localPage.wiki() + ", " + localPage.title()));
+                            } else {
+                                throw t;
+                            }
+                        }
+                    }
+                    ReadingListDbHelper.instance().updatePages(localPages);
                 }
             }
 
@@ -496,9 +556,12 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
             Prefs.setReadingListsLastSyncTime(lastSyncTime);
             Prefs.setReadingListsDeletedIds(listIdsDeleted);
             Prefs.setReadingListPagesDeletedIds(pageIdsDeleted);
+            readingListSyncNotification.cancelNotification(getContext());
 
             if (shouldSendSyncEvent) {
                 SavedPageSyncService.sendSyncEvent();
+                WikipediaApp.getInstance().getMainThreadHandler().post(()
+                        -> Toast.makeText(WikipediaApp.getInstance(), R.string.reading_list_toast_last_sync, Toast.LENGTH_SHORT).show());
             }
             if ((shouldRetry || shouldRetryWithForce) && !extras.containsKey(SYNC_EXTRAS_RETRYING)) {
                 Bundle b = new Bundle();
@@ -531,7 +594,7 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
         }
         try {
             Date date = DateUtil.getHttpLastModifiedDate(lastDateHeader);
-            return DateUtil.getIso8601DateFormat().format(date);
+            return DateUtil.iso8601DateFormat(date);
         } catch (ParseException e) {
             return lastSyncTime;
         }
@@ -597,6 +660,6 @@ public class ReadingListSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private RemoteReadingListEntry remoteEntryFromLocalPage(@NonNull ReadingListPage localPage) {
         PageTitle title = ReadingListPage.toPageTitle(localPage);
-        return new RemoteReadingListEntry(title.getWikiSite().scheme() + "://" + title.getWikiSite().authority(), title.getPrefixedText());
+        return new RemoteReadingListEntry(title.getWikiSite().scheme() + "://" + title.getWikiSite().desktopAuthority(), title.getPrefixedText());
     }
 }

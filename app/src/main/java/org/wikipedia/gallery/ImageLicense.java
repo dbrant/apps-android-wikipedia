@@ -1,29 +1,33 @@
 package org.wikipedia.gallery;
 
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+
+import com.google.gson.annotations.SerializedName;
 
 import org.wikipedia.R;
 
+import java.io.Serializable;
 import java.util.Locale;
 
 import static org.apache.commons.lang3.StringUtils.defaultString;
 
-public class ImageLicense {
+public class ImageLicense implements Serializable {
     private static final String CREATIVE_COMMONS_PREFIX = "cc";
     private static final String PUBLIC_DOMAIN_PREFIX = "pd";
+    private static final String CC_BY_SA = "ccbysa";
 
-    @NonNull private final String license;
-    @NonNull private final String licenseShortName;
-    @NonNull private final String licenseUrl;
+    @NonNull @SerializedName("type") private final String license;
+    @NonNull @SerializedName("code") private final String licenseShortName;
+    @NonNull @SerializedName("url") private final String licenseUrl;
 
     public ImageLicense(@NonNull ExtMetadata metadata) {
-        this.license = metadata.license() != null ? metadata.license().value() : "";
-        this.licenseShortName = metadata.licenseShortName() != null ? metadata.licenseShortName().value() : "";
-        this.licenseUrl = metadata.licenseUrl() != null ? metadata.licenseUrl().value() : "";
+        this.license = metadata.license();
+        this.licenseShortName = metadata.licenseShortName();
+        this.licenseUrl = metadata.licenseUrl();
     }
 
-    public ImageLicense(@NonNull String license, @NonNull String licenseShortName, @NonNull String licenseUrl) {
+    private ImageLicense(@NonNull String license, @NonNull String licenseShortName, @NonNull String licenseUrl) {
         this.license = license;
         this.licenseShortName = licenseShortName;
         this.licenseUrl = licenseUrl;
@@ -33,7 +37,7 @@ public class ImageLicense {
         this("", "", "");
     }
 
-    @NonNull public String getLicense() {
+    @NonNull public String getLicenseName() {
         return license;
     }
 
@@ -45,16 +49,20 @@ public class ImageLicense {
         return licenseUrl;
     }
 
-    public boolean isLicenseCC() {
+    private boolean isLicenseCC() {
         return defaultString(license).toLowerCase(Locale.ENGLISH).startsWith(CREATIVE_COMMONS_PREFIX)
                 || defaultString(licenseShortName).toLowerCase(Locale.ENGLISH).startsWith(CREATIVE_COMMONS_PREFIX);
     }
 
-    public boolean isLicensePD() {
+    private boolean isLicensePD() {
         return defaultString(license).toLowerCase(Locale.ENGLISH).startsWith(PUBLIC_DOMAIN_PREFIX)
                 || defaultString(licenseShortName).toLowerCase(Locale.ENGLISH).startsWith(PUBLIC_DOMAIN_PREFIX);
     }
 
+    private boolean isLicenseCCBySa() {
+        return defaultString(license).toLowerCase(Locale.ENGLISH).replace("-", "").startsWith(CC_BY_SA)
+                || defaultString(licenseShortName).toLowerCase(Locale.ENGLISH).replace("-", "").startsWith(CC_BY_SA);
+    }
     /**
      * Return an icon (drawable resource id) that corresponds to the type of license
      * under which the specified Gallery item is provided.
@@ -63,6 +71,9 @@ public class ImageLicense {
     @DrawableRes public int getLicenseIcon() {
         if (isLicensePD()) {
             return R.drawable.ic_license_pd;
+        }
+        if (isLicenseCCBySa()) {
+            return R.drawable.ic_license_by;
         }
         if (isLicenseCC()) {
             return R.drawable.ic_license_cc;

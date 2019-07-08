@@ -1,27 +1,53 @@
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
-    <android.support.design.widget.TabItem
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:icon="@drawable/ic_bookmark_border_white_24dp"
-        android:contentDescription="@string/article_menu_bar_bookmark" />
-    <android.support.design.widget.TabItem
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:icon="@drawable/ic_share_white_24dp"
-        android:contentDescription="@string/article_menu_bar_share" />
-    <android.support.design.widget.TabItem
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:icon="@drawable/ic_translate_white_24dp"
-        android:contentDescription="@string/menu_page_other_languages" />
-    <android.support.design.widget.TabItem
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:icon="@drawable/ic_find_in_page"
-        android:contentDescription="@string/menu_page_find_in_page" />
-    <android.support.design.widget.TabItem
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:icon="@drawable/ic_list_white_24dp"
-        android:contentDescription="@string/menu_show_toc" />
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_bookmark"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/article_menu_bar_bookmark"
+        android:tag="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/ic_bookmark_border_white_24dp" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_share"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/article_menu_bar_share"
+        android:tag="1"
+        app:layout_constraintStart_toEndOf="@+id/article_menu_bookmark"
+        app:srcCompat="@drawable/ic_share_white_24dp" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_change_language"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/menu_page_other_languages"
+        android:tag="2"
+        app:layout_constraintStart_toEndOf="@+id/article_menu_share"
+        app:srcCompat="@drawable/ic_translate_white_24dp" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_find_in_page"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/menu_page_find_in_page"
+        android:tag="3"
+        app:layout_constraintStart_toEndOf="@+id/article_menu_change_language"
+        app:srcCompat="@drawable/ic_find_in_page" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_font_and_theme"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/menu_page_font_and_theme"
+        android:tag="4"
+        app:layout_constraintStart_toEndOf="@+id/article_menu_find_in_page"
+        app:srcCompat="@drawable/ic_format_size_white_24dp" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/article_menu_show_toc"
+        style="@style/PageActionTabLayoutButtonStyle"
+        android:contentDescription="@string/menu_show_toc"
+        android:tag="5"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/ic_list_white_24dp" />
 </merge>

@@ -5,26 +5,33 @@ import android.app.ProgressDialog;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.Animatable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.TextInputLayout;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.controller.BaseControllerListener;
 import com.facebook.drawee.view.SimpleDraweeView;
 import com.facebook.imagepipeline.image.ImageInfo;
+import com.google.android.material.textfield.TextInputLayout;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.page.LinkMovementMethodExt;
+import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.FeedbackUtil;
+import org.wikipedia.util.StringUtil;
 import org.wikipedia.views.ViewAnimations;
 
-import retrofit2.Call;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class CaptchaHandler {
     private final Activity activity;
@@ -36,6 +43,7 @@ public class CaptchaHandler {
     private final View primaryView;
     private final String prevTitle;
     private ProgressDialog progressDialog;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Nullable private String token;
     @Nullable private CaptchaResult captchaResult;
@@ -48,6 +56,7 @@ public class CaptchaHandler {
         this.primaryView = primaryView;
         this.prevTitle = prevTitle;
 
+        TextView requestAccountText = activity.findViewById(R.id.request_account_text);
         captchaContainer = activity.findViewById(R.id.captcha_container);
         captchaImage = activity.findViewById(R.id.captcha_image);
         captchaText = ((TextInputLayout) activity.findViewById(R.id.captcha_text)).getEditText();
@@ -59,24 +68,22 @@ public class CaptchaHandler {
             submitButton.setVisibility(View.VISIBLE);
         }
 
+        requestAccountText.setText(StringUtil.fromHtml(activity.getString(R.string.edit_section_captcha_request_an_account_message)));
+        requestAccountText.setMovementMethod(new LinkMovementMethodExt((url) -> FeedbackUtil.showAndroidAppRequestAnAccount(activity)));
         captchaImage.setOnClickListener((v) -> {
             captchaProgress.setVisibility(View.VISIBLE);
 
-            new CaptchaClient().request(wiki, new CaptchaClient.Callback() {
-                @Override
-                public void success(@NonNull Call<Captcha> call, @NonNull CaptchaResult result) {
-                    captchaResult = result;
-                    captchaProgress.setVisibility(View.GONE);
-                    handleCaptcha(true);
-                }
-
-                @Override
-                public void failure(@NonNull Call<Captcha> call, @NonNull Throwable caught) {
-                    cancelCaptcha();
-                    captchaProgress.setVisibility(View.GONE);
-                    FeedbackUtil.showError(activity, caught);
-                }
-            });
+            disposables.add(ServiceFactory.get(wiki).getNewCaptcha()
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .doFinally(() -> captchaProgress.setVisibility(View.GONE))
+                    .subscribe(response -> {
+                        captchaResult = new CaptchaResult(response.captchaId());
+                        handleCaptcha(true);
+                    }, caught -> {
+                        cancelCaptcha();
+                        FeedbackUtil.showError(activity, caught);
+                    }));
         });
     }
 
@@ -114,6 +121,10 @@ public class CaptchaHandler {
         outState.putParcelable("captcha", captchaResult);
     }
 
+    public void dispose() {
+        disposables.clear();
+    }
+
     public boolean isActive() {
         return captchaResult != null;
     }
@@ -128,9 +139,12 @@ public class CaptchaHandler {
         if (captchaResult == null) {
             return;
         }
+        DeviceUtil.hideSoftKeyboard(activity);
         if (!isReload) {
             ViewAnimations.crossFade(primaryView, captchaContainer);
         }
+        // In case there was a captcha attempt before
+        captchaText.setText("");
         captchaImage.setController(Fresco.newDraweeControllerBuilder()
                 .setUri(captchaResult.getCaptchaUrl(wiki))
                 .setAutoPlayAnimations(true)
@@ -155,9 +169,6 @@ public class CaptchaHandler {
                         } else {
                             captchaImage.getDrawable().clearColorFilter();
                         }
-
-                        // In case there was a captcha attempt before
-                        captchaText.setText("");
                     }
                 })
                 .build());
@@ -168,13 +179,12 @@ public class CaptchaHandler {
         ViewAnimations.crossFade(captchaContainer, primaryView);
     }
 
-    public boolean cancelCaptcha() {
+    public void cancelCaptcha() {
         if (captchaResult == null) {
-            return false;
+            return;
         }
         captchaResult = null;
         captchaText.setText("");
         hideCaptcha();
-        return true;
     }
 }

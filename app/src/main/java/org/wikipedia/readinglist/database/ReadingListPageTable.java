@@ -3,10 +3,10 @@ package org.wikipedia.readinglist.database;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.support.annotation.NonNull;
 import android.util.Base64;
 
-import org.wikipedia.Constants;
+import androidx.annotation.NonNull;
+
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.database.DatabaseTable;
@@ -17,6 +17,7 @@ import org.wikipedia.database.contract.ReadingListPageContract;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.events.SplitLargeListsEvent;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.settings.SiteInfoClient;
 import org.wikipedia.util.log.L;
 
 import java.util.ArrayList;
@@ -199,7 +200,7 @@ public class ReadingListPageTable extends DatabaseTable<ReadingListPage> {
 
                     int splitListIndex = 0;
                     ReadingList newList = origList;
-                    while (newList.pages().size() >= Constants.MAX_READING_LIST_ARTICLE_LIMIT) {
+                    while (newList.pages().size() >= SiteInfoClient.getMaxPagesPerReadingList()) {
                         shouldShowLargeSplitMessage = true;
                         newList = null;
                         String newListName = origList.dbTitle() + " (" + Integer.toString(++splitListIndex) + ")";

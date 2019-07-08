@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Authors:
+* Astrind
+* Bugoslav
+* Ex13
+* Ivi104
+* MaGa
+* Patriccck
+* Vrhnje
+* Wumbolo
+-->
 <resources>
   <string name="app_name_prod">Wikipedija</string>
-  <string name="app_name_beta">Wikipedija (beta)</string>
-  <string name="app_name_alpha">Wikipedija Alpha</string>
+  <string name="app_name_beta">Wikipedija Beta</string>
+  <string name="app_name_alpha">Wikipedija Alfa</string>
   <string name="wikimedia">Wikimedija</string>
   <string name="search_hint">Pretraži Wikipediju</string>
   <string name="nav_item_history">Povijest</string>
@@ -17,7 +27,6 @@
   <string name="menu_page_show_tabs">Prikaži kartice</string>
   <string name="menu_page_other_languages">Promijeni jezik</string>
   <string name="menu_page_find_in_page">Pronađi na stranici</string>
-  <string name="menu_page_content_issues">Problemi sa sadržajem</string>
   <string name="menu_page_font_and_theme">Vrsta pisma i dizajn stranice</string>
   <string name="menu_page_add_to_list">Dodaj na popis za čitanje</string>
   <string name="menu_page_share">Podijelite poveznicu</string>
@@ -31,15 +40,14 @@
   <string name="nav_item_nearby">U blizini</string>
   <string name="nearby_zoom_to_location">Približi lokaciju na zemljovidu</string>
   <string name="last_updated_text">Zadnji put ažurirano %s</string>
-  <string name="talk_page_link_text">Razgovor</string>
+  <string name="talk_page_link_text" fuzzy="true">Razgovor</string>
   <string name="content_license_html">Sadržaj je dostupan pod &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; (osim ako nije drugačije navedeno)</string>
   <string name="edit_save_action_license_logged_in" fuzzy="true">Spremanjem ste suglasni s &lt;a href=\"%1$s\"&gt;Uvjetima uporabe&lt;/a&gt; i neopozivo objavljujete Vaše doprinose pod licencijom &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt;.</string>
   <string name="edit_save_action_license_anon" fuzzy="true">Spremanjem ste suglasni s &lt;a href=\"%1$s\"&gt;Uvjetima uporabe&lt;/a&gt;i neopozivo objavljujete Vaše doprinose pod licencijom &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; license. Edits will be attributed to the IP address of your device. Veću zaštitu privatnosti ćete imati ako se &lt;a href=\"https://#login\"&gt;prijavite&lt;/a&gt;.</string>
-  <string name="preference_title_language">Jezik Wikipedije</string>
-  <string name="preference_languages_filter_hint">Pretraži</string>
+  <string name="preference_title_language" fuzzy="true">Jezik Wikipedije</string>
   <string name="langlinks_filter_hint">Pretraži</string>
   <string name="langlinks_empty">Ova stranica nije dostupna na drugim jezicima.</string>
-  <string name="langlinks_no_match">Nema jezika koji odgovaraju Vašem upitu.</string>
+  <string name="langlinks_no_match" fuzzy="true">Nema jezika koji odgovaraju Vašem upitu.</string>
   <string name="langlinks_activity_title">Drugi jezici</string>
   <string name="menu_save_changes" fuzzy="true">Spremi promjene</string>
   <string name="dialog_saving_in_progress" fuzzy="true">Sprema se…</string>
@@ -47,7 +55,7 @@
   <string name="dialog_message_edit_failed">Greška u uređivanju.</string>
   <string name="dialog_message_edit_failed_retry">Pokušaj ponovo</string>
   <string name="dialog_message_edit_failed_cancel">Otkaži</string>
-  <string name="dialog_message_leaving_edit">Promjene nisu spremljene. Jeste li sigurni da želite napustiti ovu stranicu?</string>
+  <string name="dialog_message_leaving_edit" fuzzy="true">Promjene nisu spremljene. Jeste li sigurni da želite napustiti ovu stranicu?</string>
   <string name="dialog_message_leaving_edit_leave">Napusti</string>
   <string name="dialog_message_leaving_edit_stay">Ostani</string>
   <string name="menu_show_toc">Sadržaj</string>
@@ -80,17 +88,6 @@
   <string name="create_account_button">Otvori suradnički račun</string>
   <string name="preferences_general_heading">Općenito</string>
   <string name="wikipedia_app_faq">ČPP o aplikaciji Wikipedija</string>
-  <string name="zero_charged_verbiage" fuzzy="true">Wikipedija Zero je isključen</string>
-  <string name="zero_warn_when_leaving">Upozori prilikom napuštanja Wikipedija Zero</string>
-  <string name="zero_warn_when_leaving_summary">Ako vaš davatelj usluga ne naplaćuje pristup Wikipediji kroz partnerstvo Wikipedia Zero, uključivanjem ove opcije dobit ćete obavijest ukoliko napuštate besplatne stranice, te se prijenos podataka može dodatno naplatiti.</string>
-  <string name="zero_webpage_title">Wikipedija Zero ČPP</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedija Zero</string>
-  <string name="zero_interstitial_title">Napuštanje Wikipedija Zero</string>
-  <string name="zero_interstitial_leave_app">Mogući su dodatni troškovi. Nastaviti na vanjskoj stranici?</string>
-  <string name="zero_interstitial_continue">Napusti</string>
-  <string name="zero_interstitial_cancel">Ostani ovdje</string>
-  <string name="zero_learn_more_learn_more" fuzzy="true">Pročitajte više</string>
-  <string name="zero_learn_more_dismiss">Zatvori</string>
   <string name="edit_preview_fetching_dialog_message">Dohvaćanje pretpregleda…</string>
   <string name="send_feedback">Pošalji povratnu informaciju o aplikaciji</string>
   <string name="create_account_account_created_toast">Suradnički račun otvoren.</string>
@@ -118,7 +115,7 @@
   <string name="about_translators_translatewiki">Ovu aplikaciju preveli su su prevoditelji volonteri na projektu &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt;.</string>
   <string name="about_app_license_heading">Licencija</string>
   <string name="about_app_license">Izvorni kod dostupan na &lt;a href=\"https://gerrit.wikimedia.org/r/#/admin/projects/apps/android/wikipedia\"&gt;Gerrit&lt;/a&gt; i &lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia\"&gt;GitHub&lt;/a&gt; pod licencijom &lt;a href=\"https://phabricator.wikimedia.org/diffusion/APAW/browse/master/COPYING?view=raw\"&gt;Apache 2.0 License&lt;/a&gt;. Ako nije drugačije navedeno, sadržaj je dostupan pod licencijom &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License\"&gt;Creative Commons Attribution-ShareAlike License&lt;/a&gt;.</string>
-  <string name="about_wmf" fuzzy="true">Proizvod &lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Zaklade Wikimedija&lt;/a&gt;</string>
+  <string name="about_wmf">Proizvod &lt;a href=\"https://wikimediafoundation.org/\"&gt;Zaklade Wikimedija&lt;/a&gt;</string>
   <string name="about_activity_title">O</string>
   <string name="edit_abandon_confirm">Stranica je promijenjena. Jeste li sigurni da želite izaći bez spremanja promjena?</string>
   <string name="user_blocked_from_editing_title">Blokiran</string>
@@ -139,8 +136,6 @@
   <string name="abusefilter_title_disallow" fuzzy="true">Ne možete spremiti ovo uređivanje. Vratite se natrag i promijenite ga.</string>
   <string name="abusefilter_text_warn">Automatizirani filter je ovo uređivanje označio kao moguće nekonstruktivno. Moguće je da sadrži nešto od sljedećeg:&lt;br /&gt;&lt;br /&gt;· pisanje tiskanim slovima&lt;br /&gt;· brisanje članaka ili spamiranje&lt;br /&gt;· nevažne vanjske poveznice ili slike&lt;br /&gt;· ponavljanje znakova</string>
   <string name="abusefilter_text_disallow">An automated filter has identified this edit as potentially unconstructive, or potential vandalism.&lt;br /&gt;&lt;br /&gt;Wikipedia is an encyclopedia and only neutral, notable content belongs here.\n\nAutomatizirani filter je ovo uređivanje označio kao moguće nekonstruktivno ili vandalizam.&lt;br /&gt;&lt;br /&gt;Wikipedija je enciklopedija i dodajite samo neutralan i provjerljiv sadržaj.</string>
-  <string name="dialog_page_issues">Problemi sa stranicom</string>
-  <string name="button_page_issues">Problemi sa stranicom</string>
   <string name="text_size_select">Veličina pisma</string>
   <string name="page_similar_titles">Slične stranice</string>
   <string name="search_did_you_mean">Možda ste imali na umu \"%s\"?</string>
@@ -184,10 +179,8 @@
   <string name="menu_close_all_tabs">Zatvori sve kartice</string>
   <string name="close_all_tabs_confirm">Želite li zaista zatvoriti sve kartice?</string>
   <string name="button_close_tab">Zatvori karticu</string>
-  <string name="tool_tip_select_text" fuzzy="true">Da biste kopirali i podijelili tekst, pritisnite i držite bilo gdje u tekstu.</string>
   <string name="tool_tip_share">Nakon označavanja zanimljivog dijela, podijelite ga na omiljenim mrežama.</string>
   <string name="page_view_in_browser">Pogledaj stranicu u pregledniku</string>
-  <string name="tool_tip_toc_button">Pogledajte sadržaj bilo kada klikom na ovaj gumb ili povlačenjem prsta od desnog ruba zaslona.</string>
   <string name="error_response_malformed">Odgovor poslužitelja nije bio ispravno formatiran.</string>
   <string name="error_unknown">Dogodila se nepoznata pogrješka.</string>
   <string name="format_error_server_message">Poruka: \"%s\"</string>
@@ -215,7 +208,6 @@
   <string name="color_theme_light">Svijetlo</string>
   <string name="color_theme_dark">Tamno</string>
   <string name="nav_item_reading_lists">Moji popisi</string>
-  <string name="reading_list_untitled">Bez naslova</string>
   <string name="reading_list_save_to">Dodaj na popis za čitanje</string>
   <string name="reading_list_create_new">Stvori novi</string>
   <string name="reading_list_added_to_named">Dodano u %s.</string>
@@ -241,7 +233,6 @@
   <string name="reading_lists_onboarding_got_it">U redu</string>
   <string name="reading_list_delete_confirm">Želite li zaista pobrisati %s?</string>
   <string name="user_option_sync_label">Postavke</string>
-  <string name="view_continue_reading_card_title">Nastavite čitati</string>
   <string name="view_because_you_read_card_title">Budući da ste pročitali</string>
   <string name="view_random_card_title">Slučajna stranica</string>
   <string name="view_random_card_subtitle" fuzzy="true">Pročitajte slučajan članak s Wikipedije</string>
@@ -261,5 +252,19 @@
     <item quantity="other">prije %d dana</item>
   </plurals>
   <string name="view_continue_reading_card_subtitle_today" fuzzy="true">danas</string>
-  <string name="offline_compilation_detail_button_remove">Ukloni</string>
+  <string name="description_edit_article_description_label_per_language">Članak (%s)</string>
+  <string name="description_edit_translate_article_description_hint_per_language">Opis članka (%s)</string>
+  <string name="description_edit_add_caption_label_per_language">Opis slike (%s)</string>
+  <string name="description_edit_translate_caption_hint_per_language">Natpis slike (%s)</string>
+  <string name="description_edit_edit_description">Uredi opis članka</string>
+  <string name="suggested_edits_review_description">Pregledaj opis članka</string>
+  <string name="suggested_edits_edit_description_button">Uredi opis</string>
+  <string name="suggested_edits_add_translation_button">Dodaj prijevod</string>
+  <string name="suggested_edits_edit_translation_button">Uredi prijevod</string>
+  <string name="suggested_edits_task_add_description_title">Dodaj opise članka</string>
+  <string name="suggested_edits_task_image_caption_title">Dodajte natpis slike</string>
+  <string name="suggested_edits_task_image_caption_edit_disable_text">Zaključano dok ne uredite %d natpisa slika</string>
+  <string name="suggested_edits_image_preview_dialog_caption_in_language_title">Natpis slike (%s)</string>
+  <string name="suggested_edits_image_preview_dialog_description_in_language_title">Opis slike (%s)</string>
+  <string name="suggested_edits_feed_card_add_description_button">Dodaj opis članka</string>
 </resources>

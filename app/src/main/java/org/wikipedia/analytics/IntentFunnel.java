@@ -1,13 +1,13 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
 import org.wikipedia.WikipediaApp;
 
 public class IntentFunnel extends Funnel {
     private static final String SCHEMA_NAME = "MobileWikiAppIntents";
-    private static final int REV_ID = 15237384;
+    private static final int REV_ID = 18115555;
 
     public IntentFunnel(WikipediaApp app) {
         super(app, SCHEMA_NAME, REV_ID);

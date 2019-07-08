@@ -9,13 +9,13 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.feed.image.FeaturedImage;
-import org.wikipedia.offline.Compilation;
 import org.wikipedia.util.FileUtil;
 
 import java.io.File;
@@ -33,32 +33,27 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
         this.callback = callback;
     }
 
-    public static void download(@NonNull Context context, @NonNull Compilation compilation) {
-        String filename = FileUtil.sanitizeFileName(compilation.uri().getLastPathSegment());
-        String targetDirectory = Environment.DIRECTORY_DOWNLOADS;
-        performDownloadRequest(context, compilation.uri(), targetDirectory, filename, Compilation.MIME_TYPE);
-    }
-
     public static void download(@NonNull Context context, @NonNull FeaturedImage featuredImage) {
         String filename = FileUtil.sanitizeFileName(featuredImage.title());
         String targetDirectory = Environment.DIRECTORY_PICTURES;
-        performDownloadRequest(context, featuredImage.image().source(), targetDirectory, filename, null);
+        performDownloadRequest(context, Uri.parse(featuredImage.getOriginal().getSource()), targetDirectory, filename, null);
     }
 
     public static void download(@NonNull Context context, @NonNull GalleryItem galleryItem) {
-        String saveFilename = FileUtil.sanitizeFileName(trimFileNamespace(galleryItem.getName()));
+        String saveFilename = FileUtil.sanitizeFileName(trimFileNamespace(galleryItem.getTitles().getCanonical()));
+        String fileUrl = galleryItem.getOriginal().getSource();
         String targetDirectoryType;
-        if (FileUtil.isVideo(galleryItem.getMimeType())) {
+        if (FileUtil.isVideo(galleryItem.getType())) {
             targetDirectoryType = Environment.DIRECTORY_MOVIES;
-        } else if (FileUtil.isAudio(galleryItem.getMimeType())) {
+            fileUrl = galleryItem.getOriginalVideoSource().getOriginalUrl();
+        } else if (FileUtil.isAudio(galleryItem.getType())) {
             targetDirectoryType = Environment.DIRECTORY_MUSIC;
-        } else if (FileUtil.isImage(galleryItem.getMimeType())) {
+        } else if (FileUtil.isImage(galleryItem.getType())) {
             targetDirectoryType = Environment.DIRECTORY_PICTURES;
         } else {
             targetDirectoryType = Environment.DIRECTORY_DOWNLOADS;
         }
-        performDownloadRequest(context, Uri.parse(galleryItem.getUrl()), targetDirectoryType,
-                saveFilename, galleryItem.getMimeType());
+        performDownloadRequest(context, Uri.parse(fileUrl), targetDirectoryType, saveFilename, galleryItem.getType());
     }
 
     private static void performDownloadRequest(@NonNull Context context, @NonNull Uri uri,

@@ -1,23 +1,16 @@
 package org.wikipedia.dataclient.restbase.page;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.wikipedia.dataclient.mwapi.page.MwMobileViewPageLead;
 import org.wikipedia.dataclient.page.BasePageLeadTest;
 import org.wikipedia.dataclient.page.PageClient;
-import org.wikipedia.dataclient.page.PageLead;
-import org.wikipedia.testlib.TestLatch;
 
+import io.reactivex.observers.TestObserver;
 import okhttp3.CacheControl;
-import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 import static org.wikipedia.json.GsonUnmarshaller.unmarshal;
 
 public class RbPageLeadTest extends BasePageLeadTest {
@@ -25,15 +18,15 @@ public class RbPageLeadTest extends BasePageLeadTest {
 
     @Before @Override public void setUp() throws Throwable {
         super.setUp();
-        subject = new RbPageClient(service(RbPageService.class));
+        subject = new RbPageClient();
     }
 
-    @Test public void testEnglishMainPage() throws Exception {
+    @Test public void testEnglishMainPage() {
         RbPageLead props = unmarshal(RbPageLead.class, getEnglishMainPageJson());
         verifyEnglishMainPage(props);
     }
 
-    @Test public void testUnprotectedDisambiguationPage() throws Exception {
+    @Test public void testUnprotectedDisambiguationPage() {
         RbPageLead props = unmarshal(RbPageLead.class, getUnprotectedDisambiguationPageJson());
         verifyUnprotectedDisambiguationPage(props);
     }
@@ -42,37 +35,20 @@ public class RbPageLeadTest extends BasePageLeadTest {
      * Custom deserializer; um, yeah /o\.
      * An earlier version had issues with protection settings that don't include "edit" protection.
      */
-    @Test public void testProtectedButNoEditProtectionPage() throws Exception {
+    @Test public void testProtectedButNoEditProtectionPage() {
         RbPageLead props = unmarshal(RbPageLead.class, getProtectedButNoEditProtectionPageJson());
         verifyProtectedNoEditProtectionPage(props);
     }
 
     @Test @SuppressWarnings("checkstyle:magicnumber") public void testThumbUrls() throws Throwable {
         enqueueFromFile("page_lead_rb.json");
-        final TestLatch latch = new TestLatch();
-        subject.lead(CacheControl.FORCE_NETWORK, PageClient.CacheOption.CACHE, "foo", 640)
-                .enqueue(new Callback<PageLead>() {
-                    @Override
-                    public void onResponse(@NonNull Call<PageLead> call, @NonNull Response<PageLead> response) {
-                        assertThat(response.body().getLeadImageUrl(640).contains("640px"), is(true));
-                        assertThat(response.body().getThumbUrl().contains(preferredThumbSizeString()), is(true));
-                        assertThat(response.body().getDescription(), is("Mexican boxer"));
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onFailure(@NonNull Call<PageLead> call, @NonNull Throwable t) {
-                        fail();
-                        latch.countDown();
-                    }
-                });
-        latch.await();
-    }
-
-    @Test public void testError() throws Exception {
-        MwMobileViewPageLead pageLead = unmarshal(MwMobileViewPageLead.class, getErrorJson());
-        MwMobileViewPageLead.Mobileview props = pageLead.getMobileview();
-        verifyError(pageLead, props);
+        TestObserver<Response<RbPageLead>> observer = new TestObserver<>();
+        getRestService().getLeadSection(CacheControl.FORCE_NETWORK.toString(), null, null, "foo").subscribe(observer);
+        observer.assertComplete()
+                .assertValue(result -> result.body().getLeadImageUrl(640).contains("640px")
+                            && result.body().getThumbUrl().contains(preferredThumbSizeString())
+                            && result.body().getDescription().contains("Mexican boxer")
+                            && result.body().getDescriptionSource().contains("central"));
     }
 
     @NonNull @Override protected PageClient subject() {

@@ -1,14 +1,15 @@
 package org.wikipedia.dataclient.mwapi.page;
 
 import android.location.Location;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.google.gson.annotations.SerializedName;
 
-import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwServiceError;
+import org.wikipedia.dataclient.mwapi.MwQueryPage;
+import org.wikipedia.dataclient.mwapi.MwResponse;
 import org.wikipedia.dataclient.page.PageLead;
 import org.wikipedia.dataclient.page.PageLeadProperties;
 import org.wikipedia.dataclient.page.Protection;
@@ -17,50 +18,30 @@ import org.wikipedia.page.Page;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.page.Section;
-import org.wikipedia.util.log.L;
+import org.wikipedia.util.StringUtil;
+import org.wikipedia.util.UriUtil;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.wikipedia.Constants.PREFERRED_THUMB_SIZE;
+import static org.wikipedia.dataclient.Service.PREFERRED_THUMB_SIZE;
 import static org.wikipedia.util.ImageUrlUtil.getUrlForSize;
 
 /**
  * Gson POJO for loading the first stage of page content.
  */
-public class MwMobileViewPageLead implements PageLead {
-    @SuppressWarnings("unused") private MwServiceError error;
+public class MwMobileViewPageLead extends MwResponse implements PageLead {
     @SuppressWarnings("unused") private Mobileview mobileview;
-
-    @Override
-    public boolean hasError() {
-        // if mobileview is not set something went terribly wrong
-        return error != null || mobileview == null;
-    }
-
-    @Override
-    @Nullable
-    public MwServiceError getError() {
-        return error;
-    }
-
-    @Override
-    public void logError(String message) {
-        if (error != null) {
-            message += ": " + error.toString();
-        }
-        L.e(message);
-    }
 
     /** Note: before using this check that #getMobileview != null */
     @Override
     public Page toPage(@NonNull PageTitle title) {
-        return new Page(adjustPageTitle(title),
+        return new Page(adjustPageTitle(title, title.getPrefixedText()),
                 mobileview.getSections(),
-                mobileview.toPageProperties(title.getWikiSite()));
+                mobileview.toPageProperties());
     }
 
-    private PageTitle adjustPageTitle(@NonNull PageTitle title) {
+    private PageTitle adjustPageTitle(@NonNull PageTitle title, @NonNull String originalPrefixedText) {
         if (mobileview.getRedirected() != null) {
             // Handle redirects properly.
             title = new PageTitle(mobileview.getRedirected(), title.getWikiSite(),
@@ -70,12 +51,31 @@ public class MwMobileViewPageLead implements PageLead {
             title = new PageTitle(mobileview.getNormalizedTitle(), title.getWikiSite(),
                     title.getThumbUrl());
         }
+
+        if (mobileview.getDisplayTitle() != null
+                && !StringUtil.removeHTMLTags(title.getDisplayText()).equals(StringUtil.removeHTMLTags(mobileview.getDisplayTitle()))) {
+            title = new PageTitle(StringUtil.removeHTMLTags(mobileview.getDisplayTitle()), title.getWikiSite(),
+                    title.getThumbUrl());
+        }
+
+        if (mobileview.getDisplayTitle() != null
+                && !mobileview.getDisplayTitle().equals(originalPrefixedText)
+                && mobileview.getNormalizedTitle() == null) {
+            // Sometimes the MW api will not give us the "converted" or "redirected" title if switching between Chinese variants
+            // Ticket: https://phabricator.wikimedia.org/T206891#4672777
+            // We can the original prefixed title text (the one we used for calling API) to build the PageTitle
+            title = new PageTitle(originalPrefixedText, title.getWikiSite(), title.getThumbUrl());
+        }
+
+        if (mobileview.getRedirected() != null) {
+            title.setConvertedText(mobileview.getRedirected());
+        }
+
         title.setDescription(mobileview.getDescription());
         return title;
     }
 
-    @Override
-    public String getLeadSectionContent() {
+    @Override @NonNull public String getLeadSectionContent() {
         if (mobileview != null) {
             return mobileview.getSections().get(0).getContent();
         }
@@ -128,15 +128,16 @@ public class MwMobileViewPageLead implements PageLead {
         @SuppressWarnings("unused") private boolean mainpage;
         @SuppressWarnings("unused") private boolean disambiguation;
         @SuppressWarnings("unused") @Nullable private String description;
+        @SuppressWarnings("unused") @Nullable private String descriptionsource;
         @SuppressWarnings("unused") @SerializedName("image") @Nullable private PageImage pageImage;
         @SuppressWarnings("unused") @SerializedName("thumb") @Nullable private PageImageThumb leadImage;
         @SuppressWarnings("unused") @Nullable private Protection protection;
         @SuppressWarnings("unused") @Nullable private List<Section> sections;
-        @SuppressWarnings("unused") @Nullable private PageProps pageprops;
+        @SuppressWarnings("unused") @Nullable private MwQueryPage.PageProps pageprops;
 
         /** Converter */
-        public PageProperties toPageProperties(@NonNull WikiSite wiki) {
-            return new PageProperties(wiki, this);
+        public PageProperties toPageProperties() {
+            return new PageProperties(this);
         }
 
         @Override
@@ -144,7 +145,7 @@ public class MwMobileViewPageLead implements PageLead {
             return id;
         }
 
-        @Override @NonNull public Namespace getNamespace(@NonNull WikiSite wiki) {
+        @Override @NonNull public Namespace getNamespace() {
             return Namespace.of(namespace);
         }
 
@@ -208,7 +209,7 @@ public class MwMobileViewPageLead implements PageLead {
         @Override
         @Nullable
         public String getThumbUrl() {
-            return leadImage != null ? getUrlForSize(leadImage.getUrl(), PREFERRED_THUMB_SIZE) : null;
+            return leadImage != null ? UriUtil.resolveProtocolRelativeUrl(getUrlForSize(leadImage.getUrl(), PREFERRED_THUMB_SIZE)) : null;
         }
 
         @Override
@@ -221,6 +222,12 @@ public class MwMobileViewPageLead implements PageLead {
         @Nullable
         public String getWikiBaseItem() {
             return pageprops != null && pageprops.getWikiBaseItem() != null ? pageprops.getWikiBaseItem() : null;
+        }
+
+        @Override
+        @Nullable
+        public String getDescriptionSource() {
+            return descriptionsource;
         }
 
         @Override
@@ -245,10 +252,9 @@ public class MwMobileViewPageLead implements PageLead {
         }
 
         @Override @NonNull public List<Section> getSections() {
-            return sections == null ? Collections.<Section>emptyList() : sections;
+            return sections == null ? Collections.emptyList() : sections;
         }
     }
-
 
     /**
      * For the lead image File: page name
@@ -269,14 +275,6 @@ public class MwMobileViewPageLead implements PageLead {
 
         public String getUrl() {
             return url;
-        }
-    }
-
-    static class PageProps {
-        @SuppressWarnings("unused") @SerializedName("wikibase_item") @Nullable private String wikiBaseItem;
-
-        @Nullable String getWikiBaseItem() {
-            return wikiBaseItem;
         }
     }
 }

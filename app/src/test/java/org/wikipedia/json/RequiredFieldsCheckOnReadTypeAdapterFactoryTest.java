@@ -1,8 +1,9 @@
 package org.wikipedia.json;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
@@ -10,7 +11,7 @@ import com.google.gson.annotations.SerializedName;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.wikipedia.Constants;
+import org.wikipedia.dataclient.Service;
 import org.wikipedia.json.annotations.Required;
 import org.wikipedia.model.BaseModel;
 
@@ -70,7 +71,7 @@ public class RequiredFieldsCheckOnReadTypeAdapterFactoryTest {
     @Test
     public void testRequiredTypeAdapterNonNull() {
         RequiredTypeAdapterModel expected = new RequiredTypeAdapterModel();
-        expected.uri = Uri.parse(Constants.WIKIPEDIA_URL);
+        expected.uri = Uri.parse(Service.WIKIPEDIA_URL);
         RequiredTypeAdapterModel result = unmarshal(gson, RequiredTypeAdapterModel.class, marshal(gson, expected));
         assertThat(result, is(expected));
     }
@@ -91,7 +92,7 @@ public class RequiredFieldsCheckOnReadTypeAdapterFactoryTest {
     @Test
     public void testOptionalTypeAdapterNonNull() {
         OptionalTypeAdapterModel expected = new OptionalTypeAdapterModel();
-        expected.uri = Uri.parse(Constants.WIKIPEDIA_URL);
+        expected.uri = Uri.parse(Service.WIKIPEDIA_URL);
         OptionalTypeAdapterModel result = unmarshal(gson, OptionalTypeAdapterModel.class, marshal(gson, expected));
         assertThat(result, is(expected));
     }

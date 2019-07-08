@@ -17,8 +17,7 @@
   <string name="last_updated_text">Ilisasishwa mwisho %s</string>
   <string name="content_license_html">Inapatikana katika &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt;  isipokuwa pale imetajwa</string>
   <string name="preference_title_language">Lugha ya Wikipedia</string>
-  <string name="preference_languages_filter_hint">Tafuta</string>
-  <string name="langlinks_filter_hint">Tafuta</string>
+    <string name="langlinks_filter_hint">Tafuta</string>
   <string name="langlinks_empty">Ukurasa huu haupatikani katika lugha zingine.</string>
   <string name="langlinks_activity_title">Lugha zingine</string>
   <string name="menu_save_changes">Hifadhi mabadiliko</string>
@@ -52,15 +51,7 @@
   <string name="create_account_next">Inayofuata</string>
   <string name="create_account_button">Unda akaunti</string>
   <string name="preferences_general_heading">Kijumla</string>
-  <string name="zero_charged_verbiage">Wikipedia Zero imezimwa</string>
-  <string name="zero_warn_when_leaving">Toa ilana kama natoka Wikipedia Zero</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Unatoka Wikipedia Zero</string>
-  <string name="zero_interstitial_continue">Toka</string>
-  <string name="zero_interstitial_cancel">Kaa Hapa</string>
-  <string name="zero_learn_more_learn_more">Soma zaidi</string>
-  <string name="zero_learn_more_dismiss">Futilia mbali</string>
-  <string name="edit_preview_fetching_dialog_message">Inapakia mtazamo…</string>
+    <string name="edit_preview_fetching_dialog_message">Inapakia mtazamo…</string>
   <string name="send_feedback">Toa maoni ya programu timizi</string>
   <string name="create_account_account_created_toast">Akaunti imeundwa!</string>
   <string name="preference_title_eventlogging_opt_in">Tuma ripoti za matumizi</string>
@@ -76,7 +67,7 @@
   <string name="about_contributors_heading" fuzzy="true">wachangiaji</string>
   <string name="about_translators_heading" fuzzy="true">wafasiri</string>
   <string name="about_translators_translatewiki">Programu tumizi hii imetafsiriwa na wahnga katika &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt;.</string>
-  <string name="about_wmf">Bidhaa ya &lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Wakfu wa Wikimedia&lt;/a&gt;</string>
+  <string name="about_wmf">Bidhaa ya &lt;a href=\"https://wikimediafoundation.org/\"&gt;Wakfu wa Wikimedia&lt;/a&gt;</string>
   <string name="about_activity_title">Kuhusu</string>
   <string name="user_blocked_from_editing_title">Imezuia</string>
   <string name="edit_next">Inayofuata</string>

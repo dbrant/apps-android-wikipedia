@@ -1,4 +1,4 @@
-<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -6,14 +6,14 @@
     android:background="?attr/paper_color"
     android:fitsSystemWindows="true">
 
-    <android.support.design.widget.AppBarLayout
+    <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="180dp"
         android:background="?attr/main_toolbar_color"
         android:fitsSystemWindows="true">
 
-        <android.support.design.widget.CollapsingToolbarLayout
+        <com.google.android.material.appbar.CollapsingToolbarLayout
             android:id="@+id/collapsing_toolbar_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -46,10 +46,10 @@
                             android:id="@+id/day"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
                             android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="4dp"
                             android:fontFamily="serif"
-                            android:textColor="?attr/primary_text_color"
+                            android:textColor="?attr/main_toolbar_title_color"
                             android:textSize="24sp"
                             android:textStyle="normal"
                             android:transitionName="@string/transition_on_this_day"
@@ -60,7 +60,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical"
-                            android:tint="@color/base100"
+                            android:tint="?attr/main_toolbar_icon_color"
                             app:srcCompat="@drawable/ic_arrow_drop_down_black_24dp" />
                     </LinearLayout>
 
@@ -70,7 +70,7 @@
                         android:alpha="0.5"
                         android:text="@string/on_this_day_card_title"
                         android:textAllCaps="true"
-                        android:textColor="@color/base100"
+                        android:textColor="?attr/main_toolbar_title_color"
                         android:textSize="14sp" />
 
                     <TextView
@@ -79,7 +79,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:alpha="0.5"
-                        android:textColor="@color/base100"
+                        android:textColor="?attr/main_toolbar_title_color"
                         android:textSize="14sp" />
 
                 </LinearLayout>
@@ -92,11 +92,11 @@
                     android:layout_marginBottom="-36dp"
                     android:alpha="0.5"
                     android:contentDescription="@null"
-                    android:tint="@color/base100"
+                    android:tint="?attr/main_toolbar_icon_color"
                     app:srcCompat="@drawable/ic_event_black_24dp" />
             </FrameLayout>
 
-            <android.support.v7.widget.Toolbar
+            <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
@@ -116,11 +116,11 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:fontFamily="sans-serif-medium"
+                        android:gravity="center_vertical"
                         android:letterSpacing="0.01"
                         android:lineSpacingExtra="8sp"
-                        android:textColor="@color/base100"
+                        android:textColor="?attr/main_toolbar_title_color"
                         android:textSize="20sp"
-                        android:gravity="center_vertical"
                         android:textStyle="normal"
                         tools:text="January 1" />
 
@@ -128,7 +128,7 @@
                         android:id="@+id/drop_down_toolbar"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:tint="@color/base100"
+                        android:tint="?attr/main_toolbar_icon_color"
                         app:srcCompat="@drawable/ic_arrow_drop_down_black_24dp" />
                 </LinearLayout>
 
@@ -145,32 +145,32 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="@null"
-                        android:tint="@color/base100"
+                        android:tint="?attr/main_toolbar_icon_color"
                         app:srcCompat="@drawable/ic_empty_event" />
 
                     <TextView
                         android:id="@+id/indicator_date"
+                        style="@style/TextViewCentered"
                         android:layout_width="12dp"
                         android:layout_height="10dp"
                         android:layout_marginStart="6dp"
                         android:layout_marginTop="8dp"
-                        style="@style/TextViewCentered"
-                        android:textColor="@color/base100"
+                        android:textColor="?attr/main_toolbar_title_color"
                         android:textSize="8sp"
                         tools:text="12" />
                 </FrameLayout>
-            </android.support.v7.widget.Toolbar>
+            </androidx.appcompat.widget.Toolbar>
 
-        </android.support.design.widget.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
 
-    </android.support.design.widget.AppBarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <android.support.v7.widget.RecyclerView
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/events_recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -193,4 +193,4 @@
 
     </FrameLayout>
 
-</android.support.design.widget.CoordinatorLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

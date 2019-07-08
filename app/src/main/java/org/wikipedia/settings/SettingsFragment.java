@@ -1,18 +1,21 @@
 package org.wikipedia.settings;
 
 import android.os.Bundle;
-import android.support.v7.preference.SwitchPreferenceCompat;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
-import com.squareup.otto.Subscribe;
+import androidx.preference.SwitchPreferenceCompat;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.events.ReadingListsEnableSyncStatusEvent;
 import org.wikipedia.events.ReadingListsEnabledStatusEvent;
 import org.wikipedia.events.ReadingListsMergeLocalDialogEvent;
 import org.wikipedia.events.ReadingListsNoLongerSyncedEvent;
+
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
 
 public class SettingsFragment extends PreferenceLoaderFragment {
     public static SettingsFragment newInstance() {
@@ -20,12 +23,17 @@ public class SettingsFragment extends PreferenceLoaderFragment {
     }
 
     private SettingsPreferenceLoader preferenceLoader;
-    private EventBusMethods busMethods;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        busMethods = new EventBusMethods();
-        WikipediaApp.getInstance().getBus().register(busMethods);
+
+        if (savedInstanceState != null) {
+            requireActivity().finish();
+            startActivity(requireActivity().getIntent());
+        }
+
+        disposables.add(WikipediaApp.getInstance().getBus().subscribe(new EventBusConsumer()));
 
         // TODO: Kick off a sync of reading lists, which will call back to us whether lists
         // are enabled or not. (Not sure if this is necessary yet.)
@@ -33,8 +41,7 @@ public class SettingsFragment extends PreferenceLoaderFragment {
 
     @Override public void onDestroy() {
         super.onDestroy();
-        WikipediaApp.getInstance().getBus().unregister(busMethods);
-        busMethods = null;
+        disposables.clear();
     }
 
     @Override public void onActivityCreated(Bundle savedInstanceState) {
@@ -51,7 +58,13 @@ public class SettingsFragment extends PreferenceLoaderFragment {
     @Override
     public void onResume() {
         super.onResume();
-        preferenceLoader.updateSyncReadingListsPrefSummary();
+        requireActivity().getWindow().getDecorView().post(() -> {
+            if (!isAdded()) {
+                return;
+            }
+            preferenceLoader.updateSyncReadingListsPrefSummary();
+            preferenceLoader.updateLanguagePrefSummary();
+        });
         getActivity().invalidateOptionsMenu();
     }
 
@@ -78,11 +91,6 @@ public class SettingsFragment extends PreferenceLoaderFragment {
         }
     }
 
-    public void updateOfflineLibraryPref(boolean checked) {
-        ((SwitchPreferenceCompat) preferenceLoader.findPreference(R.string.preference_key_enable_offline_library))
-                .setChecked(checked);
-    }
-
     private void launchDeveloperSettingsActivity() {
         startActivity(DeveloperSettingsActivity.newIntent(getActivity()));
     }
@@ -98,17 +106,18 @@ public class SettingsFragment extends PreferenceLoaderFragment {
         }
     }
 
-    private class EventBusMethods {
-        @Subscribe public void on(ReadingListsMergeLocalDialogEvent event) {
-            setReadingListSyncPref(true);
-        }
-
-        @Subscribe public void on(ReadingListsEnabledStatusEvent event) {
-            setReadingListSyncPref(true);
-        }
-
-        @Subscribe public void on(ReadingListsNoLongerSyncedEvent event) {
-            setReadingListSyncPref(false);
+    private class EventBusConsumer implements Consumer<Object> {
+        @Override
+        public void accept(Object event) throws Exception {
+            if (event instanceof ReadingListsMergeLocalDialogEvent) {
+                setReadingListSyncPref(true);
+            } else if (event instanceof ReadingListsEnabledStatusEvent) {
+                setReadingListSyncPref(true);
+            } else if (event instanceof ReadingListsNoLongerSyncedEvent) {
+                setReadingListSyncPref(false);
+            } else if (event instanceof ReadingListsEnableSyncStatusEvent) {
+                setReadingListSyncPref(Prefs.isReadingListSyncEnabled());
+            }
         }
     }
 }

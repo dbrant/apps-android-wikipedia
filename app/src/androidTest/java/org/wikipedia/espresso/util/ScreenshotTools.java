@@ -2,13 +2,12 @@ package org.wikipedia.espresso.util;
 
 import android.graphics.Bitmap;
 import android.os.Environment;
-import android.support.test.espresso.UiController;
-import android.support.test.espresso.ViewAction;
-import android.support.test.runner.AndroidJUnit4;
 import android.view.View;
 
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+
 import org.hamcrest.Matcher;
-import org.junit.runner.RunWith;
 import org.wikipedia.util.log.L;
 
 import java.io.File;
@@ -17,12 +16,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import static android.support.test.espresso.Espresso.onView;
-import static android.support.test.espresso.matcher.ViewMatchers.isRoot;
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 import static org.wikipedia.espresso.Constants.SCREENSHOT_COMPRESSION_QUALITY;
 import static org.wikipedia.espresso.Constants.TEST_OUTPUT_FOLDER;
 
-@RunWith(AndroidJUnit4.class)
 public final class ScreenshotTools {
 
     public static void takeScreenshot(String fileName, View view) {
@@ -35,13 +33,17 @@ public final class ScreenshotTools {
     }
 
     public static void saveImageIntoDisk(String fileName, Bitmap bitmap) {
+        saveImageIntoDisk(TEST_OUTPUT_FOLDER, fileName, bitmap);
+    }
 
-        File folder = new File(Environment.getExternalStorageDirectory() + TEST_OUTPUT_FOLDER);
+    public static void saveImageIntoDisk(String folderName, String fileName, Bitmap bitmap) {
+
+        File folder = new File(Environment.getExternalStorageDirectory() + folderName);
         if (!folder.exists()) {
             folder.mkdir();
         }
 
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + TEST_OUTPUT_FOLDER + fileName + ".png";
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + folderName + fileName + ".png";
 
         OutputStream out = null;
         File imageFile = new File(path);

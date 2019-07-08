@@ -1,43 +1,50 @@
 package org.wikipedia.dataclient.mwapi;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.util.ArraySet;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.gallery.ImageInfo;
 import org.wikipedia.gallery.VideoInfo;
 import org.wikipedia.json.PostProcessingTypeAdapter;
 import org.wikipedia.model.BaseModel;
-import org.wikipedia.nearby.NearbyPage;
 import org.wikipedia.notifications.Notification;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.useroption.dataclient.UserInfo;
+import org.wikipedia.settings.SiteInfo;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+@SuppressWarnings("unused")
 public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapter.PostProcessable {
-    @SuppressWarnings("unused") @Nullable private List<MwQueryPage> pages;
-    @SuppressWarnings("unused") @Nullable private List<Redirect> redirects;
-    @SuppressWarnings("unused") @Nullable private List<ConvertedTitle> converted;
-    @SuppressWarnings("unused") @SerializedName("userinfo") private UserInfo userInfo;
-    @SuppressWarnings("unused") @Nullable private List<ListUsersResponse> users;
-    @SuppressWarnings("unused") @Nullable private Tokens tokens;
-    @SuppressWarnings("unused,NullableProblems") @SerializedName("authmanagerinfo")
-    @Nullable private MwAuthManagerInfo amInfo;
-    @SuppressWarnings("unused") @Nullable private MarkReadResponse echomarkread;
-    @SuppressWarnings("unused,NullableProblems")
+    @Nullable private List<MwQueryPage> pages;
+    @Nullable private List<Redirect> redirects;
+    @Nullable private List<ConvertedTitle> converted;
+    @SerializedName("userinfo") private UserInfo userInfo;
+    @Nullable private List<ListUserResponse> users;
+    @Nullable private Tokens tokens;
+    @SerializedName("authmanagerinfo") @Nullable private MwAuthManagerInfo amInfo;
+    @Nullable private MarkReadResponse echomarkread;
+    @Nullable private MarkReadResponse echomarkseen;
     @Nullable private NotificationList notifications;
+    @Nullable private Map<String, Notification.UnreadNotificationWikiItem> unreadnotificationpages;
+    @SerializedName("general") @Nullable private SiteInfo generalSiteInfo;
+    @SerializedName("wikimediaeditortaskscounts") @Nullable private EditorTaskCounts editorTaskCounts;
 
     @Nullable public List<MwQueryPage> pages() {
         return pages;
+    }
+
+    @Nullable public MwQueryPage firstPage() {
+        if (pages != null && pages.size() > 0) {
+            return pages.get(0);
+        }
+        return null;
     }
 
     @Nullable public UserInfo userInfo() {
@@ -56,8 +63,16 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         return tokens != null ? tokens.login() : null;
     }
 
-    @Nullable public List<Notification> notifications() {
-        return notifications != null ? notifications.list() : null;
+    @Nullable public NotificationList notifications() {
+        return notifications;
+    }
+
+    @Nullable public Map<String, Notification.UnreadNotificationWikiItem> unreadNotificationWikis() {
+        return unreadnotificationpages;
+    }
+
+    @Nullable public MarkReadResponse getEchoMarkSeen() {
+        return echomarkseen;
     }
 
     @Nullable public String captchaId() {
@@ -72,16 +87,16 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         return captchaId;
     }
 
-    @NonNull public Set<String> getGroupsFor(@NonNull String userName) {
+    @Nullable public ListUserResponse getUserResponse(@NonNull String userName) {
         if (users != null) {
-            for (ListUsersResponse user : users) {
-                final Set<String> groups = user.getGroupsFor(userName);
-                if (groups != null) {
-                    return groups;
+            for (ListUserResponse user : users) {
+                // MediaWiki user names are case sensitive, but the first letter is always capitalized.
+                if (StringUtils.capitalize(userName).equals(user.name())) {
+                    return user;
                 }
             }
         }
-        return Collections.emptySet();
+        return null;
     }
 
     @NonNull public Map<String, ImageInfo> images() {
@@ -108,17 +123,6 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         return result;
     }
 
-    @Nullable public String wikitext() {
-        if (pages != null) {
-            for (MwQueryPage page : pages) {
-                if (page.revisions() != null && page.revisions().get(0) != null) {
-                    return page.revisions().get(0).content();
-                }
-            }
-        }
-        return null;
-    }
-
     @NonNull public List<PageTitle> langLinks() {
         List<PageTitle> result = new ArrayList<>();
         if (pages == null || pages.isEmpty() || pages.get(0).langLinks() == null) {
@@ -132,17 +136,25 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         return result;
     }
 
-    @NonNull public List<NearbyPage> nearbyPages() {
+    @NonNull public List<NearbyPage> nearbyPages(@NonNull WikiSite wiki) {
         List<NearbyPage> result = new ArrayList<>();
         if (pages != null) {
             for (MwQueryPage page : pages) {
-                NearbyPage nearbyPage = new NearbyPage(page);
+                NearbyPage nearbyPage = new NearbyPage(page, wiki);
                 if (nearbyPage.getLocation() != null) {
                     result.add(nearbyPage);
                 }
             }
         }
         return result;
+    }
+
+    @Nullable public SiteInfo siteInfo() {
+        return generalSiteInfo;
+    }
+
+    @Nullable public EditorTaskCounts editorTaskCounts() {
+        return editorTaskCounts;
     }
 
     @Override
@@ -179,6 +191,7 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
             for (MwQueryPage page : pages) {
                 if (page.title().equals(convertedTitle.to())) {
                     page.convertedFrom(convertedTitle.from());
+                    page.convertedTo(convertedTitle.to());
                 }
             }
         }
@@ -203,7 +216,7 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         }
     }
 
-    private static class ConvertedTitle {
+    public static class ConvertedTitle {
         @SuppressWarnings("unused") @Nullable private String from;
         @SuppressWarnings("unused") @Nullable private String to;
 
@@ -213,20 +226,6 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
 
         @Nullable public String from() {
             return from;
-        }
-    }
-
-    private static class ListUsersResponse {
-        @SuppressWarnings("unused") @SerializedName("name") @Nullable private String name;
-        @SuppressWarnings("unused") @Nullable private List<String> groups;
-
-        @Nullable Set<String> getGroupsFor(@NonNull String userName) {
-            if (userName.equals(name) && groups != null) {
-                Set<String> groupNames = new ArraySet<>();
-                groupNames.addAll(groups);
-                return Collections.unmodifiableSet(groupNames);
-            }
-            return null;
         }
     }
 
@@ -251,19 +250,40 @@ public class MwQueryResult extends BaseModel implements PostProcessingTypeAdapte
         }
     }
 
-    private static class MarkReadResponse {
+    public static class MarkReadResponse {
         @SuppressWarnings("unused") @Nullable private String result;
+        @SuppressWarnings("unused,NullableProblems") @Nullable private String timestamp;
 
-        @Nullable public String result() {
+        @Nullable public String getResult() {
             return result;
+        }
+
+        @Nullable public String getTimestamp() {
+            return timestamp;
         }
     }
 
-    private static class NotificationList {
+    public static class NotificationList {
+        @SuppressWarnings("unused") private int count;
+        @SuppressWarnings("unused") private int rawcount;
+        @SuppressWarnings("unused") @Nullable private Notification.SeenTime seenTime;
         @SuppressWarnings("unused") @Nullable private List<Notification> list;
+        @SuppressWarnings("unused") @SerializedName("continue") @Nullable private String continueStr;
 
-        @Nullable private List<Notification> list() {
+        @Nullable public List<Notification> list() {
             return list;
+        }
+
+        @Nullable public String getContinue() {
+            return continueStr;
+        }
+
+        public int getCount() {
+            return count;
+        }
+
+        @Nullable public Notification.SeenTime getSeenTime() {
+            return seenTime;
         }
     }
 }

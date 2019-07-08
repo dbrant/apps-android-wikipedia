@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # coding=utf-8
 
 import copy
@@ -53,8 +53,9 @@ class WikiList(object):
         }
         data.update(kwargs)
         rendered = self.template_env.get_template(template).render(**data)
-        out = codecs.open(class_name + u".java", u"w", u"utf-8")
+        out = codecs.open(u"../app/src/main/java/org/wikipedia/staticdata/" + class_name + u".java", u"w", u"utf-8")
         out.write(rendered)
+        out.write("\n")
         out.close()
 
 
@@ -66,16 +67,26 @@ def build_wiki(lang, english_name, local_name):
 
 
 def list_from_sitematrix():
-    QUERY_API_URL = 'https://www.mediawiki.org/w/api.php?action=sitematrix' \
-        '&format=json&smtype=language&smlangprop=code%7Cname%7Clocalname'
+    QUERY_SITEMATRIX = 'https://www.mediawiki.org/w/api.php?action=sitematrix' \
+        '&format=json&formatversion=2&smtype=language&smstate=all'
 
-    print(u"Fetching languages")
-    data = json.loads(requests.get(QUERY_API_URL).text)
+    print(u"Fetching languages...")
+    data = json.loads(requests.get(QUERY_SITEMATRIX).text)
     wikis = []
 
     for key, value in data[u"sitematrix"].items():
-        if type(value) is dict:
-            wikis.append(build_wiki(value[u"code"], value[u"localname"], value[u"name"]))
+        if type(value) is not dict:
+            continue
+        site_list = value[u"site"]
+        if type(site_list) is not list:
+            continue
+        wikipedia_url = ""
+        for site in site_list:
+            if "wikipedia.org" in site[u"url"] and u"closed" not in site:
+                wikipedia_url = site[u"url"]
+        if len(wikipedia_url) == 0:
+            continue
+        wikis.append(build_wiki(value[u"code"], value[u"localname"], value[u"name"]))
 
     return wikis
 
@@ -102,13 +113,13 @@ def postprocess_wikis(wiki_list):
     simplifiedWiki = copy.deepcopy(chineseWiki)
     simplifiedWiki.lang = SIMPLIFIED_CHINESE_LANG
     simplifiedWiki.props["english_name"] = "Simplified Chinese"
-    simplifiedWiki.props["local_name"] = "简体"
+    simplifiedWiki.props["local_name"] = "简体中文"
     wiki_list.wikis.insert(chineseWikiIndex + 1, simplifiedWiki)
 
     traditionalWiki = copy.deepcopy(chineseWiki)
     traditionalWiki.lang = TRADITIONAL_CHINESE_LANG
     traditionalWiki.props["english_name"] = "Traditional Chinese"
-    traditionalWiki.props["local_name"] = "繁體"
+    traditionalWiki.props["local_name"] = "繁體中文"
     wiki_list.wikis.insert(chineseWikiIndex + 2, traditionalWiki)
 
     bokmalWiki = next((wiki for wiki in wiki_list.wikis if wiki.lang == NORWEGIAN_BOKMAL_WIKI_LANG), None)

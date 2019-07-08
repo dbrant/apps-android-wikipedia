@@ -1,9 +1,10 @@
 package org.wikipedia.feed.announcement;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.wikipedia.dataclient.RestService;
 import org.wikipedia.feed.dataclient.FeedClient.Callback;
 import org.wikipedia.feed.model.Card;
 import org.wikipedia.json.GsonUnmarshaller;
@@ -32,6 +33,8 @@ public class AnnouncementClientTest extends MockWebServerTest {
     private static final int ANNOUNCEMENT_INVALID_DATES = 3;
     private static final int ANNOUNCEMENT_NO_DATES = 4;
     private static final int ANNOUNCEMENT_NO_COUNTRIES = 5;
+    private static final int ANNOUNCEMENT_BETA_WITH_VERSION = 6;
+    private static final int ANNOUNCEMENT_FOR_OLD_VERSION = 7;
     @NonNull private AnnouncementClient client = new AnnouncementClient();
     private AnnouncementList announcementList;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
@@ -72,7 +75,7 @@ public class AnnouncementClientTest extends MockWebServerTest {
         verify(cb).error(any(Throwable.class));
     }
 
-    @Test public void testFundraisingParams() throws Throwable {
+    @Test public void testFundraisingParams() {
         Announcement announcement = announcementList.items().get(ANNOUNCEMENT_FUNDRAISING_ANDROID);
         assertThat(announcement.hasAction(), is(true));
         assertThat(announcement.hasFooterCaption(), is(true));
@@ -101,7 +104,7 @@ public class AnnouncementClientTest extends MockWebServerTest {
         assertThat(AnnouncementClient.shouldShow(announcementIOS, "US", dateDuring), is(false));
     }
 
-    @Test public void testShouldShowForInvalidDates() throws Throwable {
+    @Test public void testShouldShowForInvalidDates() {
         assertThat(announcementList.items().get(ANNOUNCEMENT_INVALID_DATES), is(nullValue()));
         assertThat(announcementList.items().get(ANNOUNCEMENT_NO_DATES), is(nullValue()));
     }
@@ -114,8 +117,20 @@ public class AnnouncementClientTest extends MockWebServerTest {
         assertThat(AnnouncementClient.shouldShow(announcement, "", dateDuring), is(false));
     }
 
+    @Test public void testBetaWithVersion() throws Throwable {
+        Announcement announcement = announcementList.items().get(ANNOUNCEMENT_BETA_WITH_VERSION);
+        Date dateDuring = dateFormat.parse("2016-11-20");
+        assertThat(AnnouncementClient.shouldShow(announcement, "US", dateDuring), is(true));
+    }
+
+    @Test public void testForOldVersion() throws Throwable {
+        Announcement announcement = announcementList.items().get(ANNOUNCEMENT_FOR_OLD_VERSION);
+        Date dateDuring = dateFormat.parse("2016-11-20");
+        assertThat(AnnouncementClient.shouldShow(announcement, "US", dateDuring), is(false));
+    }
+
     private void request(@NonNull Callback cb) {
-        Call<AnnouncementList> call = client.request(service(AnnouncementClient.Service.class));
-        call.enqueue(new AnnouncementClient.CallbackAdapter(cb));
+        Call<AnnouncementList> call = client.request(service(RestService.class));
+        call.enqueue(new AnnouncementClient.CallbackAdapter(cb, false));
     }
 }

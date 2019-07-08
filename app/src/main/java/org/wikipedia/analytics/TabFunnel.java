@@ -1,7 +1,6 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.WikipediaApp;
 
@@ -10,7 +9,7 @@ import java.util.List;
 
 public class TabFunnel extends Funnel {
     private static final String SCHEMA_NAME = "MobileWikiAppTabs";
-    private static final int SCHEMA_REVISION = 12453651;
+    private static final int SCHEMA_REVISION = 18118767;
 
     public TabFunnel() {
         super(WikipediaApp.getInstance(), SCHEMA_NAME, SCHEMA_REVISION, Funnel.SAMPLE_LOG_100);
@@ -38,12 +37,6 @@ public class TabFunnel extends Funnel {
 
     public void logCancel(int size) {
         log("cancel", size);
-    }
-
-    @NonNull
-    @Override
-    protected String getSessionTokenField() {
-        return "tabsSessionToken";
     }
 
     private void log(String action, int size) {

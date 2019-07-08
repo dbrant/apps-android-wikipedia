@@ -17,8 +17,7 @@
   <string name="nav_item_nearby">Yaqin atrofda</string>
   <string name="last_updated_text">%sda oxirgi bor yangilangan</string>
   <string name="preference_title_language">Vikipedia tili</string>
-  <string name="preference_languages_filter_hint">Izlash</string>
-  <string name="langlinks_filter_hint">Izlash</string>
+    <string name="langlinks_filter_hint">Izlash</string>
   <string name="langlinks_empty">Bu sahifa boshqa tillarda mavjud emas.</string>
   <string name="langlinks_no_match">So\'rovingizga mos til topilmadi.</string>
   <string name="langlinks_activity_title">Boshqa tillarda</string>
@@ -56,16 +55,7 @@
   <string name="create_account_next">Keyingi</string>
   <string name="create_account_button">Hisob yaratish</string>
   <string name="preferences_general_heading">Umumiy</string>
-  <string name="zero_charged_verbiage" fuzzy="true">Wikipedia Zero oʻchirilgan</string>
-  <string name="zero_warn_when_leaving">Wikipedia Zerodan chiqilayotganda xabar bering</string>
-  <string name="zero_webpage_title">Wikipedia Zero TTS</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Wikipedia Zerodan chiqilyapti</string>
-  <string name="zero_interstitial_continue">Oʻtish</string>
-  <string name="zero_interstitial_cancel">Shu yerda qolish</string>
-  <string name="zero_learn_more_learn_more" fuzzy="true">Koʻproq bilib olish</string>
-  <string name="zero_learn_more_dismiss">Yashirish</string>
-  <string name="edit_preview_fetching_dialog_message">
+    <string name="edit_preview_fetching_dialog_message">
 Oldindan yoqimli …</string>
   <string name="send_feedback">Dastur haqida fikr bildirish</string>
   <string name="create_account_account_created_toast">Hisob yozuvi yaratildi!</string>
@@ -85,7 +75,7 @@ Oldindan yoqimli …</string>
   <string name="about_contributors_heading" fuzzy="true">mualliflar</string>
   <string name="about_translators_heading" fuzzy="true">tarjimonlar</string>
   <string name="about_translators_translatewiki">Dastur &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt;da koʻngilli tarjimonlar tomonidan tarjima qilingan.</string>
-  <string name="about_wmf">&lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Vikimediya Fondi&lt;/a&gt;ning maxsuloti</string>
+  <string name="about_wmf">&lt;a href=\"https://wikimediafoundation.org/\"&gt;Vikimediya Fondi&lt;/a&gt;ning maxsuloti</string>
   <string name="about_activity_title">Dastur haqida</string>
   <string name="edit_abandon_confirm">Sahifa oʻzgartirildi. Oʻzgartirishlaringizni saqlamasdan chiqmoqchimisiz?</string>
   <string name="user_blocked_from_editing_title">Chetlatilgan</string>
@@ -101,9 +91,7 @@ Oldindan yoqimli …</string>
   <string name="edit_summary_tag_other">Boshqa</string>
   <string name="find_next">Keyingisini topish</string>
   <string name="find_previous">Oldingisini topish</string>
-  <string name="dialog_page_issues">Sahifa muammolari</string>
-  <string name="button_page_issues">Sahifa muammolari</string>
-  <string name="text_size_select">Shrift o‘lchami</string>
+    <string name="text_size_select">Shrift o‘lchami</string>
   <string name="color_theme_select">Mavzu</string>
   <string name="color_theme_light">Och rang</string>
   <string name="color_theme_dark">To\'q</string>

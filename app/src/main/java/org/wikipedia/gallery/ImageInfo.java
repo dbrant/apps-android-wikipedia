@@ -1,26 +1,42 @@
 package org.wikipedia.gallery;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.Serializable;
+
 /**
- * Gson POJO for a standard image info object as returned by the API ImageInfo module via
- * GalleryCollectionClient's request
+ * Gson POJO for a standard image info object as returned by the API ImageInfo module
  */
-public class ImageInfo {
-    @SuppressWarnings("unused") private int size;
-    @SuppressWarnings("unused") private int width;
-    @SuppressWarnings("unused") private int height;
-    @SuppressWarnings("unused") @SerializedName("thumburl") @Nullable private String thumbUrl;
-    @SuppressWarnings("unused") @SerializedName("thumbwidth") private int thumbWidth;
-    @SuppressWarnings("unused") @SerializedName("thumbheight") private int thumbHeight;
-    @SuppressWarnings("unused") @SerializedName("url") @Nullable private String originalUrl;
-    @SuppressWarnings("unused") @SerializedName("descriptionurl") @Nullable private String descriptionUrl;
-    @SuppressWarnings("unused") @SerializedName("descriptionshorturl") @Nullable private String descriptionShortUrl;
-    @SuppressWarnings("unused,NullableProblems") @SerializedName("mime") @NonNull private String mimeType = "*/*";
-    @SuppressWarnings("unused") @SerializedName("extmetadata")@Nullable private ExtMetadata metadata;
+@SuppressWarnings("unused")
+public class ImageInfo implements Serializable {
+    private int size;
+    private int width;
+    private int height;
+    @Nullable private String source;
+    @SerializedName("thumburl") @Nullable private String thumbUrl;
+    @SerializedName("thumbwidth") private int thumbWidth;
+    @SerializedName("thumbheight") private int thumbHeight;
+    @SerializedName("url") @Nullable private String originalUrl;
+    @SerializedName("descriptionurl") @Nullable private String descriptionUrl;
+    @SerializedName("descriptionshorturl") @Nullable private String descriptionShortUrl;
+    @SerializedName("mime") @Nullable private String mimeType;
+    @SerializedName("extmetadata")@Nullable private ExtMetadata metadata;
+    @Nullable private String user;
+    @Nullable private String timestamp;
+
+    @NonNull
+    public String getSource() {
+        return StringUtils.defaultString(source);
+    }
+
+    public void setSource(@Nullable String source) {
+        this.source = source;
+    }
 
     public int getSize() {
         return size;
@@ -34,32 +50,24 @@ public class ImageInfo {
         return height;
     }
 
-    @Nullable public String getThumbUrl() {
-        return thumbUrl;
-    }
-
-    public int getThumbWidth() {
-        return thumbWidth;
-    }
-
-    public int getThumbHeight() {
-        return thumbHeight;
-    }
-
-    @Nullable public String getOriginalUrl() {
-        return originalUrl;
-    }
-
-    @Nullable public String getDescriptionUrl() {
-        return descriptionUrl;
-    }
-
-    @Nullable public String getDescriptionShortUrl() {
-        return descriptionShortUrl;
-    }
-
     @NonNull public String getMimeType() {
-        return mimeType;
+        return StringUtils.defaultString(mimeType, "*/*");
+    }
+
+    @NonNull public String getThumbUrl() {
+        return StringUtils.defaultString(thumbUrl);
+    }
+
+    @NonNull public String getOriginalUrl() {
+        return StringUtils.defaultString(originalUrl);
+    }
+
+    @NonNull public String getUser() {
+        return StringUtils.defaultString(user);
+    }
+
+    @NonNull public String getTimestamp() {
+        return StringUtils.defaultString(timestamp);
     }
 
     @Nullable public ExtMetadata getMetadata() {

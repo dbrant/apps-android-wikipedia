@@ -1,4 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Authors:
+* Adithyavr
+* Anamdas
+* Bhatakati aatma
+* Kaartic
+* Mgaved
+* NehalDaveND
+* Nitin1485
+* Prong$31
+* Pulkitsingh01
+* Rajatkatiyar10
+* Rishi.Singh
+* Sachinkatiyar
+* Sagsag
+* Sahilrathod
+* Sfic
+* Siddhartha Ghai
+* Smtchahal
+* Upendradutt93
+* Vishwanath
+* Wikiuser13
+* YmKavishwar
+* चक्रपाणी
+* संजीव कुमार
+-->
 <resources>
   <string name="app_name_prod">विकिपीडिया</string>
   <string name="app_name_beta">विकिपीडिया बीटा</string>
@@ -6,8 +31,7 @@
   <string name="wikimedia">विकिमीडिया</string>
   <string name="search_hint">विकिपीडिया में खोजें</string>
   <string name="search_hint_search_history">इतिहास खोजें</string>
-  <string name="search_hint_search_my_lists">मेरी सूचियाँ खोजें</string>
-  <string name="search_hint_search_reading_list">पढ़ने वाली सूची खोजें</string>
+  <string name="search_hint_search_languages">भाषा के लिए खोजें</string>
   <string name="nav_item_history">इतिहास</string>
   <string name="error_network_error">इंटरनेट से कनेक्ट नहीं किया जा सकता।</string>
   <string name="page_error_retry">पुनः प्रयास करें</string>
@@ -16,6 +40,7 @@
   <string name="history_item_deleted">%s को इतिहास से हटाया गया</string>
   <string name="history_items_deleted">%d लेख इतिहास से हटाए गए</string>
   <string name="history_item_delete_undo">पूर्ववत करें</string>
+  <string name="app_settings">एप सेटिंग्स</string>
   <string name="dialog_title_clear_history">ब्राउज़िंग इतिहास साफ़ करें</string>
   <string name="dialog_message_clear_history">यह आपका सभी ब्राउज़िंग इतिहास मिटा देगा, और अभी खुले हुए टैब्स को भी बंद कर देगा। क्या आप करना चाहेंगे?</string>
   <string name="dialog_message_clear_history_yes">हाँ</string>
@@ -25,7 +50,6 @@
   <string name="menu_page_show_tabs">टैब दिखाएँ</string>
   <string name="menu_page_other_languages">भाषा बदलें</string>
   <string name="menu_page_find_in_page">पृष्ठ में ढूंढें</string>
-  <string name="menu_page_content_issues">सामग्री समस्या</string>
   <string name="menu_page_font_and_theme">फॉन्ट और थीम</string>
   <string name="menu_page_add_to_list">पढ़ने वाली सूची में जोड़ें</string>
   <string name="menu_page_share">लिंक साझा करें</string>
@@ -40,26 +64,27 @@
   <string name="nearby_zoom_to_location">नक़्शे पर किसी स्थान तक ज़ूम करें</string>
   <string name="nearby_osm_license">&amp;copy; &amp;nbsp;&lt;a href=\"https://www.openstreetmap.org/copyright/\"&gt;OpenStreetMap&lt;/a&gt; योगदानकर्ता</string>
   <string name="last_updated_text">%s को अन्तिम अपडेट किया गया।</string>
-  <string name="talk_page_link_text">वार्ता</string>
-  <string name="edit_history_link_text">सम्पादन इतिहास</string>
+  <string name="talk_page_link_text">वार्ता पृष्ठ देखें</string>
+  <string name="edit_history_link_text">सम्पादन इतिहास देखें</string>
   <string name="map_view_link_text">नक्शे पर देखें</string>
+  <string name="other_languages_indication_text">किसी अन्य भाषा में पढ़ें</string>
   <string name="language_count_link_text">%d अन्य भाषाओं में उपलब्ध</string>
   <string name="content_license_html">सामग्री &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; के अंतर्गत उपलब्ध है जबतक अलग से उल्लेख न किया गया हो</string>
-  <string name="edit_save_action_license_logged_in">इसे सहेजते हुये आप &lt;a href=\"%1$s\"&gt;उपयोग की शर्तों&lt;/a&gt; से सहमत हैं और अपने योगदान को &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; लाइसेंस के अन्तर्गत अपरिवर्तनीय रूप प्रकाशित कर रहे हैं।</string>
-  <string name="edit_save_action_license_anon">इसको सहेजते हुये आप &lt;a href=\"%1$s\"&gt;उपयोग की शर्तों&lt;/a&gt; से सहमत हैं और अपने योगदानों को अपरिवर्तनीय रूप से लाइसेंस &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; के अन्तर्गत प्रकाशित कर रहे हैं। इस सम्पादन का श्रेय आपके यंत्र के आई॰पी॰ पते को दिया जायेगा। यदि आप &lt;a href=\"https://#login\"&gt; लॉग इन&lt;/a&gt; करते हैं तो आपके पास अधिक प्राइवेसी होगी।</string>
+  <string name="edit_save_action_license_logged_in" fuzzy="true">इसे सहेजते हुये आप &lt;a href=\"%1$s\"&gt;उपयोग की शर्तों&lt;/a&gt; से सहमत हैं और अपने योगदान को &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; लाइसेंस के अन्तर्गत अपरिवर्तनीय रूप प्रकाशित कर रहे हैं।</string>
+  <string name="edit_save_action_license_anon" fuzzy="true">इसको सहेजते हुये आप &lt;a href=\"%1$s\"&gt;उपयोग की शर्तों&lt;/a&gt; से सहमत हैं और अपने योगदानों को अपरिवर्तनीय रूप से लाइसेंस &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; के अन्तर्गत प्रकाशित कर रहे हैं। इस सम्पादन का श्रेय आपके यंत्र के आई॰पी॰ पते को दिया जायेगा। यदि आप &lt;a href=\"https://#login\"&gt; लॉग इन&lt;/a&gt; करते हैं तो आपके पास अधिक प्राइवेसी होगी।</string>
   <string name="preference_title_language">विकिपीडिया भाषा</string>
-  <string name="preference_languages_filter_hint">खोज</string>
   <string name="langlinks_filter_hint">खोज</string>
   <string name="langlinks_empty">पृष्ठ अन्य भाषा में उपलब्ध नहीं है</string>
-  <string name="langlinks_no_match">खोज परिणाम में कोई भाषा नहीं मिली।</string>
+  <string name="langlinks_no_match">कोई भाषा नहीं मिली</string>
   <string name="langlinks_activity_title">अन्य भाषाएँ</string>
+  <string name="langlinks_your_wikipedia_languages">आपकी विकिपीडिया भाषाएं</string>
   <string name="menu_save_changes">परिवर्तन प्रकाशित करें</string>
   <string name="dialog_saving_in_progress">प्रकाशित किया जा रहा है…</string>
   <string name="edit_saved_successfully">सम्पादन प्रकाशित किया गया!</string>
   <string name="dialog_message_edit_failed">सम्पादन असफल रहा!</string>
   <string name="dialog_message_edit_failed_retry">पुन: प्रयास करें</string>
   <string name="dialog_message_edit_failed_cancel">रद्द करें</string>
-  <string name="dialog_message_leaving_edit">आपके बदलाव अभी सहेजे नहीं गए हैं। क्या आप पृष्ठ से जाना चाहते हैं?</string>
+  <string name="dialog_message_leaving_edit" fuzzy="true">आपके बदलाव अभी सहेजे नहीं गए हैं। क्या आप पृष्ठ से जाना चाहते हैं?</string>
   <string name="dialog_message_leaving_edit_leave">जाएँ</string>
   <string name="dialog_message_leaving_edit_stay">रुकें</string>
   <string name="menu_show_toc">सामग्री सारणी</string>
@@ -80,11 +105,16 @@
   <string name="login_activity_title">विकिपीडिया में प्रवेश करें</string>
   <string name="login_in_progress_dialog_message">आपको प्रवेश दिया जा रहा है…</string>
   <string name="login_success_toast">सफलतापूर्वक प्रविष्ट</string>
+  <string name="reset_password_title">अपना पासवर्ड लगाएं</string>
+  <string name="reset_password_description">अपने एक अस्थाई पासवर्ड से लॉगिन किया। लॉगिन को पूरा करने के लिए यहाँ एक नया पासवर्ड जोड़ें।</string>
+  <string name="reset_password_hint">नया पासवर्ड</string>
+  <string name="reset_password_button">सहेजे और लॉगिन करें</string>
   <string name="preference_title_logout">प्रस्थान</string>
   <string name="toast_logout_complete">सत्र का अन्त हुआ।</string>
   <string name="history_empty_title">हाल ही में देखा गया कोई लेख नहीं</string>
   <string name="history_empty_message">ट्रैक करें जो आप यहाँ पढ़ रहे थे।</string>
   <string name="search_empty_message">खोजें और मुक्त ज्ञानकोश को अपनी भाषा में पढ़ें</string>
+  <string name="search_empty_message_multilingual_upgrade">विकिपीडिया को अधिक भाषाओं में खोजें</string>
   <string name="delete_selected_items">चयनित आइटम डिलीट करें</string>
   <string name="wp_stylized">&lt;big&gt;वि&lt;/big&gt;किपीडि&lt;big&gt;या&lt;/big&gt;</string>
   <string name="create_account_username_hint">सदस्यनाम</string>
@@ -103,26 +133,23 @@
   <string name="create_account_generic_error">खाता नहीं बन सका</string>
   <string name="create_account_next">अगला</string>
   <string name="create_account_button">खाता बनायें</string>
+  <string name="create_account_name_unavailable">सदस्य नाम %s उपलब्ध नहीं है। कृपया कोई अलग नाम चुनें।</string>
+  <string name="create_account_ip_block_message">क्षमा करें, आपका आई पी एड्रेस वर्तमान में नये खाते बनने के लिए प्रतिबंधित है।</string>
+  <string name="create_account_ip_block_help_url">https://en.wikipedia.org/wiki/Help:I_have_been_blocked</string>
+  <string name="create_account_ip_block_details">विवरण</string>
   <string name="preferences_general_heading">सामान्य</string>
   <string name="wikipedia_app_faq">विकिपीडिया एप FAQ</string>
-  <string name="zero_charged_verbiage">विकिपीडिया में मुक्त प्रवेश अब और अधिक सक्रिय नहीं है।</string>
-  <string name="zero_warn_when_leaving">विकिपीडिया शून्य छोड़ने पर चेतावनी दीजिये</string>
-  <string name="zero_warn_when_leaving_summary">यदि आपका मोबाइल ऑपरेटर डेटा इस्तेमाल के चार्जों को विकिपीडिया एप के लिए छोड़ता है, विकिपीडिया ज़ीरो पार्टनरशिप के अनुसार तो इस सेटिंग को चैक छोड़ने से आपको यह जानने में सहायता मिलेगी कि कब आप विकिपीडिया एप छोड़ रहे हैं और आपको चार्ज लग सकता है।</string>
-  <string name="zero_webpage_title">विकिपीडिया शून्य FAQ</string>
-  <string name="zero_wikipedia_zero_heading">विकिपीडिया शून्य</string>
-  <string name="zero_interstitial_title">विकिपीडिया ज़ीरो छोड़ रहे हैं</string>
-  <string name="zero_interstitial_leave_app">डेटा चार्ज लग सकते हैं। बाहरी साईट पर आगे बढ़ें?</string>
-  <string name="zero_interstitial_continue">जाएँ</string>
-  <string name="zero_interstitial_cancel">यहीं रुकें</string>
-  <string name="zero_learn_more">आपके वायरलेस कैरियर ने विकिपीडिया सामग्री के लिए मुफ्त प्रवेश उपलब्ध कराया है!</string>
-  <string name="zero_learn_more_learn_more">अधिक जानें</string>
-  <string name="zero_learn_more_dismiss">हटायें</string>
   <string name="edit_preview_fetching_dialog_message">प्रीव्यू लाया जा रहा है…</string>
   <string name="send_feedback">एप फीडबैक भेजें</string>
   <string name="create_account_account_created_toast">खाता निर्मित!</string>
-  <string name="preferences_heading_storage_and_syncing">स्टोरेज और सिंक</string>
-  <string name="preference_title_sync_reading_lists">अपनी पढ़ने वाली सूचियों को सिंक करें</string>
-  <string name="preference_summary_sync_reading_lists">लॉग-इन होते ही विकिपीडिया पढ़ने वाली सूचियां सिंक कर सके, इसकी अनुमति दें</string>
+  <string name="preferences_heading_syncing">सिंक हो रहा है</string>
+  <string name="preferences_heading_data_usage">डाटा उपयोग</string>
+  <string name="preferences_heading_experimental">प्रयोगात्मक</string>
+  <string name="preference_title_sync_reading_lists_from_account">रीडिंग सूची सिंकिंग</string>
+  <string name="preference_summary_sync_reading_lists">पढ़ने वाली सूचियां अपने विकिपीडिया खाते में संयोजित करके विभिन्न डिवाइस में सिंक करें।</string>
+  <string name="preference_summary_sync_reading_lists_from_account">पढ़ने वाली सूचियां अपने विकिपीडिया खाते \"%s\" में संयोजित करके विभिन्न डिवाइस में सिंक करें</string>
+  <string name="preference_dialog_of_turning_off_reading_list_sync_title">सिंक पढ़ने की सूचियों को \"%s\" से हटा दें?</string>
+  <string name="preference_dialog_of_turning_off_reading_list_sync_text">इससे दूरस्थ संग्रह से सभी पहले से सिंक किए गए पढ़ने की सूचियों को पूरी तरह से हटा दिया जाएगा। अपने खाते \"%s\" से सभी सिंक की गईं सूचियां हटा दें?</string>
   <string name="preferences_privacy_settings_heading">गोपनीयता</string>
   <string name="preference_title_eventlogging_opt_in">उपयोग रिपोर्ट भेजें</string>
   <string name="preference_summary_eventlogging_opt_in">विकिमीडिया को जानकारी इकट्ठा करने की अनुमति दें कि आप कैसे एप को प्रयोग करते हैं ताकि एप को बेहतर बनाया जा सके</string>
@@ -142,6 +169,9 @@
   <string name="about_description">विकिपीडिया एप के बारे में</string>
   <string name="privacy_policy_description">गोपनीयता नीति</string>
   <string name="terms_of_use_description">उपयोग की शर्तें</string>
+  <string name="about_wikipedia_url">https://en.m.wikipedia.org/wiki/Wikipedia:About</string>
+  <string name="offline_reading_and_data_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Android_FAQ#Offline_reading_and_data</string>
+  <string name="android_app_faq_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Android_FAQ</string>
   <string name="cc_by_sa_3_url">https://creativecommons.org/licenses/by-sa/3.0/</string>
   <string name="cc_0_url">https://creativecommons.org/publicdomain/zero/1.0/</string>
   <string name="about_libraries_heading">लाइब्रेरीज़ का प्रयोग किया गया</string>
@@ -150,7 +180,7 @@
   <string name="about_translators_translatewiki">इस एप को स्वयंसेवक अनुवादकों के द्वारा &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt; पर अनुवादित किया गया है।</string>
   <string name="about_app_license_heading">लाइसेंस</string>
   <string name="about_app_license">सोर्स कोड उपलब्ध है &lt;a href=\"https://gerrit.wikimedia.org/r/#/admin/projects/apps/android/wikipedia\"&gt;Gerrit&lt;/a&gt; और &lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia\"&gt;GitHub&lt;/a&gt; पर  &lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia/blob/master/COPYING\"&gt;अपाचे 2.0 लाइसेंस के अंतर्गत &lt;/a&gt;। अन्यथा जबतक दर्शाया न गया हो सामग्री &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License\"&gt;क्रिएटिव्स कॉमन्स अट्ट्रिब्यूशन-शेयरअलाइक लाइसेंस के तहत है&lt;/a&gt;।</string>
-  <string name="about_wmf">&lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;विकिमीडिया फाउंडेशन&lt;/a&gt; का एक उत्पाद</string>
+  <string name="about_wmf">&lt;a href=\"https://wikimediafoundation.org/\"&gt;विकिमीडिया संस्थान&lt;/a&gt; का एक उत्पाद</string>
   <string name="about_activity_title">बारे में</string>
   <string name="edit_abandon_confirm">पृष्ठ को संशोधित किया गया है। क्या आप अपने परिवर्तन को सहेजने के बिना निकास करना चाहते है?</string>
   <string name="edit_abandon_confirm_yes">हाँ</string>
@@ -162,11 +192,17 @@
   <string name="edit_next">अगला</string>
   <string name="edit_done">प्रकाशित करें</string>
   <string name="edit_preview">पूर्वावलोकन</string>
+  <string name="edit_undo">पूर्ववत करें</string>
+  <string name="edit_redo">पुनः करें</string>
+  <string name="edit_zoom_in">आकार बढ़ाएँ</string>
+  <string name="edit_zoom_out">आकार घटाएँ</string>
   <string name="edit_summary_tag_typo">छोटा सा सुधार किया।</string>
   <string name="edit_summary_tag_grammar">व्याकरण में सुधार</string>
   <string name="edit_summary_tag_links">कड़ियाँ लगाई</string>
   <string name="edit_summary_tag_other">अन्य</string>
   <string name="edit_summary_tag_other_hint">अन्य तरीकों से आपके द्वारा पृष्ठ में सुधार</string>
+  <string name="edit_conflict_title">संपादन अंतर्विरोध</string>
+  <string name="edit_conflict_message">इस पेज को पहले ही किसी अन्य यूज़र के द्वारा संपादित किया जा चुका है और आपके संपादन के साथ परस्पर-विरोध हो रहा है। कृपया अपने संपादन को कॉपी कर ले, वापस जाएं और पेज रिफ्रेश कर पुनः संपादन का प्रयास करें।</string>
   <string name="find_next">अगला ढूँढें</string>
   <string name="find_previous">पिछला ढूँढें</string>
   <string name="find_first_occurence">यह पहली घटना है</string>
@@ -175,8 +211,6 @@
   <string name="abusefilter_title_disallow">आप इस संपादन को प्रकाशित नहीं कर सकते। कृपया पीछे जा कर इसे बदलें।</string>
   <string name="abusefilter_text_warn">एक स्वचलित फ़िल्टर ने इस संपादन को संभवतः अरचनात्मक पाया है। इसमें एक या एक से अधिक निम्न कारण हो सकते हैं:&lt;br/&gt;&lt;br/&gt;सभी को कैपिटल लैटर में लिखना&lt;br/&gt;।लेखों को रिक्त करना या स्पैमिंग&lt;br/&gt;। अक्षरों को बार बार दोहराना।</string>
   <string name="abusefilter_text_disallow">एक स्वचलित फ़िल्टर ने इस संपादन को संभवतः अरचनात्मक या बर्बरता युक्त पाया है।&lt;br/&gt;&lt;br/&gt;विकिपीडिया एक इनसाइक्लोपीडिया है और केवल तटस्थ(न्यूट्रल), नोट करने योग्य सामग्री ही यहाँ रखी जा सकती है।</string>
-  <string name="dialog_page_issues">पृष्ठ समस्या</string>
-  <string name="button_page_issues">पेज समस्याएं</string>
   <string name="text_size_select">अक्षर का आकार</string>
   <string name="page_similar_titles">समरूप पृष्ठ</string>
   <string name="search_did_you_mean">क्या आपका मतलब \"%s\" है?</string>
@@ -198,6 +232,9 @@
   <string name="dialog_close_description">बंद करें</string>
   <string name="preference_title_show_images">चित्र दिखाएँ</string>
   <string name="preference_summary_show_images">चित्रों की लोडिंग को चालू या बंद करें। इस सेटिंग को अनचैक करें अगर आपका इंटरनेट कनेक्शन धीमा है, या आपका डेटा प्लान सीमित है।</string>
+  <string name="preference_title_download_only_over_wifi">केवल वाई-फाई पर ही डाउनलोड करें</string>
+  <string name="dialog_title_download_only_over_wifi">मोबाइल डेटा का उपयोग कर डाउनलोड करना सुनिश्चित करें?</string>
+  <string name="dialog_title_download_only_over_wifi_allow">अनुमति दें</string>
   <string name="read_more_section">और पढ़ें</string>
   <string name="about_article_section">इस लेख के बारे में</string>
   <string name="menu_gallery_visit_page">फ़ाइल पेज पर जाएँ</string>
@@ -225,11 +262,9 @@
   <string name="close_all_tabs_confirm_yes">हाँ</string>
   <string name="close_all_tabs_confirm_no">नहीं</string>
   <string name="button_close_tab">टैब बंद करें</string>
-  <string name="tool_tip_select_text_title">चयन के लिए देर तक दबाएं</string>
-  <string name="tool_tip_select_text">टेक्स्ट को कॉपी या साझा करने के हाईलाइट करने हेतु कहीं भी दबा कर रोके रखें।</string>
   <string name="tool_tip_share">किसी रोचक तथ्य को हाईलाइट करने के बाद उसे अपने पसंदीदा नेटवर्क पर साझा करने की कोशिश करें!</string>
   <string name="page_view_in_browser">पेज को ब्राउज़र में देखें</string>
-  <string name="tool_tip_toc_button">सामग्री सारणी(टेबल) कभी भी इस बटन को दबाकर या स्क्रीन पर लेफ्ट या राईट से स्लाइड करके देखें।</string>
+  <string name="tool_tip_lang_button">आप अब एप में एक से अधिक विकिपीडिया भाषाओं में खोज और पढ़ सकते हैं।</string>
   <string name="error_response_malformed">सर्वर से सही रूप से प्रारूप प्राप्त नहीं हुआ।</string>
   <string name="error_unknown">एक अज्ञात त्रुटि हो गयी है।</string>
   <string name="format_error_server_message">सन्देश:\"%s\"</string>
@@ -240,7 +275,6 @@
   <string name="page_offline_notice_cannot_load_while_offline">ऑफलाइन होने पर लेख लोड नहीं किया जा सकता।</string>
   <string name="page_offline_notice_add_to_reading_list">सहायता: लेख को अपनी पढ़ने वाली सूची में जोड़ें और जब आप वापस ऑनलाइन होंगे इसे डाउनलोड कर लिया जाएगा।</string>
   <string name="page_offline_notice_last_date">आप %s पर सहेजे गए लेख का ऑफ़लाइन वर्ज़न पढ़ रहे हैं।</string>
-  <string name="page_offline_notice_compilation_download_date">आप इस लेख के इस वर्ज़न को %1$s • %2$s में से पढ़ रहे हैं।</string>
   <string name="button_get_directions">दिशानिर्देश पाएं</string>
   <string name="error_no_maps_app">दिशानिर्देश देने वाली किसी एप को नहीं पाया जा सका।</string>
   <string name="preference_title_show_link_previews">कड़ी की झलक दिखायें</string>
@@ -261,8 +295,6 @@
   <string name="theme_chooser_dialog_image_dimming_switch_label">कम चित्र चमक (डार्क थीम में)</string>
   <string name="preference_title_prefer_offline_content">ऑफलाइन प्रकरण को प्राथमिकता</string>
   <string name="preference_summary_prefer_offline_content">किसी आलेख के नवीनतम संस्करण को हमेशा लोड करने के बजाय ऑफ़लाइन उपलब्ध लेखों को लोड करके डेटा उपयोग को बचाएं</string>
-  <string name="preference_title_enable_offline_library">ऑफ़लाइन लाइब्रेरी इनेबल करें</string>
-  <string name="preference_summary_enable_offline_library">विकिपीडिया लेख पैक को खोलें (.ZIM फ़ाइल द्वारा प्रदर्शित) जिन्हें आपकी डिवाइस पर जब आप ऑफलाइन हों तब पढ़ने के लिए डाउनलोड किया गया है। &lt;a href=\"https://www.mediawiki.org/wiki/Wikimedia_Apps/Offline_support\"&gt;अधिक जानें&lt;/a&gt;</string>
   <string name="crash_report_dialog_title">क्षमा करें, आखिरी बार एप क्रैश हो गयी थी।</string>
   <string name="crash_report_dialog_text">क्या आप HockeyApp/ एक थर्ड-पार्टी सर्विस प्रोवाइडर को क्रैश रिपोर्ट भेजना चाहते हैं ताकि विकिमीडिया आपके क्रैश को जाँच कर कर सके और उस कमी को सही कर सके?</string>
   <string name="crash_report_dialog_dont_send_button">छोड़ें</string>
@@ -275,21 +307,22 @@
   <string name="article_menu_bar_bookmark">इस लेख को पढ़ने वाली सूची में जोड़ें</string>
   <string name="article_menu_bar_share">लेख कङी को साझा करें</string>
   <string name="article_header_edit_hint">सम्पादित करें</string>
-  <string name="article_header_edit_description">शीर्षक वर्णन को सम्पादित करें</string>
+  <string name="article_header_edit_description" fuzzy="true">शीर्षक वर्णन को सम्पादित करें</string>
   <string name="article_header_edit_lead_section">परिचय सम्पादित करें</string>
   <string name="color_theme_select">विषय</string>
   <string name="color_theme_light">हल्का</string>
   <string name="color_theme_dark">गहरा</string>
+  <string name="color_theme_black">काला</string>
+  <string name="color_theme_test_title">नमूना टेक्स्ट</string>
+  <string name="preference_title_app_theme">एप थीम</string>
   <string name="preference_summary_color_theme">एप को डार्क थीम में परिवर्तित करें</string>
   <string name="text_size_increase">टेक्स्ट साइज़ बढ़ाएं</string>
   <string name="text_size_decrease">टेक्स्ट साइज़ घटाएं</string>
   <string name="text_size_percent_default">%s (डिफ़ॉल्ट)</string>
   <string name="nav_item_reading_lists">मेरी सूचियां</string>
-  <string name="reading_list_untitled">बिना शीर्षक</string>
   <string name="reading_list_save_to">पढ़ने वाली सूची में जोड़ें</string>
   <string name="reading_list_create_new">नयी बनायें</string>
   <string name="reading_list_title_exists">पढ़ने वाली सूची \"%s\" पहले से है।</string>
-  <string name="reading_list_entry_empty">कृपया शीर्षक डालें।</string>
   <string name="reading_list_added_to_named">%s में जोड़ा गया।</string>
   <string name="reading_list_already_exists">यह लेख पहले से ही उस सूची में है।</string>
   <string name="reading_list_added_view_button">सूची देखें</string>
@@ -298,13 +331,13 @@
   <string name="format_reading_list_statistical_detail_singular">%1$d में से 1 लेख ऑफलाइन उपलब्ध हैं, %2$.2f MB</string>
   <string name="format_reading_list_statistical_detail_plural">%2$d में से %1$d लेख ऑफलाइन उपलब्ध हैं, %3$.2f MiB</string>
   <string name="reading_list_sort">छांटें</string>
+  <string name="reading_list_sort_ellipsis">के अनुसार क्रमबद्ध करें</string>
   <string name="reading_list_sort_by_name">नाम से छांटें</string>
   <string name="reading_list_sort_by_name_desc">नाम से छांटें (उल्टा)</string>
-  <string name="reading_list_sort_by_recent" fuzzy="true">हाल ही के में से छांटें</string>
+  <string name="reading_list_sort_by_recent">तारीख के अनुसार क्रमबद्ध करें (सबसे नए)</string>
   <string name="reading_list_sort_by_recent_desc" fuzzy="true">कुछ समय पहले के में से छांटें</string>
   <string name="reading_list_menu_delete">सूची को मिटायें</string>
-  <string name="reading_list_menu_rename">नाम बदलें</string>
-  <string name="reading_list_menu_edit_description">विवरण सम्पादित करें</string>
+  <string name="reading_list_menu_rename">नाम या विवरण बदलें</string>
   <string name="reading_list_action_menu_remove_from_offline">ऑफलाइन से हटाएं</string>
   <string name="reading_list_action_menu_save_for_offline">ऑफलाइन के लिए सुरक्षित करें</string>
   <string name="reading_list_action_menu_remove_all_from_offline">ऑफलाइन से सब हटायें</string>
@@ -325,7 +358,6 @@
   <string name="reading_lists_onboarding_example2">पसंदीदा पशु</string>
   <string name="reading_lists_onboarding_example3">ब्रह्माण्ड अन्वेषण</string>
   <string name="reading_lists_onboarding_got_it">समझ गया</string>
-  <string name="reading_list_no_description">कोई विवरण नहीं...</string>
   <string name="reading_list_empty">आपके पास इस सूची में कोई लेख नहीं जुड़े हुए हैं।</string>
   <string name="reading_list_article_offline">ऑफलाइन उपलब्ध</string>
   <string name="reading_list_article_make_offline">इस लेख को ऑफलाइन उपलब्ध कराएं</string>
@@ -336,16 +368,21 @@
   <string name="reading_list_confirm_remove_article_from_offline_title">लेख एक से अधिक सूचियों में है</string>
   <string name="reading_list_confirm_remove_article_from_offline_message">%s सभी ऑफलाइन पढ़ने वाली सूचियों में आगे उपलब्ध नहीं होगा:</string>
   <string name="reading_list_login_reminder_title">\nअपनी पठन सूचियों को सिंक करें</string>
-  <string name="reading_lists_confirm_remote_delete">इससे आपकी, दूरस्थ स्टोरेज पर, पुरानी सिंक की हुयी सूचियाँ नष्ट हो जाएँगी। आगे बढ़ें?</string>
   <string name="reading_lists_confirm_remote_delete_yes">हाँ</string>
   <string name="reading_lists_confirm_remote_delete_no">नहीं</string>
   <string name="reading_list_article_save_in_progress">लेख का अधोभारण हो रहा है, और यह ऑफलाइन उपलब्ध होगा जब यह पूरा हो जाएगा।</string>
   <string name="reading_list_already_contains_selection">चुनी गयी सूची में चयनित पृष्ठ पहले से ही समाहित हैं।</string>
   <string name="reading_list_added_articles_list_titled">%2$s में %1$d आलेख जोड़े गए</string>
   <string name="reading_list_delete_confirm" fuzzy="true">क्या आप  \"%s\" को मिटाने हेतु निश्चित हैं?</string>
+  <string name="reading_list_turned_sync_off_dialog_ok">ठीक है</string>
   <string name="reading_list_turned_sync_off_dialog_settings">सेटिंग्स</string>
   <string name="reading_list_prompt_turned_sync_on_dialog_title">पठन सूची को सिंक करना चालू करें?</string>
-  <string name="reading_list_logout_option_reminder_dialog_yes">हाँ, डिवाइस पर आलेख रखें</string>
+  <string name="reading_list_login_option_reminder_dialog_text">जब आप लॉगआउट थे, इस पढ़ने की सूची में कुछ लेख बचा दिये गये थे। क्या आप इन्हें अपने खाते की पढ़ने की सूचियों में डालना चाहते हैं?</string>
+  <string name="reading_list_login_option_reminder_dialog_no">नहीं, लेख हटा दें</string>
+  <string name="reading_list_logout_option_reminder_dialog_title">ऐप में सहेजे गए लेखों को रखें?</string>
+  <string name="reading_list_logout_option_reminder_dialog_text">कई लेख पढ़ने की सूचियों में सहेजे हुए हैं। क्या आप लाॅगआउट होने पर इन्हें रखना चाहते हैं?</string>
+  <string name="reading_list_logout_option_reminder_dialog_yes">हाँ, सूचियों में आलेख रखें</string>
+  <string name="reading_list_logout_option_reminder_dialog_no">नहीं, सूचियों से लेख हटाएं</string>
   <plurals name="reading_list_article_offline_message">
     <item quantity="one">यह लेख अब ऑफलाइन उपलब्ध होगा।</item>
     <item quantity="other">These articles will now be available offline.</item>
@@ -355,21 +392,14 @@
     <item quantity="other">These articles will no longer be available offline.</item>
   </plurals>
   <string name="user_option_sync_label">वरीयता</string>
-  <string name="notification_button_view_user">सदस्य से बात करें</string>
-  <string name="notification_talk_title">विकिपीडिया पर नया सन्देश</string>
-  <string name="notification_talk">&lt;em&gt;%1$s&lt;/em&gt; ने आपके वार्ता पन्ने &lt;strong&gt;%2$s&lt;/strong&gt; पर एक सन्देश छोड़ा है</string>
   <string name="notification_reverted_title">संपादन वापस लिया गया</string>
-  <string name="notification_reverted">&lt;strong&gt;%2$s&lt;/strong&gt; लेख पर आपके संपादन को &lt;em&gt;%1$s&lt;/em&gt; द्वारा वापस कर दिया गया है।</string>
-  <string name="notification_thanks_title">आपको धन्यवाद दिया गया है!</string>
-  <string name="notification_thanks">&lt;em&gt;%1$s&lt;/em&gt; ने आपको &lt;strong&gt;%2$s&lt;strong&gt; पन्ने पर आपके संपादन के लिए धन्यवाद दिया है</string>
-  <string name="notification_channel_name">सिंक हो रहा है</string>
   <string name="notification_channel_description">सिंकिंग प्रगति</string>
-  <string name="notification_syncing_title">%1$d लेख सिंक किये जा रहे हैं...</string>
-  <string name="notification_syncing_description">%1$d लेख बचे</string>
   <string name="notification_syncing_pause_button" fuzzy="true">पॉज़ करें</string>
   <string name="notification_syncing_resume_button" fuzzy="true">रिज्यूम करें</string>
   <string name="notification_syncing_cancel_button" fuzzy="true">रद्द करें</string>
-  <string name="view_continue_reading_card_title">पढ़ना जारी रखें</string>
+  <string name="notification_channel_name" fuzzy="true">सिंक हो रहा है</string>
+  <string name="notification_syncing_title" fuzzy="true">%1$d लेख सिंक किये जा रहे हैं...</string>
+  <string name="notification_syncing_description" fuzzy="true">%1$d लेख बचे</string>
   <string name="view_because_you_read_card_title">क्योंकि आप पढ़ते हैं</string>
   <string name="view_random_card_title">रैंडमाइज़र</string>
   <string name="view_random_card_subtitle">विकिपीडिया से पढ़ने के लिए बेतरतीब लेख पलट के देखें</string>
@@ -400,99 +430,46 @@
   <string name="view_featured_article_footer_saved_button_label">सहेजा गया</string>
   <string name="feed_configure_activity_title" fuzzy="true">एक्स्प्लोर कार्ड्स को कॉन्फ़िगर करें</string>
   <string name="feed_configure_menu_reset" fuzzy="true">डिफ़ॉल्ट पर रिसेट करें</string>
-  <string name="description_edit_text_hint">शीर्षक विवरण</string>
+  <string name="description_edit_text_hint" fuzzy="true">शीर्षक विवरण</string>
   <string name="description_edit_save">प्रकाशित करें</string>
-  <string name="description_edit_add_description">शीर्षक विवरण जोड़ें</string>
-  <string name="description_edit_edit_description">वर्णन सम्पादित करें</string>
+  <string name="description_edit_add_description" fuzzy="true">शीर्षक विवरण जोड़ें</string>
+  <string name="description_edit_edit_description" fuzzy="true">वर्णन सम्पादित करें</string>
   <string name="description_edit_cancel_hint">रद्द करें</string>
-  <string name="description_edit_help_title">सहायता:शीर्षक वर्णन</string>
+  <string name="description_edit_help_title" fuzzy="true">सहायता:शीर्षक वर्णन</string>
   <string name="description_edit_help_about_wikidata">विकिडेटा के बारे में</string>
   <string name="description_edit_help_wikidata_guide">वर्णन लिखने के लिए विकिडेटा गाइड</string>
-  <string name="wikidata_about_url">https://www.wikidata.org/wiki/विकिडेटा:परिचय</string>
   <string name="wikidata_description_guide_url">https://www.wikidata.org/wiki/सहायता:वर्णन#हिंदी_में_वर्णन हेतु_मार्गदर्शन</string>
-  <string name="description_edit_anon_limit">विवरण संपादन में आपकी निरंतर रुचि के लिए धन्यवाद! अतिरिक्त संपादन करने के लिए कृपया अपने विकिपीडिया खाते में प्रवेश करें।</string>
-  <string name="description_edit_license_notice">शीर्षक विवरण बदलने पर मैं  &lt;a href=\"%1$s\"&gt;उपयोग शर्तों&lt;/a&gt; से सहमत हूँ और  बिना परिवर्तन के अपने योगदानों को &lt;a href=\"%2$s\"&gt;क्रिएटिव कॉमन्स CC0&lt;/a&gt; लाइसेंस के अंतर्गत रिलीज़ करता हूँ।</string>
-  <string name="description_edit_success_saved">वर्णन प्रकाशित किया गया!</string>
+  <string name="description_edit_anon_limit" fuzzy="true">विवरण संपादन में आपकी निरंतर रुचि के लिए धन्यवाद! अतिरिक्त संपादन करने के लिए कृपया अपने विकिपीडिया खाते में प्रवेश करें।</string>
+  <string name="description_edit_license_notice" fuzzy="true">शीर्षक विवरण बदलने पर मैं  &lt;a href=\"%1$s\"&gt;उपयोग शर्तों&lt;/a&gt; से सहमत हूँ और  बिना परिवर्तन के अपने योगदानों को &lt;a href=\"%2$s\"&gt;क्रिएटिव कॉमन्स CC0&lt;/a&gt; लाइसेंस के अंतर्गत रिलीज़ करता हूँ।</string>
+  <string name="description_edit_success_saved" fuzzy="true">वर्णन प्रकाशित किया गया!</string>
   <string name="description_edit_success_encouragement">आपने अभी विकिपीडिया को सभी के लिए और अच्छा बना दिया</string>
   <string name="description_edit_success_done">पूर्ण</string>
   <string name="description_edit_success_did_you_know">क्या आप जानते थे?</string>
   <string name="description_edit_success_article_edit_hint">आप इस एप में भी लेखों को सम्पादित कर सकते हैं। अगली बार ^1 आइकॉन पर क्लिक कर टाइपो और छोटे वाक्य सुधारने का प्रयास करें</string>
-  <string name="description_edit_tutorial_title_descriptions">शीर्षक वर्णन</string>
+  <string name="description_edit_tutorial_title_descriptions" fuzzy="true">शीर्षक वर्णन</string>
   <string name="description_edit_tutorial_title_descriptions_summary">लेख का सारांकन करें ताकि पाठक को विषय एक झलक में समझ आ जाये</string>
   <string name="description_edit_tutorial_keep_it_short">इसे छोटा रखें</string>
   <string name="description_edit_tutorial_keep_it_short_instructions">एक लाइन, दो से बारह शब्दों की उपयुक्त है</string>
   <string name="description_edit_tutorial_button_label_start_editing">संपादन शुरू करें</string>
   <string name="description_edit_tutorial_promise">शुरू करने से, मैं यह वादा करता हूँ कि इस सुविधा का दुरुपयोग नहीं करूँगा(गी)।</string>
-  <string name="description_edit_help_about_title">बारे में</string>
-  <string name="description_edit_help_description">शीर्षक विवरण लेख के सार के रूप में पाठकों को एक नज़र में विषय को समझने में सहायता करता है।</string>
-  <string name="description_edit_help_tips">विवरण बनाने के लिए सुझाव</string>
-  <string name="description_edit_help_tips_description">विवरण एक लाइन में अच्छी तरह से फिट हो जाने चाहिए और दो से बारह शब्दों के बीच हों।</string>
-  <string name="description_edit_help_tips_examples">उदाहरण के लिए:</string>
-  <string name="description_edit_help_tips_example1">लियोनार्डो द विन्ची द्वारा पेंटिंग</string>
-  <string name="description_edit_help_tips_example1_hint">मोना लिसा के बारे में लेख के लिए शीर्षक विवरण</string>
-  <string name="description_edit_help_tips_example2">पृथ्वी का सबसे ऊंचा पर्वत</string>
-  <string name="description_edit_help_tips_example2_hint">माउंट एवेरेस्ट के बारे में लेख के लिए शीर्षक विवरण</string>
-  <string name="description_edit_help_more_info">अधिक जानकारी</string>
-  <string name="description_edit_help_meta_info">विवरणों को विकिडेटा द्वारा स्टोर और मेन्टेन किया जाता है जो विकिपीडिया और अन्य परियोजनाओं को मुक्त, सहयोग युक्त, बहुभाषी, सेकेंडरी डेटाबेस सपोर्ट देता, विकिमीडिया फाउंडेशन का एक प्रोजेक्ट है।</string>
   <string name="description_edit_revert_subtitle">विकिपीडिया में संपादन के लिए धन्यवाद!</string>
   <string name="description_edit_revert_intro">हम जानते हैं अपने अपना अधिकतम प्रयास किया लेकिन समीक्षक में से एक को चिंता है।\nआपके संपादन को वापस किये जाने के संभावित कारण हैं:</string>
   <string name="description_edit_revert_reason1">आपके योगदान द्वारा &lt;a href=\"%1$s\"&gt;निर्देशों&lt;/a&gt; में से एक का पालन नहीं किया गया।</string>
   <string name="description_edit_revert_reason2">आपका संपादन एक परिक्षण या बर्बरता जैसा लगा।</string>
   <string name="description_edit_revert_history">अगर आप इच्छुक हैं,&lt;a href=\"%1$s\"&gt;सम्पादनों का इतिहास&lt;/a&gt; देखें।</string>
-  <string name="offline_compilation_download_device_offline">कोई इंटरनेट संपर्क नहीं। सुनिश्चित करें कि आप ऑनलाइन वापस आ गए हैं, फिर पुनः प्रयास करें।</string>
   <string name="offline_read_permission_rationale">ऑफ़लाइन विचरण के लिए आपके यंत्र पर संग्रहण का उपयोग करने की अनुमति आवश्यक है।</string>
-  <string name="offline_read_permission_error">यंत्र के भंडारण से पढ़ने की अनुमति प्रदान नहीं की गई।</string>
-  <string name="offline_card_sideloading_text">आप अब अपनी ऑफलाइन लाइब्रेरी में उपलब्ध लेख पैक्स से विकिपीडिया ऑफलाइन ब्राउज़ कर रहे हैं।</string>
-  <string name="offline_my_compilations">अपनी ऑफलाइन पुस्तकालय को प्रबंधित करें</string>
-  <string name="offline_compilations_title">ऑफलाइन लाइब्रेरी</string>
-  <string name="offline_compilations_search_by_name">लेख पैक्स को नाम द्वारा ढूंढें</string>
-  <string name="offline_compilations_found_count">मेरे ऑफ़लाइन पुस्तकालय में (%d)</string>
-  <string name="offline_compilations_add">मेरे ऑफलाइन पुस्तकालय से जोङें</string>
-  <string name="remote_compilations_title">ऑफलाइन पुस्तकालय</string>
-  <string name="remote_compilations_description">ऑफ़लाइन पुस्तकालय के साथ, अब आप पढ़ने के लिए लेखों का पैक डाउनलोड कर सकते हैं जब आपके पास कोई इंटरनेट कनेक्शन उपलब्ध न हो।</string>
-  <string name="offline_compilation_detail_button_remove">निकालें</string>
-  <string name="remote_compilation_download">डाउनलोड</string>
-  <string name="storage_used_by_compilations">ऑफलाइन लाइब्रेरी द्वारा प्रयोग में</string>
-  <string name="storage_other_apps">अन्य एप्लीकेशन्स</string>
-  <plurals name="offline_compilation_download_time_remaining">
-    <item quantity="one">1 मिनट बाकी</item>
-    <item quantity="other">%d मिनट बाकी</item>
-  </plurals>
-  <string name="compilation_download_widget_button_cancel_hint">डाउनलोड रद्द करें</string>
-  <string name="compilation_download_cancel_confirm">क्या आप वाकई इस लेख पैक की डाउनलोडिंग को कैंसिल करना चाहते हैं?</string>
-  <string name="compilation_download_cancel_confirm_yes">हाँ</string>
-  <string name="compilation_download_cancel_confirm_no">नहीं</string>
-  <string name="compilation_share">साझा करें</string>
-  <string name="compilation_remove">हटायें</string>
-  <string name="compilation_remove_confirm">क्या आप इसे अपनी ऑफलाइन लाइब्रेरी से हटाना चाहते हैं?</string>
-  <string name="offline_library_title">ऑफलाइन लाइब्रेरी</string>
-  <string name="offline_library_empty_title">आपके ऑफलाइन लाइब्रेरी में कुछ भी नहीं है</string>
-  <string name="offline_library_empty_description_sideload">\"लेख पैक\" आपकी ऑफलाइन लाइब्रेरी में सहेजने की सहजता हेतु पहले से पैक किये गए लेखों के सेट हैं, ताकी आप ऑफलाइन होने पर भी पढ़ना जारी रखें। &lt;br /&gt;&lt;a href=\"https://www.mediawiki.org/wiki/Wikimedia_Apps/Offline_support\"&gt;अधिक जानें&lt;/a&gt;</string>
-  <string name="offline_library_packs_hint">आपकी लाइब्रेरी के लेख पैक ऑफलाइन होने पर भी पढ़ने के लिए उपलब्ध रहते हैं। &lt;br /&gt;&lt;a href=\"https://www.mediawiki.org/wiki/Wikimedia_Apps/Offline_support\"&gt;अधिक जानें&lt;/a&gt;</string>
-  <string name="offline_library_data_usage_hint">डाटा यूसेज पर बचाना चाहते हैं? कनेक्टिविटी होने पर भी ऑफलाइन लेखों को पहले दिखाने के लिए \"ऑफलाइन कंटेंट वरीयता\" सेटिंग्स में जाके चुने। &lt;a href=\"#settings\"&gt;सेटिंग्स में जाएँ&lt;/a&gt;</string>
-  <string name="offline_library_empty_search">ऑफलाइन लाइब्रेरी ढूंढें</string>
-  <string name="offline_library_search_results_state">अपने ऑफलाइन पुस्तकालय से परिणाम ढूंढें</string>
-  <string name="offline_library_onboarding_button_done">पूर्ण हुआ</string>
-  <string name="offline_library_onboarding_build_library_title">अपनी ऑफ़लाइन लाइब्रेरी का निर्माण करें</string>
-  <string name="offline_library_onboarding_build_library_subtitle">बाद में डेटा-फ्री एक्सेस हेतु विकिपीडिया लेख पैक्स को अभी डाऊनलोड करें।</string>
-  <string name="offline_library_onboarding_uninterrupted_reading_title">बाधा रहित पढ़ाई</string>
-  <string name="offline_library_onboarding_uninterrupted_reading_subtitle">इंटरनेट तक पहुंच न होने पर भी ऑफलाइन लाइब्रेरी में पढ़ना और लेखों की खोज जारी रखें।</string>
-  <string name="offline_library_onboarding_store_knowledge_title">अधिक ज्ञान जमा करें</string>
-  <string name="offline_library_onboarding_store_knowledge_subtitle">उतना विकिपीडिया डाऊनलोड करें जितनी आपकी डिवाइस की क्षमता हो। ऑफलाइन लाइब्रेरी एक्सटर्नल स्टोरेज पर भी लेख पैक्स को एक्सेस कर सकती है।</string>
-  <string name="offline_library_main_page_hint_html">यह मुख्य पृष्ठ इस लेख पैक की सामग्रियों का अवलोकन प्रदान करता है। &lt;br /&gt; &lt;br /&gt; आप ऑफ़लाइन होने पर उपलब्ध लेखों की खोज करके अपने ऑफ़लाइन लाइब्रेरी में किसी भी लेख पैक की सामग्री का पता लगा सकते हैं।</string>
   <string name="onboarding_skip">छोड़ें</string>
   <string name="onboarding_continue">जारी रहना</string>
   <string name="onboarding_get_started">शुरू करें</string>
   <string name="onboarding_explore_title">अन्वेषण के नए तरीके</string>
   <string name="onboarding_explore_text" fuzzy="true">अन्वेषण प्रदाय पर विशेष रुप से प्रदर्शित लेख, रुझान वाले विषयों की खोज और सुझावों को ढूंढें।</string>
   <string name="onboarding_reading_list_sync_title" fuzzy="true">सिंक के साथ पढ़ने वाली सूचियां</string>
-  <string name="onboarding_reading_list_sync_text" fuzzy="true">उन लेखों की पठन सूचियां बनाएं जिन्हें आप बाद में पढ़ना चाहते हैं, तब भी जब आप ऑफ़लाइन हो। अपनी पठन सूचियों को बैक अप रखने के लिए अपने विकिपीडिया खाते में &lt;a href=\"#login\"&gt; लॉग इन करें या खाता बनाएं &lt;/a&gt;।</string>
   <string name="onboarding_analytics_title">अनाम डेटा भेजें</string>
   <string name="onboarding_analytics_switch_title">उपयोग किया गया डेटा भेजें</string>
   <string name="onboarding_create_account_sync">\nअपनी पठन सूचियों को सिंक करें</string>
   <string name="onboarding_create_account_contributions">अपने योगदान पर नज़र रखें</string>
   <string name="onboarding_create_account_preferences">अपनी पसंद रक्षित करें</string>
-  <string name="app_shortcuts_random">यादृच्छिक</string>
+  <string name="app_shortcuts_random">कोई भी</string>
   <string name="app_shortcuts_continue_reading">पढ़ना जारी रखें</string>
   <string name="app_shortcuts_search">खोजना</string>
   <string name="top_on_this_day">%1$s पर ट्रेंडिंग</string>
@@ -504,4 +481,5 @@
     <item quantity="one">पिछले साल</item>
     <item quantity="other">%d साल पहले</item>
   </plurals>
+  <string name="dialog_of_remove_chinese_variants_from_app_lang_no">নাই, নালাগে দিয়ক</string>
 </resources>

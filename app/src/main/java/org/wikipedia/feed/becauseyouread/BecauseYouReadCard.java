@@ -1,9 +1,10 @@
 package org.wikipedia.feed.becauseyouread;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -20,7 +21,7 @@ public class BecauseYouReadCard extends ListCard<BecauseYouReadItemCard> {
 
     public BecauseYouReadCard(@NonNull final HistoryEntry entry,
                               @NonNull final List<BecauseYouReadItemCard> itemCards) {
-        super(itemCards);
+        super(itemCards, entry.getTitle().getWikiSite());
         this.entry = entry;
     }
 

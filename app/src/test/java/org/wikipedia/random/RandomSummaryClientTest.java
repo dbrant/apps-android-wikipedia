@@ -1,76 +1,46 @@
 package org.wikipedia.random;
 
-import android.support.annotation.NonNull;
-
-import com.google.gson.JsonParseException;
+import com.google.gson.stream.MalformedJsonException;
 
 import org.junit.Test;
 import org.wikipedia.dataclient.restbase.page.RbPageSummary;
-import org.wikipedia.random.RandomSummaryClient.Callback;
-import org.wikipedia.random.RandomSummaryClient.Service;
-import org.wikipedia.test.MockWebServerTest;
+import org.wikipedia.test.MockRetrofitTest;
 
-import java.io.IOException;
+import io.reactivex.Observable;
+import io.reactivex.observers.TestObserver;
 
-import retrofit2.Call;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
-public class RandomSummaryClientTest extends MockWebServerTest {
-    @NonNull private RandomSummaryClient client = new RandomSummaryClient();
+public class RandomSummaryClientTest extends MockRetrofitTest {
 
     @Test
     public void testRequestEligible() throws Throwable {
         enqueueFromFile("rb_page_summary_valid.json");
 
-        Callback cb = mock(Callback.class);
-        Call<RbPageSummary> call = request(cb);
+        TestObserver<RbPageSummary> observer = new TestObserver<>();
+        getObservable().subscribe(observer);
 
-        server().takeRequest();
-        assertCallbackSuccess(call, cb);
+        observer.assertComplete().assertNoErrors()
+                .assertValue(summary -> summary != null
+                        && summary.getDisplayTitle().equals("Fermat's Last Theorem")
+                        && summary.getDescription().equals("theorem in number theory"));
     }
 
-    @Test public void testRequestMalformed() throws Throwable {
-        enqueueFromFile("rb_page_summary_malformed.json");
+    @Test public void testRequestMalformed() {
+        enqueueMalformed();
 
-        Callback cb = mock(Callback.class);
-        Call<RbPageSummary> call = request(cb);
-
-        server().takeRequest();
-        assertCallbackFailure(call, cb, JsonParseException.class);
+        TestObserver<RbPageSummary> observer = new TestObserver<>();
+        getObservable().subscribe(observer);
+        observer.assertError(MalformedJsonException.class);
     }
 
-    @Test public void testRequestFailure() throws Throwable {
+    @Test public void testRequestFailure() {
         enqueue404();
 
-        Callback cb = mock(Callback.class);
-        Call<RbPageSummary> call = request(cb);
-
-        server().takeRequest();
-        assertCallbackFailure(call, cb, IOException.class);
+        TestObserver<RbPageSummary> observer = new TestObserver<>();
+        getObservable().subscribe(observer);
+        observer.assertError(Exception.class);
     }
 
-    @NonNull private Call<RbPageSummary> request(@NonNull Callback cb) {
-        return client.request(service(Service.class), cb);
-    }
-
-    private void assertCallbackSuccess(@NonNull Call<RbPageSummary> call,
-                                       @NonNull Callback cb) {
-        verify(cb).onSuccess(eq(call), any(RbPageSummary.class));
-        //noinspection unchecked
-        verify(cb, never()).onError(any(Call.class), any(Throwable.class));
-    }
-
-    private void assertCallbackFailure(@NonNull Call<RbPageSummary> call,
-                                       @NonNull Callback cb,
-                                       @NonNull Class<? extends Throwable> expectedThrowable) {
-        //noinspection unchecked
-        verify(cb, never()).onSuccess(any(Call.class), any(RbPageSummary.class));
-        verify(cb).onError(eq(call), isA(expectedThrowable));
+    private Observable<RbPageSummary> getObservable() {
+        return getRestService().getRandomSummary();
     }
 }

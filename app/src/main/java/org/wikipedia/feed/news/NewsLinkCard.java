@@ -1,17 +1,18 @@
 package org.wikipedia.feed.news;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import org.wikipedia.Constants;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.restbase.page.RbPageSummary;
 import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.model.CardType;
 import org.wikipedia.page.PageTitle;
 
+import static org.wikipedia.dataclient.Service.PREFERRED_THUMB_SIZE;
 import static org.wikipedia.util.ImageUrlUtil.getUrlForSize;
 
 class NewsLinkCard extends Card {
@@ -33,7 +34,7 @@ class NewsLinkCard extends Card {
 
     @Nullable @Override public Uri image() {
         String thumbUrl = page.getThumbnailUrl();
-        return thumbUrl != null ? getUrlForSize(Uri.parse(thumbUrl), Constants.PREFERRED_THUMB_SIZE) : null;
+        return thumbUrl != null ? getUrlForSize(Uri.parse(thumbUrl), PREFERRED_THUMB_SIZE) : null;
     }
 
     @NonNull @Override public CardType type() {

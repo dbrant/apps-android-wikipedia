@@ -1,23 +1,36 @@
 package org.wikipedia.settings;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.v7.preference.Preference;
-import android.support.v7.preference.PreferenceCategory;
-import android.support.v7.preference.PreferenceFragmentCompat;
-import android.support.v7.preference.TwoStatePreference;
+import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.TwoStatePreference;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.crash.RemoteLogException;
+import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.notifications.NotificationEditorTasksHandler;
+import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.readinglist.database.ReadingList;
 import org.wikipedia.readinglist.database.ReadingListDbHelper;
 import org.wikipedia.readinglist.database.ReadingListPage;
+import org.wikipedia.suggestededits.SuggestedEditsCardsActivity;
+import org.wikipedia.suggestededits.provider.MissingDescriptionProvider;
+import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
+import org.wikipedia.views.DialogTitleWithImage;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 class DeveloperSettingsPreferenceLoader extends BasePreferenceLoader {
     private static final String TEXT_OF_TEST_READING_LIST = "Test reading list";
@@ -81,15 +94,15 @@ class DeveloperSettingsPreferenceLoader extends BasePreferenceLoader {
 
     DeveloperSettingsPreferenceLoader(@NonNull PreferenceFragmentCompat fragment) {
         super(fragment);
-        this.context = fragment.getActivity();
+        this.context = fragment.requireActivity();
     }
 
+    @SuppressWarnings("checkstyle:methodlength")
     @Override
     public void loadPreferences() {
         loadPreferences(R.xml.developer_preferences);
         setUpRestBaseCheckboxes();
         setUpMediaWikiSettings();
-        setUpCookies((PreferenceCategory) findPreference(R.string.preferences_developer_cookies_key));
 
         findPreference(context.getString(R.string.preferences_developer_crash_key))
                 .setOnPreferenceClickListener(preference -> {
@@ -143,6 +156,120 @@ class DeveloperSettingsPreferenceLoader extends BasePreferenceLoader {
                     }
                     int numOfLists = Integer.valueOf(newValue.toString().trim());
                     deleteTestReadingList(TEXT_OF_TEST_READING_LIST, numOfLists);
+                    return true;
+                });
+
+        findPreference(R.string.preference_key_add_malformed_reading_list_page)
+                .setOnPreferenceChangeListener((preference, newValue) -> {
+                    int numberOfArticles = TextUtils.isEmpty(newValue.toString()) ? 1 :  Integer.valueOf(newValue.toString().trim());
+                    List<ReadingListPage> pages = new ArrayList<>();
+                    for (int i = 0; i < numberOfArticles; i++) {
+                        PageTitle pageTitle = new PageTitle("Malformed page " + i, WikiSite.forLanguageCode("foo"));
+                        pages.add(new ReadingListPage(pageTitle));
+                    }
+                    ReadingListDbHelper.instance().addPagesToList(ReadingListDbHelper.instance().getDefaultList(), pages, true);
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preference_key_missing_description_test))
+                .setOnPreferenceClickListener(preference -> {
+                    MissingDescriptionProvider.INSTANCE.getNextArticleWithMissingDescription(WikipediaApp.getInstance().getWikiSite())
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(summary -> new AlertDialog.Builder(getActivity())
+                                            .setTitle(StringUtil.fromHtml(summary.getDisplayTitle()))
+                                            .setMessage(StringUtil.fromHtml(summary.getExtract()))
+                                            .setPositiveButton("Go", (dialog, which) -> {
+                                                PageTitle title = new PageTitle(summary.getNormalizedTitle(), WikipediaApp.getInstance().getWikiSite());
+                                                getActivity().startActivity(PageActivity.newIntentForNewTab(getActivity(), new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title));
+                                            })
+                                            .setNegativeButton(R.string.cancel, null)
+                                            .show(),
+                                    throwable -> new AlertDialog.Builder(getActivity())
+                                            .setMessage(throwable.getMessage())
+                                            .setPositiveButton(R.string.ok, null)
+                                            .show());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preference_key_missing_description_test2))
+                .setOnPreferenceClickListener(preference -> {
+                    MissingDescriptionProvider.INSTANCE.getNextArticleWithMissingDescription(WikipediaApp.getInstance().getWikiSite(),
+                            WikipediaApp.getInstance().language().getAppLanguageCodes().get(1), true)
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(pair -> new AlertDialog.Builder(getActivity())
+                                            .setTitle(StringUtil.fromHtml(pair.getSecond().getDisplayTitle()))
+                                            .setMessage(StringUtil.fromHtml(pair.getSecond().getDescription()))
+                                            .setPositiveButton("Go", (dialog, which) -> {
+                                                PageTitle title = new PageTitle(pair.getSecond().getNormalizedTitle(), WikiSite.forLanguageCode(WikipediaApp.getInstance().language().getAppLanguageCodes().get(1)));
+                                                getActivity().startActivity(PageActivity.newIntentForNewTab(getActivity(), new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title));
+                                            })
+                                            .setNegativeButton(R.string.cancel, null)
+                                            .show(),
+                                    throwable -> new AlertDialog.Builder(getActivity())
+                                            .setMessage(throwable.getMessage())
+                                            .setPositiveButton(R.string.ok, null)
+                                            .show());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preference_key_dialog_with_image_test))
+                .setOnPreferenceClickListener(preference -> {
+                    new AlertDialog.Builder(getActivity())
+                            .setCustomTitle(new DialogTitleWithImage(getActivity(), R.string.suggested_edits_unlock_add_descriptions_dialog_title, R.drawable.ic_unlock_illustration_add, true))
+                            .setMessage(R.string.suggested_edits_unlock_add_descriptions_dialog_message)
+                            .setPositiveButton(R.string.suggested_edits_unlock_dialog_yes, null)
+                            .setNegativeButton(R.string.suggested_edits_unlock_dialog_no, null)
+                            .show();
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_add_description_dialog))
+                .setOnPreferenceClickListener(preference -> {
+                    SuggestedEditsCardsActivity.Companion.showEditDescriptionUnlockDialog(getActivity());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_add_description_notification))
+                .setOnPreferenceClickListener(preference -> {
+                    NotificationEditorTasksHandler.maybeShowEditDescriptionUnlockNotification(getActivity(), true);
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_translate_description_dialog))
+                .setOnPreferenceClickListener(preference -> {
+                    SuggestedEditsCardsActivity.Companion.showTranslateDescriptionUnlockDialog(getActivity());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_translate_description_notification))
+                .setOnPreferenceClickListener(preference -> {
+                    NotificationEditorTasksHandler.maybeShowTranslateDescriptionUnlockNotification(getActivity(), true);
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_add_caption_dialog))
+                .setOnPreferenceClickListener(preference -> {
+                    SuggestedEditsCardsActivity.Companion.showEditCaptionUnlockDialog(getActivity());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_add_caption_notification))
+                .setOnPreferenceClickListener(preference -> {
+                    NotificationEditorTasksHandler.maybeShowEditCaptionUnlockNotification(getActivity(), true);
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_translate_caption_dialog))
+                .setOnPreferenceClickListener(preference -> {
+                    SuggestedEditsCardsActivity.Companion.showTranslateCaptionUnlockDialog(getActivity());
+                    return true;
+                });
+
+        findPreference(context.getString(R.string.preferences_developer_suggested_edits_translate_caption_notification))
+                .setOnPreferenceClickListener(preference -> {
+                    NotificationEditorTasksHandler.maybeShowTranslateCaptionUnlockNotification(getActivity(), true);
                     return true;
                 });
     }
@@ -217,23 +344,6 @@ class DeveloperSettingsPreferenceLoader extends BasePreferenceLoader {
                 numOfLists--;
             }
         }
-    }
-
-    private void setUpCookies(@NonNull PreferenceCategory cat) {
-        List<String> domains = Prefs.getCookieDomainsAsList();
-        for (String domain : domains) {
-            String key = Prefs.getCookiesForDomainKey(domain);
-            Preference pref = newDataStringPref(key, domain);
-            cat.addPreference(pref);
-        }
-    }
-
-    private EditTextAutoSummarizePreference newDataStringPref(String key, String title) {
-        EditTextAutoSummarizePreference pref = new EditTextAutoSummarizePreference(context, null,
-                R.attr.editTextAutoSummarizePreferenceStyle);
-        pref.setKey(key);
-        pref.setTitle(title);
-        return pref;
     }
 
     private static class TestException extends RuntimeException {

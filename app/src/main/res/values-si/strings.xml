@@ -23,8 +23,7 @@
   <string name="nav_item_nearby">අවට</string>
   <string name="last_updated_text">අවසන් යාවත්කාලීන කිරීම %s</string>
   <string name="preference_title_language">විකිපීඩියා භාෂාව</string>
-  <string name="preference_languages_filter_hint">සොයන්න</string>
-  <string name="langlinks_filter_hint">සොයන්න</string>
+    <string name="langlinks_filter_hint">සොයන්න</string>
   <string name="langlinks_empty">මෙම පිටුව වෙනත් භාෂාවලින් ලබාගත නොහැක</string>
   <string name="langlinks_no_match">ඔබේ සෙවීමට සමාන භාෂා සොයාගැනීමට නොහැක</string>
   <string name="langlinks_activity_title">වෙනත් භාෂාවන්</string>
@@ -64,9 +63,6 @@
   <string name="create_account_button">ගිණුමක් තනන්න</string>
   <string name="preferences_general_heading">සාමාන්‍ය</string>
   <string name="wikipedia_app_faq">විකිපීඩියා යෙදුම නිති අසන පැන</string>
-  <string name="zero_webpage_title">විකිපීඩියා යෙදුම නිති අසන පැන</string>
-  <string name="zero_learn_more_learn_more">තවදුරටත් කියවන්න</string>
-  <string name="zero_learn_more_dismiss">නිෂ්ප්‍රභ කරන්න</string>
   <string name="create_account_account_created_toast">ගිණුම තනන ලදි!</string>
   <string name="preference_title_eventlogging_opt_in">භාවිත වාර්තා යවන්න</string>
   <string name="history_search_list_hint">ඉතිහාසය සොයන්න</string>
@@ -81,5 +77,4 @@
   <string name="edit_next">මීළඟ</string>
   <string name="edit_done">සුරකින්න</string>
   <string name="edit_preview">පෙරදසුන</string>
-  <string name="button_page_issues">පිටුවේ මතභේදාත්මක දෑ</string>
 </resources>

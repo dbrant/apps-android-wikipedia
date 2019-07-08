@@ -2,15 +2,18 @@ package org.wikipedia.feed.announcement;
 
 import android.content.Context;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 
 import org.wikipedia.R;
 import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.view.DefaultFeedCardView;
+import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.StringUtil;
 import org.wikipedia.views.FaceAndColorDetectImageView;
 import org.wikipedia.views.ItemTouchHelperSwipeAdapter;
@@ -59,6 +62,8 @@ public class AnnouncementCardView extends DefaultFeedCardView<AnnouncementCard>
         }
         if (!TextUtils.isEmpty(card.negativeText())) {
             actionViewNegative.setText(card.negativeText());
+        } else {
+            actionViewNegative.setVisibility(GONE);
         }
 
         if (card.hasImage()) {
@@ -66,6 +71,12 @@ public class AnnouncementCardView extends DefaultFeedCardView<AnnouncementCard>
             headerImageView.loadImage(card.image());
         } else {
             headerImageView.setVisibility(GONE);
+        }
+
+        if (card.imageHeight() > 0) {
+            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) headerImageView.getLayoutParams();
+            params.height = DimenUtil.roundedDpToPx(card.imageHeight());
+            headerImageView.setLayoutParams(params);
         }
 
         if (card.hasFooterCaption()) {

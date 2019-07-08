@@ -1,7 +1,7 @@
 package org.wikipedia.descriptions;
 
-import android.support.annotation.NonNull;
-import android.support.v4.view.PagerAdapter;
+import androidx.annotation.NonNull;
+import androidx.viewpager.widget.PagerAdapter;
 
 import org.wikipedia.R;
 import org.wikipedia.onboarding.OnboardingFragment;
@@ -22,8 +22,4 @@ public class DescriptionEditTutorialFragment extends OnboardingFragment {
         return R.string.description_edit_tutorial_button_label_start_editing;
     }
 
-    @Override
-    protected int getBackgroundResId() {
-        return R.drawable.onboarding_gradient_background_90;
-    }
 }

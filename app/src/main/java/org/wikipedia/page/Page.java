@@ -1,13 +1,11 @@
 package org.wikipedia.page;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
-import org.wikipedia.offline.Compilation;
 import org.wikipedia.settings.RbSwitch;
 
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,9 +18,6 @@ public class Page {
     @NonNull private final PageTitle title;
     @NonNull private final List<Section> sections;
     @NonNull private final PageProperties pageProperties;
-
-    @Nullable private String compName;
-    @Nullable private Date compDate;
 
     /**
      * An indicator what payload version the page content was originally retrieved from.
@@ -93,38 +88,6 @@ public class Page {
 
     public boolean isArticle() {
         return !isMainPage() && getTitle().namespace() == Namespace.MAIN;
-    }
-
-    public boolean isFromOfflineCompilation() {
-        return compName != null;
-    }
-
-    @Nullable public Date getCompilationDate() {
-        return compDate;
-    }
-
-    @Nullable public String getCompilationName() {
-        return compName;
-    }
-
-    public void setCompilation(@NonNull Compilation comp) {
-        this.compName = comp.name();
-        this.compDate = comp.date();
-    }
-
-    /** For old PHP API */
-    public void addRemainingSections(List<Section> remainingSections) {
-        sections.addAll(remainingSections);
-    }
-
-    /** For new RESTBase API */
-    public void augmentRemainingSections(List<Section> remainingSections) {
-        // TODO: Use Parsoid to request the same revision ID, so that there's no race condition
-        // that can lead to a mismatched number of sections.
-        Section leadSection = sections.get(0);
-        sections.clear();
-        sections.add(leadSection);
-        sections.addAll(remainingSections);
     }
 
     public boolean isProtected() {

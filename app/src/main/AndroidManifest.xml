@@ -13,7 +13,9 @@
     -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- HockeyApp places a maxSdkVersion on the WRITE_EXTERNAL_STORAGE permission,
+     therefore we need to replace it with our own tag with no version restrictions. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="replace" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <uses-permission
@@ -26,7 +28,7 @@
         android:name="android.permission.MANAGE_ACCOUNTS"
         android:maxSdkVersion="22" />
 
-    <!-- For notifications, e.g. User account notices, Wikipedia Zero, etc. -->
+    <!-- For notifications, e.g. User account notices, etc. -->
     <uses-permission android:name="android.permission.VIBRATE"/>
 
     <!-- For being able to receive notifications upon boot -->
@@ -73,22 +75,14 @@
         <activity
             android:name=".main.MainActivity"
             android:windowSoftInputMode="adjustResize"
+            android:theme="@style/AppTheme.Splash"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
             </intent-filter>
-            <intent-filter android:label="@string/intent_share_search_label">
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <intent-filter android:label="@string/intent_share_search_label">
-                <action android:name="android.intent.action.PROCESS_TEXT" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
         <activity
             android:name=".page.PageActivity"
@@ -108,7 +102,7 @@
                      https://developer.android.com/training/app-links/deep-linking.html
                      so http and https apply to all prefixes-->
                 <data android:host="*.wikipedia.org" android:pathPrefix="/wiki/" android:scheme="http" />
-                <data android:host="*.wikipedia.org" android:pathPattern="/zh-.*" android:scheme="https" />
+                <data android:host="*.wikipedia.org" android:pathPattern="/zh.*" android:scheme="https" />
             </intent-filter>
             <intent-filter>
                 <action android:name="org.wikipedia.app_shortcut" />
@@ -131,20 +125,31 @@
             android:theme="@style/AppTheme.ActionBar"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize" />
         <activity
+            android:name=".settings.NotificationSettingsActivity"
+            android:label="@string/notification_preferences_title"
+            android:theme="@style/AppTheme.ActionBar" />
+        <activity
             android:name=".settings.AboutActivity"
             android:label="@string/about_activity_title"
-            android:theme="@style/AppTheme.ActionBar"
-            android:exported="false">
-            <intent-filter>
-                <action android:name=".settings.AboutActivity" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/AppTheme.ActionBar" />
+        <activity android:name=".settings.languages.WikipediaLanguagesActivity"
+            android:label="@string/wikipedia_languages_title"
+            android:theme="@style/AppTheme.ActionBar"/>
         <activity
             android:name=".language.LangLinksActivity"
             android:label="@string/langlinks_activity_title"
-            android:theme="@style/AppTheme.ActionBar.Page"
+            android:theme="@style/AppTheme.ActionBar.LanguagesList"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize" />
+        <activity
+            android:name=".language.LanguagesListActivity"
+            android:label="@string/languages_list_activity_title"
+            android:theme="@style/AppTheme.ActionBar.LanguagesList"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize" />
+        <activity
+            android:name=".suggestededits.SuggestedEditsCardsActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/AppTheme.ActionBar.SuggestedEdits"
+            android:parentActivityName=".suggestededits.SuggestedEditsTasksActivity"/>
         <activity
             android:name=".edit.EditSectionActivity"
             android:theme="@style/AppTheme.ActionBar.Page"
@@ -163,12 +168,17 @@
             android:windowSoftInputMode="stateAlwaysHidden|adjustResize"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize" />
         <activity
+            android:name=".login.ResetPasswordActivity"
+            android:label="@string/reset_password_title"
+            android:theme="@style/AppTheme.ActionBar"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize" />
+        <activity
             android:name=".gallery.GalleryActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/AppTheme.FullScreen" />
         <activity
             android:name=".settings.LicenseActivity"
-            android:exported="true"
             android:theme="@style/AppTheme.ActionBar"
             tools:ignore="GoogleAppIndexingUrlError">
             <intent-filter>
@@ -186,12 +196,24 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".search.SearchActivity"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter android:label="@string/intent_share_search_label">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter android:label="@string/intent_share_search_label">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".descriptions.DescriptionEditSuccessActivity"
             android:theme="@style/AppTheme.FullScreen.TranslucentDark"
             android:windowSoftInputMode="stateAlwaysHidden" />
-
-        <activity
-            android:name=".descriptions.DescriptionEditHelpActivity" />
 
         <activity
             android:name=".descriptions.DescriptionEditTutorialActivity" />
@@ -200,30 +222,7 @@
             android:name=".readinglist.ReadingListActivity" />
 
         <activity
-            android:name=".onboarding.InitialOnboardingActivity" />
-
-        <activity
-            android:name=".offline.LocalCompilationsActivity"
-            android:windowSoftInputMode="adjustResize"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" android:mimeType="application/zim" />
-                <data android:scheme="file" android:pathPattern=".*\\.zim" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".offline.RemoteCompilationsActivity"
-            android:theme="@style/AppTheme.GreenActionMode"/>
-
-        <activity
-            android:name=".offline.CompilationDetailActivity" />
-
-        <activity
-            android:name=".offline.OfflineTutorialActivity"
-            android:theme="@style/AppTheme.TranslucentStatus"/>
+            android:name=".onboarding.InitialOnboardingActivity"/>
 
         <activity
             android:name=".feed.mostread.MostReadArticlesActivity"
@@ -244,6 +243,29 @@
             android:label="@string/preference_title_app_theme"
             android:theme="@style/AppTheme.ActionBar"/>
 
+        <activity
+            android:name=".notifications.NotificationActivity"
+            android:label="@string/notifications_activity_title"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize"
+            android:theme="@style/AppTheme.ActionBar" />
+
+        <activity
+            android:name=".page.tabs.TabActivity"
+            android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".suggestededits.SuggestedEditsTasksActivity"
+            android:launchMode="singleTask"
+            android:label="@string/suggested_edits_tasks_activity_title"
+            android:theme="@style/AppTheme.ActionBar" />
+
+        <activity android:name=".onboarding.SuggestedEditsOnboardingActivity" />
+
+        <activity
+            android:name=".suggestededits.SuggestedEditsContributionsActivity"
+            android:label="@string/suggested_edits_my_contributions"
+            android:theme="@style/AppTheme.ActionBar" />
+
         <provider
             android:authorities="${applicationId}"
             android:name=".database.AppContentProvider"
@@ -257,7 +279,7 @@
             android:label="@string/user_option_sync_label" />
 
         <provider
-            android:name="android.support.v4.content.FileProvider"
+            android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
@@ -265,11 +287,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
-        <provider
-            android:name=".offline.OfflineContentProvider"
-            android:authorities="${applicationId}.offline"
-            android:exported="false" />
 
         <receiver
             android:icon="@mipmap/launcher"
@@ -312,13 +329,8 @@
 
         <receiver android:name=".notifications.NotificationPollBroadcastReceiver">
             <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name=".notifications.NotificationPollBroadcastReceiver.ACTION_POLL" />
-            </intent-filter>
-        </receiver>
-
-        <receiver android:name=".offline.DownloadManagerReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.DOWNLOAD_NOTIFICATION_CLICKED" />
             </intent-filter>
         </receiver>
 

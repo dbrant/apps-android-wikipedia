@@ -1,10 +1,14 @@
 package org.wikipedia.dataclient.page;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
+import org.wikipedia.dataclient.WikiSite;
+
+import io.reactivex.Observable;
 import okhttp3.CacheControl;
-import retrofit2.Call;
+import okhttp3.Request;
+import retrofit2.Response;
 
 /**
  * Generic interface for Page content service.
@@ -12,26 +16,14 @@ import retrofit2.Call;
  * getting to the data (MW API and RESTBase) we add this layer of indirection -- until we drop one.
  */
 public interface PageClient {
-    enum CacheOption {
-        /** Request transient app caching; if the response is already cached in permanent storage,
-            it will be refreshed regardless */
-        CACHE,
-
-        /** Request persistent app caching; if headers permit the response to be cached, it will be
-            saved to the permanent cache */
-        SAVE;
-
-        public boolean save() {
-            return this == SAVE;
-        }
-    }
-
     /**
      * Gets a page summary for a given title -- for link previews
      *
      * @param title the page title to be used including prefix
      */
-    @NonNull <T extends PageSummary> Call<T> summary(@NonNull String title);
+    @NonNull <T extends PageSummary> Observable<T> summary(@NonNull WikiSite wiki,
+                                                           @NonNull String title,
+                                                           @Nullable String referrerUrl);
 
     /**
      * Gets the lead section and initial metadata of a given title.
@@ -39,17 +31,30 @@ public interface PageClient {
      * @param title the page title with prefix if necessary
      * @param leadThumbnailWidth one of the bucket widths for the lead image
      */
-    @NonNull <T extends PageLead> Call<T> lead(@Nullable CacheControl cacheControl,
-                                               @NonNull CacheOption cacheOption,
-                                               @NonNull String title,
-                                               int leadThumbnailWidth);
+    @NonNull <T extends PageLead> Observable<Response<T>> lead(@NonNull WikiSite wiki,
+                                                               @Nullable CacheControl cacheControl,
+                                                               @Nullable String saveOfflineHeader,
+                                                               @Nullable String referrerUrl,
+                                                               @NonNull String title,
+                                                               int leadThumbnailWidth);
 
     /**
      * Gets the remaining sections of a given title.
      *
      * @param title the page title to be used including prefix
      */
-    @NonNull <T extends PageRemaining> Call<T> sections(@Nullable CacheControl cacheControl,
-                                                        @NonNull CacheOption cacheOption,
-                                                        @NonNull String title);
+    @NonNull <T extends PageRemaining> Observable<Response<T>> sections(@NonNull WikiSite wiki,
+                                                                        @Nullable CacheControl cacheControl,
+                                                                        @Nullable String saveOfflineHeader,
+                                                                        @NonNull String title);
+
+    /**
+     * Gets the remaining sections request url of a given title.
+     *
+     * @param title the page title to be used including prefix
+     */
+    @NonNull Request sectionsUrl(@NonNull WikiSite wiki,
+                               @Nullable CacheControl cacheControl,
+                               @Nullable String saveOfflineHeader,
+                               @NonNull String title);
 }

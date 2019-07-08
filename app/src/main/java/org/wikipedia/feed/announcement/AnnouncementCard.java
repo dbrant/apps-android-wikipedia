@@ -1,8 +1,9 @@
 package org.wikipedia.feed.announcement;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.model.CardType;
@@ -52,6 +53,14 @@ public class AnnouncementCard extends Card {
 
     @NonNull @Override public Uri image() {
         return Uri.parse(announcement.imageUrl());
+    }
+
+    public int imageHeight() {
+        try {
+            return Integer.parseInt(announcement.imageHeight());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @NonNull @Override public CardType type() {

@@ -1,103 +1,112 @@
 package org.wikipedia.page;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.BottomSheetDialog;
-import android.support.design.widget.BottomSheetDialogFragment;
-import android.support.design.widget.TabLayout;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
-import android.util.Log;
-import android.util.TypedValue;
 import android.view.ActionMode;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
-import org.apache.commons.lang3.StringUtils;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.BackPressedHandler;
 import org.wikipedia.Constants;
+import org.wikipedia.Constants.InvokeSource;
 import org.wikipedia.LongPressHandler;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.analytics.FindInPageFunnel;
 import org.wikipedia.analytics.GalleryFunnel;
+import org.wikipedia.analytics.LoginFunnel;
 import org.wikipedia.analytics.PageScrollFunnel;
 import org.wikipedia.analytics.TabFunnel;
+import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.bridge.CommunicationBridge;
-import org.wikipedia.concurrency.CallbackTask;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.okhttp.OkHttpWebViewClient;
 import org.wikipedia.descriptions.DescriptionEditActivity;
+import org.wikipedia.descriptions.DescriptionEditTutorialActivity;
 import org.wikipedia.edit.EditHandler;
 import org.wikipedia.gallery.GalleryActivity;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.history.UpdateHistoryTask;
 import org.wikipedia.language.LangLinksActivity;
-import org.wikipedia.offline.OfflineManager;
-import org.wikipedia.onboarding.PrefsOnboardingStateMachine;
+import org.wikipedia.login.LoginActivity;
+import org.wikipedia.media.AvPlayer;
+import org.wikipedia.media.DefaultAvPlayer;
+import org.wikipedia.media.MediaPlayerImplementation;
 import org.wikipedia.page.action.PageActionTab;
-import org.wikipedia.page.action.PageActionToolbarHideHandler;
 import org.wikipedia.page.bottomcontent.BottomContentView;
 import org.wikipedia.page.leadimages.LeadImagesHandler;
+import org.wikipedia.page.leadimages.PageHeaderView;
 import org.wikipedia.page.shareafact.ShareHandler;
 import org.wikipedia.page.tabs.Tab;
-import org.wikipedia.page.tabs.TabsProvider;
-import org.wikipedia.readinglist.AddToReadingListDialog;
 import org.wikipedia.readinglist.ReadingListBookmarkMenu;
-import org.wikipedia.readinglist.RemoveFromReadingListsDialog;
-import org.wikipedia.readinglist.database.ReadingList;
 import org.wikipedia.readinglist.database.ReadingListDbHelper;
 import org.wikipedia.readinglist.database.ReadingListPage;
 import org.wikipedia.settings.Prefs;
-import org.wikipedia.theme.ThemeBridgeAdapter;
+import org.wikipedia.suggestededits.SuggestedEditsSummary;
 import org.wikipedia.util.ActiveTimer;
-import org.wikipedia.util.DeviceUtil;
+import org.wikipedia.util.AnimationUtil;
 import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.FeedbackUtil;
-import org.wikipedia.util.ReleaseUtil;
 import org.wikipedia.util.ShareUtil;
 import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.ThrowableUtil;
 import org.wikipedia.util.UriUtil;
 import org.wikipedia.util.log.L;
-import org.wikipedia.views.ConfigurableTabLayout;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
-import org.wikipedia.views.WikiDrawerLayout;
 import org.wikipedia.views.WikiPageErrorView;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
+
 import static android.app.Activity.RESULT_OK;
+import static org.wikipedia.Constants.ACTIVITY_REQUEST_GALLERY;
+import static org.wikipedia.Constants.InvokeSource.BOOKMARK_BUTTON;
+import static org.wikipedia.Constants.InvokeSource.PAGE_ACTIVITY;
+import static org.wikipedia.descriptions.DescriptionEditTutorialActivity.DESCRIPTION_SELECTED_TEXT;
 import static org.wikipedia.page.PageActivity.ACTION_RESUME_READING;
-import static org.wikipedia.page.PageActivity.ACTION_SHOW_TAB_LIST;
 import static org.wikipedia.page.PageCacher.loadIntoCache;
+import static org.wikipedia.settings.Prefs.isDescriptionEditTutorialEnabled;
 import static org.wikipedia.settings.Prefs.isLinkPreviewEnabled;
 import static org.wikipedia.util.DimenUtil.getContentTopOffset;
 import static org.wikipedia.util.DimenUtil.getContentTopOffsetPx;
+import static org.wikipedia.util.DimenUtil.leadImageHeightForDevice;
 import static org.wikipedia.util.ResourceUtil.getThemedAttributeId;
 import static org.wikipedia.util.ResourceUtil.getThemedColor;
+import static org.wikipedia.util.StringUtil.addUnderscores;
 import static org.wikipedia.util.ThrowableUtil.isOffline;
 import static org.wikipedia.util.UriUtil.decodeURL;
 import static org.wikipedia.util.UriUtil.visitInExternalBrowser;
@@ -109,28 +118,20 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         void onPageDismissBottomSheet();
         void onPageLoadPage(@NonNull PageTitle title, @NonNull HistoryEntry entry);
         void onPageInitWebView(@NonNull ObservableWebView v);
-        void onPageShowLinkPreview(@NonNull PageTitle title, int source);
+        void onPageShowLinkPreview(@NonNull HistoryEntry entry);
         void onPageLoadMainPageInForegroundTab();
         void onPageUpdateProgressBar(boolean visible, boolean indeterminate, int value);
         void onPageShowThemeChooser();
         void onPageStartSupportActionMode(@NonNull ActionMode.Callback callback);
-        void onPageShowToolbar();
         void onPageHideSoftKeyboard();
-        void onPageAddToReadingList(@NonNull PageTitle title,
-                                    @NonNull AddToReadingListDialog.InvokeSource source);
+        void onPageAddToReadingList(@NonNull PageTitle title, @NonNull InvokeSource source);
         void onPageRemoveFromReadingLists(@NonNull PageTitle title);
-        void onPagePopFragment();
-        void onPageInvalidateOptionsMenu();
         void onPageLoadError(@NonNull PageTitle title);
         void onPageLoadErrorBackPressed();
         void onPageHideAllContent();
         void onPageSetToolbarFadeEnabled(boolean enabled);
-        void onPageSetToolbarForceNoFace(boolean force);
+        void onPageSetToolbarElevationEnabled(boolean enabled);
     }
-
-    public static final int TOC_ACTION_SHOW = 0;
-    public static final int TOC_ACTION_HIDE = 1;
-    public static final int TOC_ACTION_TOGGLE = 2;
 
     private boolean pageRefreshed;
     private boolean errorState = false;
@@ -139,69 +140,45 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
     private PageFragmentLoadState pageFragmentLoadState;
     private PageViewModel model;
-    private PageInfo pageInfo;
-
-    /**
-     * List of tabs, each of which contains a backstack of page titles.
-     * Since the list consists of Parcelable objects, it can be saved and restored from the
-     * savedInstanceState of the fragment.
-     */
-    @NonNull private final List<Tab> tabList = new ArrayList<>();
 
     @NonNull private TabFunnel tabFunnel = new TabFunnel();
 
     private PageScrollFunnel pageScrollFunnel;
     private LeadImagesHandler leadImagesHandler;
+    private PageHeaderView pageHeaderView;
     private BottomContentView bottomContentView;
     private ObservableWebView webView;
+    private CoordinatorLayout containerView;
     private SwipeRefreshLayoutWithScroll refreshView;
     private WikiPageErrorView errorView;
-    private WikiDrawerLayout tocDrawer;
-    private ConfigurableTabLayout tabLayout;
+    private PageActionTabLayout tabLayout;
     private ToCHandler tocHandler;
+    private WebViewScrollTriggerListener scrollTriggerListener = new WebViewScrollTriggerListener();
 
     private CommunicationBridge bridge;
     private LinkHandler linkHandler;
     private EditHandler editHandler;
     private ActionMode findInPageActionMode;
     private ShareHandler shareHandler;
-    private TabsProvider tabsProvider;
+    private CompositeDisposable disposables = new CompositeDisposable();
     private ActiveTimer activeTimer = new ActiveTimer();
+    @Nullable private AvPlayer avPlayer;
+    @Nullable private AvCallback avCallback;
 
     private WikipediaApp app;
 
     @NonNull
     private final SwipeRefreshLayout.OnRefreshListener pageRefreshListener = this::refreshPage;
 
-    @NonNull
-    private final TabLayout.OnTabSelectedListener pageActionTabListener
-            = new TabLayout.OnTabSelectedListener() {
-        @Override
-        public void onTabSelected(TabLayout.Tab tab) {
-            if (tabLayout.isEnabled(tab)) {
-                PageActionTab.of(tab.getPosition()).select(pageActionTabsCallback);
-            }
-        }
-
-        @Override
-        public void onTabUnselected(TabLayout.Tab tab) {
-
-        }
-
-        @Override
-        public void onTabReselected(TabLayout.Tab tab) {
-            onTabSelected(tab);
-        }
-    };
-
     private PageActionTab.Callback pageActionTabsCallback = new PageActionTab.Callback() {
         @Override
         public void onAddToReadingListTabSelected() {
+            Prefs.shouldShowBookmarkToolTip(false);
             if (model.isInReadingList()) {
                 new ReadingListBookmarkMenu(tabLayout, new ReadingListBookmarkMenu.Callback() {
                     @Override
                     public void onAddRequest(@Nullable ReadingListPage page) {
-                        addToReadingList(getTitle(), AddToReadingListDialog.InvokeSource.BOOKMARK_BUTTON);
+                        addToReadingList(getTitle(), BOOKMARK_BUTTON);
                     }
 
                     @Override
@@ -210,9 +187,14 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                             callback().onPageRemoveFromReadingLists(getTitle());
                         }
                     }
+
+                    @Override
+                    public void onShare() {
+                        // ignore
+                    }
                 }).show(getTitle());
             } else {
-                addToReadingList(getTitle(), AddToReadingListDialog.InvokeSource.BOOKMARK_BUTTON);
+                addToReadingList(getTitle(), BOOKMARK_BUTTON);
             }
         }
 
@@ -232,8 +214,13 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         }
 
         @Override
+        public void onFontAndThemeTabSelected() {
+            showThemeChooser();
+        }
+
+        @Override
         public void onViewToCTabSelected() {
-            toggleToC(TOC_ACTION_TOGGLE);
+            tocHandler.show();
         }
 
         @Override
@@ -250,11 +237,7 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         return model.getTitle();
     }
 
-    public boolean isPresentInOfflineLists() {
-        return model.isInReadingList();
-    }
-
-    public PageTitle getTitleOriginal() {
+    @Nullable public PageTitle getTitleOriginal() {
         return model.getTitleOriginal();
     }
 
@@ -274,66 +257,63 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         return editHandler;
     }
 
-    public boolean getErrorState() {
-        return errorState;
-    }
-
     public BottomContentView getBottomContentView() {
         return bottomContentView;
+    }
+
+    public ViewGroup getContainerView() {
+        return containerView;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        app = (WikipediaApp) getActivity().getApplicationContext();
+        AnimationUtil.setSharedElementTransitions(requireActivity());
+        app = (WikipediaApp) requireActivity().getApplicationContext();
         model = new PageViewModel();
-
         pageFragmentLoadState = new PageFragmentLoadState();
-
-        initTabs();
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              final Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_page, container, false);
+        pageHeaderView = rootView.findViewById(R.id.page_header_view);
+        DimenUtil.setViewHeight(pageHeaderView, leadImageHeightForDevice());
 
         webView = rootView.findViewById(R.id.page_web_view);
         initWebViewListeners();
 
-        tocDrawer = rootView.findViewById(R.id.page_toc_drawer);
-        tocDrawer.setDragEdgeWidth(getResources().getDimensionPixelSize(R.dimen.drawer_drag_margin));
-
+        containerView = rootView.findViewById(R.id.page_contents_container);
         refreshView = rootView.findViewById(R.id.page_refresh_container);
-        int swipeOffset = getContentTopOffsetPx(getActivity()) + REFRESH_SPINNER_ADDITIONAL_OFFSET;
+        int swipeOffset = getContentTopOffsetPx(requireActivity()) + REFRESH_SPINNER_ADDITIONAL_OFFSET;
         refreshView.setProgressViewOffset(false, -swipeOffset, swipeOffset);
-        refreshView.setColorSchemeResources(getThemedAttributeId(getContext(), R.attr.colorAccent));
+        refreshView.setColorSchemeResources(getThemedAttributeId(requireContext(), R.attr.colorAccent));
         refreshView.setScrollableChild(webView);
         refreshView.setOnRefreshListener(pageRefreshListener);
 
         tabLayout = rootView.findViewById(R.id.page_actions_tab_layout);
-        tabLayout.addOnTabSelectedListener(pageActionTabListener);
+        tabLayout.setPageActionTabsCallback(pageActionTabsCallback);
 
         errorView = rootView.findViewById(R.id.page_error);
 
         bottomContentView = rootView.findViewById(R.id.page_bottom_view);
-
-        PageActionToolbarHideHandler pageActionToolbarHideHandler
-                = new PageActionToolbarHideHandler(tabLayout, null);
-        pageActionToolbarHideHandler.setScrollView(webView);
-
-        PageActionToolbarHideHandler snackbarHideHandler =
-                new PageActionToolbarHideHandler(rootView.findViewById(R.id.fragment_page_coordinator), null);
-        snackbarHideHandler.setScrollView(webView);
 
         return rootView;
     }
 
     @Override
     public void onDestroyView() {
+        if (avPlayer != null) {
+            avPlayer.deinit();
+            avPlayer = null;
+        }
         //uninitialize the bridge, so that no further JS events can have any effect.
         bridge.cleanup();
-        tabsProvider.setTabsProviderListener(null);
+        tocHandler.log();
+        shareHandler.dispose();
+        bottomContentView.dispose();
+        disposables.clear();
         webView.clearAllListeners();
         ((ViewGroup) webView.getParent()).removeView(webView);
         webView = null;
@@ -360,15 +340,11 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         // Explicitly set background color of the WebView (independently of CSS, because
         // the background may be shown momentarily while the WebView loads content,
         // creating a seizure-inducing effect, or at the very least, a migraine with aura).
-        webView.setBackgroundColor(getThemedColor(getActivity(), R.attr.paper_color));
+        webView.setBackgroundColor(getThemedColor(requireActivity(), R.attr.paper_color));
 
-        bridge = new CommunicationBridge(webView, "file:///android_asset/index.html");
+        bridge = new CommunicationBridge(webView);
         setupMessageHandlers();
         sendDecorOffsetMessage();
-
-        if (!app.getCurrentTheme().isDefault()) {
-            ThemeBridgeAdapter.setTheme(bridge);
-        }
 
         errorView.setRetryClickListener((v) -> refreshPage());
         errorView.setBackClickListener((v) -> {
@@ -384,42 +360,33 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         editHandler = new EditHandler(this, bridge);
         pageFragmentLoadState.setEditHandler(editHandler);
 
-        tocHandler = new ToCHandler(this, tocDrawer, bridge);
+        tocHandler = new ToCHandler(this, requireActivity().getWindow().getDecorView().findViewById(R.id.toc_container),
+                requireActivity().getWindow().getDecorView().findViewById(R.id.page_scroller_button), bridge);
 
         // TODO: initialize View references in onCreateView().
-        leadImagesHandler = new LeadImagesHandler(this, bridge, webView,
-                getView().findViewById(R.id.page_header_view));
+        leadImagesHandler = new LeadImagesHandler(this, bridge, webView, pageHeaderView);
 
         bottomContentView.setup(this, bridge, webView);
 
         shareHandler = new ShareHandler(this, bridge);
-        tabsProvider = new TabsProvider(this, tabList);
-        tabsProvider.setTabsProviderListener(tabsProviderListener);
 
         if (callback() != null) {
-            LongPressHandler.WebViewContextMenuListener contextMenuListener
-                    = new PageContainerLongPressHandler(this);
-            new LongPressHandler(webView, HistoryEntry.SOURCE_INTERNAL_LINK, contextMenuListener);
+            new LongPressHandler(webView, HistoryEntry.SOURCE_INTERNAL_LINK, new PageContainerLongPressHandler(this));
         }
 
-        pageFragmentLoadState.setUp(model, this, refreshView, webView, bridge, leadImagesHandler, getCurrentTab().getBackStack());
+        pageFragmentLoadState.setUp(model, this, refreshView, webView, bridge, leadImagesHandler, getCurrentTab());
 
-        if (shouldLoadFromBackstack(getActivity()) || savedInstanceState != null) {
-            if (!pageFragmentLoadState.backStackEmpty()) {
-                pageFragmentLoadState.loadFromBackStack();
-            } else {
-                loadMainPageInForegroundTab();
-            }
-        }
-
-        if (shouldShowTabList(getActivity())) {
-            showTabList();
+        if (shouldLoadFromBackstack(requireActivity()) || savedInstanceState != null) {
+            reloadFromBackstack();
         }
     }
 
-    public void setToolbarForceNoFace(boolean force) {
-        if (callback() != null) {
-            callback().onPageSetToolbarForceNoFace(force);
+    public void reloadFromBackstack() {
+        pageFragmentLoadState.setTab(getCurrentTab());
+        if (!pageFragmentLoadState.backStackEmpty()) {
+            pageFragmentLoadState.loadFromBackStack();
+        } else {
+            loadMainPageInForegroundTab();
         }
     }
 
@@ -431,14 +398,8 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
     private boolean shouldLoadFromBackstack(@NonNull Activity activity) {
         return activity.getIntent() != null
-                && (ACTION_SHOW_TAB_LIST.equals(activity.getIntent().getAction())
-                || ACTION_RESUME_READING.equals(activity.getIntent().getAction())
+                && (ACTION_RESUME_READING.equals(activity.getIntent().getAction())
                 || activity.getIntent().hasExtra(Constants.INTENT_APP_SHORTCUT_CONTINUE_READING));
-    }
-
-    private boolean shouldShowTabList(@NonNull Activity activity) {
-        return activity.getIntent() != null
-                && ACTION_SHOW_TAB_LIST.equals(activity.getIntent().getAction());
     }
 
     private void initWebViewListeners() {
@@ -452,9 +413,10 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                 pageScrollFunnel.onPageScrolled(oldScrollY, scrollY, isHumanScroll);
             }
         });
+        webView.addOnContentHeightChangedListener(scrollTriggerListener);
         webView.setWebViewClient(new OkHttpWebViewClient() {
-            @NonNull @Override public WikiSite getWikiSite() {
-                return model.getTitle().getWikiSite();
+            @NonNull @Override public PageViewModel getModel() {
+                return model;
             }
         });
     }
@@ -469,92 +431,23 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         // If this is a Talk page also show in external browser since we don't handle those pages
         // in the app very well at this time.
         if (title.isSpecial() || title.isTalkPage()) {
-            visitInExternalBrowser(getActivity(), Uri.parse(title.getMobileUri()));
+            visitInExternalBrowser(requireActivity(), Uri.parse(title.getMobileUri()));
             return;
         }
         dismissBottomSheet();
-        if (title.namespace() != Namespace.MAIN || !isLinkPreviewEnabled()
-                || (!DeviceUtil.isOnline() && OfflineManager.instance().titleExists(title.getDisplayText()))) {
-            HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
+        HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
+        if (model.getTitle() != null) {
+            historyEntry.setReferrer(model.getTitle().getCanonicalUri());
+        }
+        if (title.namespace() != Namespace.MAIN || !isLinkPreviewEnabled()) {
             loadPage(title, historyEntry);
         } else {
-            showLinkPreview(title, HistoryEntry.SOURCE_INTERNAL_LINK);
+            Callback callback = callback();
+            if (callback != null) {
+                callback.onPageShowLinkPreview(historyEntry);
+            }
         }
     }
-
-    private TabsProvider.TabsProviderListener tabsProviderListener = new TabsProvider.TabsProviderListener() {
-        @Override
-        public void onEnterTabView() {
-            tabFunnel = new TabFunnel();
-            tabFunnel.logEnterList(tabList.size());
-            leadImagesHandler.setAnimationPaused(true);
-        }
-
-        @Override
-        public void onCancelTabView() {
-            tabsProvider.exitTabMode();
-            tabFunnel.logCancel(tabList.size());
-            leadImagesHandler.setAnimationPaused(false);
-            if (tabsProvider.shouldPopFragment()) {
-                Callback callback = callback();
-                if (callback != null) {
-                    callback.onPagePopFragment();
-                }
-            }
-        }
-
-        @Override
-        public void onTabSelected(int position) {
-            setCurrentTab(position, true);
-            tabsProvider.exitTabMode();
-            tabFunnel.logSelect(tabList.size(), position);
-            leadImagesHandler.setAnimationPaused(false);
-        }
-
-        @Override
-        public void onNewTabRequested() {
-            // just load the main page into a new tab...
-            loadMainPageInForegroundTab();
-            tabFunnel.logCreateNew(tabList.size());
-
-            // Set the current tab to the new opened tab
-            tabsProvider.exitTabMode();
-            leadImagesHandler.setAnimationPaused(false);
-        }
-
-        @Override
-        public void onCloseTabRequested(int position) {
-            if (!ReleaseUtil.isDevRelease() && (position < 0 || position >= tabList.size())) {
-                // According to T109998, the position may possibly be out-of-bounds, but we can't
-                // reproduce it. We'll handle this case, but only for non-dev builds, so that we
-                // can investigate the issue further if we happen upon it ourselves.
-                return;
-            }
-            tabList.remove(position);
-            tabFunnel.logClose(tabList.size(), position);
-            tabsProvider.invalidate();
-            getActivity().invalidateOptionsMenu();
-            if (tabList.size() == 0) {
-                tabFunnel.logCancel(tabList.size());
-                tabsProvider.exitTabMode();
-                // and if the last tab was closed, then finish the activity!
-                if (!tabsProvider.shouldPopFragment()) {
-                    getActivity().finish();
-                }
-            } else if (position == tabList.size()) {
-                // if it's the topmost tab, then load the topmost page in the next tab.
-                pageFragmentLoadState.setBackStack(getCurrentTab().getBackStack());
-                pageFragmentLoadState.loadFromBackStack();
-            }
-        }
-
-        @Override
-        public void onCloseAllTabs() {
-            tabList.clear();
-            Prefs.clearTabs();
-            getActivity().finish();
-        }
-    };
 
     @Override
     public void onPause() {
@@ -564,10 +457,10 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         addTimeSpentReading(activeTimer.getElapsedSec());
 
         pageFragmentLoadState.updateCurrentBackStackItem();
-        Prefs.setTabs(tabList);
+        app.commitTabState();
         closePageScrollFunnel();
 
-        long time = tabList.size() >= 1 && !pageFragmentLoadState.backStackEmpty()
+        long time = app.getTabList().size() >= 1 && !pageFragmentLoadState.backStackEmpty()
                 ? System.currentTimeMillis()
                 : 0;
         Prefs.pageLastShown(time);
@@ -589,79 +482,98 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         if (!pageFragmentLoadState.isLoading() && !errorState) {
             pageFragmentLoadState.layoutLeadImage();
         }
-        tabsProvider.onConfigurationChanged();
     }
 
     public Tab getCurrentTab() {
-        return tabList.get(tabList.size() - 1);
+        return app.getTabList().get(app.getTabList().size() - 1);
     }
 
-    public void invalidateTabs() {
-        tabsProvider.invalidate();
-    }
-
-    private void setCurrentTab(int position, boolean updatePrevBackStackItem) {
+    private void setCurrentTabAndReset(int position) {
         // move the selected tab to the bottom of the list, and navigate to it!
         // (but only if it's a different tab than the one currently in view!
-        if (position < tabList.size() - 1) {
-            Tab tab = tabList.remove(position);
-            tabList.add(tab);
-            tabsProvider.invalidate();
-            if (updatePrevBackStackItem) {
-                pageFragmentLoadState.updateCurrentBackStackItem();
-            }
-            pageFragmentLoadState.setBackStack(tab.getBackStack());
+        if (position < app.getTabList().size() - 1) {
+            Tab tab = app.getTabList().remove(position);
+            app.getTabList().add(tab);
+            pageFragmentLoadState.setTab(tab);
+        }
+        if (app.getTabCount() > 0) {
+            app.getTabList().get(app.getTabList().size() - 1).squashBackstack();
             pageFragmentLoadState.loadFromBackStack();
         }
     }
 
-    public void openInNewBackgroundTabFromMenu(@NonNull PageTitle title, @NonNull HistoryEntry entry) {
-        if (noPagesOpen()) {
-            openInNewForegroundTabFromMenu(title, entry);
+    public void openInNewBackgroundTab(@NonNull PageTitle title, @NonNull HistoryEntry entry) {
+        if (app.getTabCount() == 0) {
+            openInNewTab(title, entry, getForegroundTabPosition());
+            pageFragmentLoadState.loadFromBackStack();
         } else {
-            openInNewTabFromMenu(title, entry, getBackgroundTabPosition());
-            tabsProvider.showAndHideTabs();
+            openInNewTab(title, entry, getBackgroundTabPosition());
+            ((PageActivity) requireActivity()).animateTabsButton();
         }
     }
 
-    public void openInNewForegroundTabFromMenu(@NonNull PageTitle title, @NonNull HistoryEntry entry) {
-        openInNewTabFromMenu(title, entry, getForegroundTabPosition());
+    public void openInNewForegroundTab(@NonNull PageTitle title, @NonNull HistoryEntry entry) {
+        openInNewTab(title, entry, getForegroundTabPosition());
         pageFragmentLoadState.loadFromBackStack();
     }
 
-    public void openInNewTabFromMenu(@NonNull PageTitle title, @NonNull HistoryEntry entry, int position) {
-        openInNewTab(title, entry, position);
-        tabFunnel.logOpenInNew(tabList.size());
+    private void openInNewTab(@NonNull PageTitle title, @NonNull HistoryEntry entry, int position) {
+        int selectedTabPosition = -1;
+        for (Tab tab : app.getTabList()) {
+            if (tab.getBackStackPositionTitle() != null && tab.getBackStackPositionTitle().equals(title)) {
+                selectedTabPosition = app.getTabList().indexOf(tab);
+                break;
+            }
+        }
+        if (selectedTabPosition >= 0) {
+            setCurrentTabAndReset(selectedTabPosition);
+            return;
+        }
+
+        tabFunnel.logOpenInNew(app.getTabList().size());
+
+        if (shouldCreateNewTab()) {
+            // create a new tab
+            Tab tab = new Tab();
+            boolean isForeground = position == getForegroundTabPosition();
+            // if the requested position is at the top, then make its backstack current
+            if (isForeground) {
+                pageFragmentLoadState.setTab(tab);
+            }
+            // put this tab in the requested position
+            app.getTabList().add(position, tab);
+            trimTabCount();
+            // add the requested page to its backstack
+            tab.getBackStack().add(new PageBackStackItem(title, entry));
+            if (!isForeground) {
+                loadIntoCache(title);
+            }
+            requireActivity().invalidateOptionsMenu();
+        } else {
+            getCurrentTab().getBackStack().add(new PageBackStackItem(title, entry));
+        }
     }
 
     public void openFromExistingTab(@NonNull PageTitle title, @NonNull HistoryEntry entry) {
         // find the tab in which this title appears...
         int selectedTabPosition = -1;
-        for (Tab tab : tabList) {
-            for (PageBackStackItem item : tab.getBackStack()) {
-                if (item.getTitle().equals(title)) {
-                    selectedTabPosition = tabList.indexOf(tab);
-                    break;
-                }
+        for (Tab tab : app.getTabList()) {
+            if (tab.getBackStackPositionTitle() != null && tab.getBackStackPositionTitle().equals(title)) {
+                selectedTabPosition = app.getTabList().indexOf(tab);
+                break;
             }
         }
         if (selectedTabPosition == -1) {
-            // open the page anyway, in a new tab
-            openInNewForegroundTabFromMenu(title, entry);
+            loadPage(title, entry, true, true);
             return;
         }
-        if (selectedTabPosition == tabList.size() - 1) {
-            pageFragmentLoadState.loadFromBackStack();
-        } else {
-            setCurrentTab(selectedTabPosition, false);
-        }
+        setCurrentTabAndReset(selectedTabPosition);
     }
 
-    public void loadPage(@NonNull PageTitle title, @NonNull HistoryEntry entry, boolean pushBackStack) {
+    public void loadPage(@NonNull PageTitle title, @NonNull HistoryEntry entry, boolean pushBackStack, boolean squashBackstack) {
         //is the new title the same as what's already being displayed?
         if (!getCurrentTab().getBackStack().isEmpty()
-                && getCurrentTab().getBackStack().get(getCurrentTab().getBackStack().size() - 1)
-                .getTitle().equals(title)) {
+                && getCurrentTab().getBackStack().get(getCurrentTab().getBackStackPosition()).getTitle().equals(title)) {
             if (model.getPage() == null) {
                 pageFragmentLoadState.loadFromBackStack();
             } else if (!TextUtils.isEmpty(title.getFragment())) {
@@ -669,7 +581,11 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             }
             return;
         }
-
+        if (squashBackstack) {
+            if (app.getTabCount() > 0) {
+                app.getTabList().get(app.getTabList().size() - 1).clearBackstack();
+            }
+        }
         loadPage(title, entry, pushBackStack, 0);
     }
 
@@ -703,8 +619,6 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         errorView.setVisibility(View.GONE);
         tabLayout.enableAllTabs();
 
-        leadImagesHandler.hide();
-
         model.setTitle(title);
         model.setTitleOriginal(title);
         model.setCurEntry(entry);
@@ -716,7 +630,8 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         this.pageRefreshed = isRefresh;
 
         closePageScrollFunnel();
-        pageFragmentLoadState.load(pushBackStack, stagedScrollY);
+        pageFragmentLoadState.load(pushBackStack);
+        scrollTriggerListener.setStagedScrollY(stagedScrollY);
         bottomContentView.hide();
         updateBookmarkAndMenuOptions();
     }
@@ -730,7 +645,7 @@ public class PageFragment extends Fragment implements BackPressedHandler {
      * preferences.
      */
     public void updateFontSize() {
-        webView.getSettings().setDefaultFontSize((int) app.getFontSize(getActivity().getWindow()));
+        webView.getSettings().setDefaultFontSize((int) app.getFontSize(requireActivity().getWindow()));
     }
 
     public void updateBookmarkAndMenuOptions() {
@@ -738,25 +653,18 @@ public class PageFragment extends Fragment implements BackPressedHandler {
             return;
         }
         pageActionTabsCallback.updateBookmark(model.isInReadingList());
-        if (callback() != null) {
-            callback().onPageInvalidateOptionsMenu();
-        }
+        requireActivity().invalidateOptionsMenu();
     }
 
     public void updateBookmarkAndMenuOptionsFromDao() {
-        CallbackTask.execute(() -> ReadingListDbHelper.instance().findPageInAnyList(getTitle()), new CallbackTask.DefaultCallback<ReadingListPage>() {
-            @Override
-            public void success(ReadingListPage page) {
-                if (!isAdded()) {
-                    return;
-                }
-                model.setReadingListPage(page);
-                pageActionTabsCallback.updateBookmark(page != null);
-                if (callback() != null) {
-                    callback().onPageInvalidateOptionsMenu();
-                }
-            }
-        });
+        disposables.add(Observable.fromCallable(() -> ReadingListDbHelper.instance().findPageInAnyList(getTitle())).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doFinally(() -> {
+                    pageActionTabsCallback.updateBookmark(model.getReadingListPage() != null);
+                    requireActivity().invalidateOptionsMenu();
+                })
+                .subscribe(page -> model.setReadingListPage(page),
+                        throwable -> model.setReadingListPage(null)));
     }
 
     public void onActionModeShown(ActionMode mode) {
@@ -770,93 +678,34 @@ public class PageFragment extends Fragment implements BackPressedHandler {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.ACTIVITY_REQUEST_EDIT_SECTION
-            && resultCode == EditHandler.RESULT_REFRESH_PAGE) {
+                && resultCode == EditHandler.RESULT_REFRESH_PAGE) {
             pageFragmentLoadState.backFromEditing(data);
-            FeedbackUtil.showMessage(getActivity(), R.string.edit_saved_successfully);
+            FeedbackUtil.showMessage(requireActivity(), R.string.edit_saved_successfully);
             // and reload the page...
-            loadPage(model.getTitleOriginal(), model.getCurEntry(), false);
+            loadPage(model.getTitleOriginal(), model.getCurEntry(), false, false);
         } else if (requestCode == Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT_TUTORIAL
                 && resultCode == RESULT_OK) {
-            PrefsOnboardingStateMachine.getInstance().setDescriptionEditTutorial();
-            startDescriptionEditActivity();
+            Prefs.setDescriptionEditTutorialEnabled(false);
+            startDescriptionEditActivity(data.getStringExtra(DESCRIPTION_SELECTED_TEXT));
         } else if (requestCode == Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT
                 && resultCode == RESULT_OK) {
             refreshPage();
+            FeedbackUtil.showMessage(requireActivity(), R.string.description_edit_success_saved_snackbar);
         }
-    }
-
-    public void startDescriptionEditActivity() {
-        startActivityForResult(DescriptionEditActivity.newIntent(getContext(), getTitle()),
-                Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.homeAsUp:
-                // TODO SEARCH: add up navigation, see also http://developer.android.com/training/implementing-navigation/ancestral.html
-                return true;
-            case R.id.menu_page_other_languages:
-                startLangLinksActivity();
-                return true;
-            case R.id.menu_page_share:
-                sharePageLink();
-                return true;
-            case R.id.menu_page_add_to_list:
-                addToReadingList(getTitle(), AddToReadingListDialog.InvokeSource.PAGE_OVERFLOW_MENU);
-                return true;
-            case R.id.menu_page_remove_from_list:
-                showRemoveFromListsDialog();
-                return true;
-            case R.id.menu_page_find_in_page:
-                showFindInPage();
-                return true;
-            case R.id.menu_page_content_issues:
-                showContentIssues();
-                return true;
-            case R.id.menu_page_similar_titles:
-                showSimilarTitles();
-                return true;
-            case R.id.menu_page_font_and_theme:
-                showThemeChooser();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    private void showRemoveFromListsDialog() {
-        CallbackTask.execute(() -> {
-            List<ReadingListPage> pageOccurrences = ReadingListDbHelper.instance().getAllPageOccurrences(model.getTitle());
-            return ReadingListDbHelper.instance().getListsFromPageOccurrences(pageOccurrences);
-        }, new CallbackTask.DefaultCallback<List<ReadingList>>() {
-            @Override
-            public void success(List<ReadingList> listsContainingPage) {
-                if (!isAdded()) {
-                    return;
-                }
-                new RemoveFromReadingListsDialog(listsContainingPage).deleteOrShowDialog(getContext(),
-                        page -> {
-                            if (callback() != null) {
-                                callback().onPageRemoveFromReadingLists(getTitle());
-                            }
-                        });
-            }
-        });
     }
 
     public void sharePageLink() {
         if (getPage() != null) {
-            ShareUtil.shareText(getActivity(), getPage().getTitle());
+            ShareUtil.shareText(requireActivity(), getPage().getTitle());
         }
     }
 
-    @NonNull public TabLayout getTabLayout() {
+    @NonNull public ViewGroup getTabLayout() {
         return tabLayout;
     }
 
-    public int getTabCount() {
-        return tabList.size();
+    public View getHeaderView() {
+        return pageHeaderView;
     }
 
     public void showFindInPage() {
@@ -865,8 +714,8 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         }
         final FindInPageFunnel funnel = new FindInPageFunnel(app, model.getTitle().getWikiSite(),
                 model.getPage().getPageProperties().getPageId());
-        final FindInPageActionProvider findInPageActionProvider
-                = new FindInPageActionProvider(this, funnel);
+        final FindInWebPageActionProvider findInPageActionProvider
+                = new FindInWebPageActionProvider(this, funnel);
 
         startSupportActionMode(new ActionMode.Callback() {
             private final String actionModeTag = "actionModeFindInPage";
@@ -877,6 +726,7 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                 MenuItem menuItem = menu.add(R.string.menu_page_find_in_page);
                 menuItem.setActionProvider(findInPageActionProvider);
                 menuItem.expandActionView();
+                setToolbarElevationEnabled(false);
                 return true;
             }
 
@@ -893,12 +743,15 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
             @Override
             public void onDestroyActionMode(ActionMode mode) {
+                if (webView == null || !isAdded()) {
+                    return;
+                }
                 findInPageActionMode = null;
                 funnel.setPageHeight(webView.getContentHeight());
                 funnel.logDone();
                 webView.clearMatches();
-                showToolbar();
                 hideSoftKeyboard();
+                setToolbarElevationEnabled(true);
             }
         });
     }
@@ -924,9 +777,8 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
     public void onPageLoadComplete() {
         refreshView.setEnabled(true);
-        if (callback() != null) {
-            callback().onPageInvalidateOptionsMenu();
-        }
+        requireActivity().invalidateOptionsMenu();
+
         setupToC(model, pageFragmentLoadState.isFirstPage());
         editHandler.setPage(model.getPage());
         initPageScrollFunnel();
@@ -935,25 +787,23 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         if (model.getReadingListPage() != null) {
             final ReadingListPage page = model.getReadingListPage();
             final PageTitle title = model.getTitle();
-            CallbackTask.execute(() -> {
+            disposables.add(Completable.fromAction(() -> {
                 if (!TextUtils.equals(page.thumbUrl(), title.getThumbUrl())
                         || !TextUtils.equals(page.description(), title.getDescription())) {
                     page.thumbUrl(title.getThumbUrl());
                     page.description(title.getDescription());
                     ReadingListDbHelper.instance().updatePage(page);
                 }
-            });
+            }).subscribeOn(Schedulers.io()).subscribe());
         }
 
-        checkAndShowSelectTextOnboarding();
+        checkAndShowBookmarkOnboarding();
     }
 
     public void onPageLoadError(@NonNull Throwable caught) {
         if (!isAdded()) {
             return;
         }
-        // in any case, make sure the TOC drawer is closed
-        tocDrawer.closeDrawers();
         updateProgressBar(false, true, 0);
         refreshView.setRefreshing(false);
 
@@ -967,7 +817,7 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
         View contentTopOffset = errorView.findViewById(R.id.view_wiki_error_article_content_top_offset);
         View tabLayoutOffset = errorView.findViewById(R.id.view_wiki_error_article_tab_layout_offset);
-        contentTopOffset.setLayoutParams(getContentTopOffsetParams(getContext()));
+        contentTopOffset.setLayoutParams(getContentTopOffsetParams(requireContext()));
         contentTopOffset.setVisibility(View.VISIBLE);
         tabLayoutOffset.setLayoutParams(getTabLayoutOffsetParams());
         tabLayoutOffset.setVisibility(View.VISIBLE);
@@ -997,35 +847,7 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         errorState = false;
 
         model.setCurEntry(new HistoryEntry(model.getTitle(), HistoryEntry.SOURCE_HISTORY));
-        loadPage(model.getTitle(), model.getCurEntry(), false, stagedScrollY, true);
-    }
-
-    public void toggleToC(int action) {
-        // tocHandler could still be null while the page is loading
-        if (tocHandler == null) {
-            return;
-        }
-        switch (action) {
-            case TOC_ACTION_SHOW:
-                tocHandler.show();
-                break;
-            case TOC_ACTION_HIDE:
-                tocHandler.hide();
-                break;
-            case TOC_ACTION_TOGGLE:
-                if (tocHandler.isVisible()) {
-                    tocHandler.hide();
-                } else {
-                    tocHandler.show();
-                }
-                break;
-            default:
-                throw new RuntimeException("Unknown action!");
-        }
-    }
-
-    PageInfo getPageInfo() {
-        return pageInfo;
+        loadPage(model.getTitle(), model.getCurEntry(), false, stagedScrollY, app.isOnline());
     }
 
     boolean isLoading() {
@@ -1036,83 +858,28 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         return bridge;
     }
 
-    void enterTabMode(boolean launchedExternally) {
-        tabsProvider.enterTabMode(launchedExternally);
-    }
-
     private void setupToC(@NonNull PageViewModel model, boolean isFirstPage) {
         tocHandler.setupToC(model.getPage(), model.getTitle().getWikiSite(), isFirstPage);
         tocHandler.setEnabled(true);
     }
 
     private void setBookmarkIconForPageSavedState(boolean pageSaved) {
-        TabLayout.Tab bookmarkTab = tabLayout.getTabAt(PageActionTab.ADD_TO_READING_LIST.code());
+        View bookmarkTab = tabLayout.getChildAt(PageActionTab.ADD_TO_READING_LIST.code());
         if (bookmarkTab != null) {
-            bookmarkTab.setIcon(pageSaved ? R.drawable.ic_bookmark_white_24dp
+            ((ImageView) bookmarkTab).setImageResource(pageSaved ? R.drawable.ic_bookmark_white_24dp
                     : R.drawable.ic_bookmark_border_white_24dp);
         }
     }
 
-    private void showContentIssues() {
-        showPageInfoDialog(false);
-    }
-
-    private void showSimilarTitles() {
-        showPageInfoDialog(true);
-    }
-
-    private void showPageInfoDialog(boolean startAtDisambig) {
-        showBottomSheet(new PageInfoDialog(this, pageInfo, startAtDisambig));
-    }
-
-    private void showTabList() {
-        // Doesn't seem to be a way around doing a post() here...
-        // Without post(), the tab picker layout is inflated with wrong dimensions.
-        webView.post(() -> tabsProvider.enterTabMode(true));
-    }
-
     protected void clearActivityActionBarTitle() {
-        FragmentActivity currentActivity = getActivity();
+        FragmentActivity currentActivity = requireActivity();
         if (currentActivity instanceof PageActivity) {
             ((PageActivity) currentActivity).clearActionBarTitle();
         }
     }
 
-    private void openInNewTab(@NonNull PageTitle title, @NonNull HistoryEntry entry, int position) {
-        if (shouldCreateNewTab()) {
-            // create a new tab
-            Tab tab = new Tab();
-            boolean isForeground = position == getForegroundTabPosition();
-            // if the requested position is at the top, then make its backstack current
-            if (isForeground) {
-                pageFragmentLoadState.setBackStack(tab.getBackStack());
-            }
-            // put this tab in the requested position
-            tabList.add(position, tab);
-            trimTabCount();
-            tabsProvider.invalidate();
-            // add the requested page to its backstack
-            tab.getBackStack().add(new PageBackStackItem(title, entry));
-            if (!isForeground) {
-                loadIntoCache(title);
-            }
-            getActivity().invalidateOptionsMenu();
-        } else {
-            getTopMostTab().getBackStack().add(new PageBackStackItem(title, entry));
-        }
-    }
-
-    private boolean noPagesOpen() {
-        return tabList.isEmpty()
-                || (tabList.size() == 1 && tabList.get(0).getBackStack().isEmpty());
-    }
-
-    private Tab getTopMostTab() {
-        return tabList.get(tabList.size() - 1);
-    }
-
     private boolean shouldCreateNewTab() {
-        return !getTopMostTab().getBackStack().isEmpty();
+        return !getCurrentTab().getBackStack().isEmpty();
     }
 
     private int getBackgroundTabPosition() {
@@ -1120,16 +887,17 @@ public class PageFragment extends Fragment implements BackPressedHandler {
     }
 
     private int getForegroundTabPosition() {
-        return tabList.size();
+        return app.getTabList().size();
     }
 
     private void setupMessageHandlers() {
-        linkHandler = new LinkHandler(getActivity()) {
-            @Override public void onPageLinkClicked(@NonNull String anchor) {
+        linkHandler = new LinkHandler(requireActivity()) {
+            @Override public void onPageLinkClicked(@NonNull String anchor, @NonNull String linkText) {
                 dismissBottomSheet();
                 JSONObject payload = new JSONObject();
                 try {
                     payload.put("anchor", anchor);
+                    payload.put("text", linkText);
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
@@ -1148,28 +916,14 @@ public class PageFragment extends Fragment implements BackPressedHandler {
 
         bridge.addListener("referenceClicked", new ReferenceHandler() {
             @Override
-            protected void onReferenceClicked(@NonNull String refHtml, @Nullable String refLinkText) {
+            protected void onReferenceClicked(int selectedIndex, @NonNull List<Reference> adjacentReferences) {
+
                 if (!isAdded()) {
-                    Log.d("PageFragment", "Detached from activity, so stopping reference click.");
+                    L.d("Detached from activity, so stopping reference click.");
                     return;
                 }
-                showBottomSheet(new ReferenceDialog(getActivity(), linkHandler, refHtml,
-                        StringUtils.defaultString(refLinkText)));
-            }
-        });
-        bridge.addListener("ipaSpan", (String messageType, JSONObject messagePayload) -> {
-            try {
-                String text = messagePayload.getString("contents");
-                final int textSize = 30;
-                TextView textView = new TextView(getActivity());
-                textView.setGravity(Gravity.CENTER);
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
-                textView.setText(StringUtil.fromHtml(text));
-                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                builder.setView(textView);
-                builder.show();
-            } catch (JSONException e) {
-                L.logRemoteErrorIfProd(e);
+
+                showBottomSheet(new ReferenceDialog(requireActivity(), selectedIndex, adjacentReferences, linkHandler));
             }
         });
         bridge.addListener("imageClicked", (String messageType, JSONObject messagePayload) -> {
@@ -1177,13 +931,24 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                 String href = decodeURL(messagePayload.getString("href"));
                 if (href.startsWith("/wiki/")) {
                     String filename = UriUtil.removeInternalLinkPrefix(href);
+                    String fileUrl = null;
+
+                    // Set the lead image url manually if the filename equals to the lead image file name.
+                    if (getPage() != null && !TextUtils.isEmpty(getPage().getPageProperties().getLeadImageName())) {
+                        String leadImageName = addUnderscores(getPage().getPageProperties().getLeadImageName());
+                        String leadImageUrl = getPage().getPageProperties().getLeadImageUrl();
+                        if (filename.contains(leadImageName) && leadImageUrl != null) {
+                            fileUrl = UriUtil.resolveProtocolRelativeUrl(leadImageUrl);
+                        }
+                    }
+
                     WikiSite wiki = model.getTitle().getWikiSite();
-                    getActivity().startActivityForResult(GalleryActivity.newIntent(getActivity(),
-                            model.getTitleOriginal(), filename, wiki,
+                    requireActivity().startActivityForResult(GalleryActivity.newIntent(requireActivity(),
+                            model.getTitleOriginal(), filename, fileUrl, wiki,
                             GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
-                            Constants.ACTIVITY_REQUEST_GALLERY);
+                            ACTIVITY_REQUEST_GALLERY);
                 } else {
-                    linkHandler.onUrlClick(href, messagePayload.optString("title"));
+                    linkHandler.onUrlClick(href, messagePayload.optString("title"), "");
                 }
             } catch (JSONException e) {
                 L.logRemoteErrorIfProd(e);
@@ -1194,14 +959,60 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                 String href = decodeURL(messagePayload.getString("href"));
                 String filename = StringUtil.removeUnderscores(UriUtil.removeInternalLinkPrefix(href));
                 WikiSite wiki = model.getTitle().getWikiSite();
-                getActivity().startActivityForResult(GalleryActivity.newIntent(getActivity(),
+                requireActivity().startActivityForResult(GalleryActivity.newIntent(requireActivity(),
                         model.getTitleOriginal(), filename, wiki,
                         GalleryFunnel.SOURCE_NON_LEAD_IMAGE),
-                        Constants.ACTIVITY_REQUEST_GALLERY);
+                        ACTIVITY_REQUEST_GALLERY);
             } catch (JSONException e) {
                 L.logRemoteErrorIfProd(e);
             }
         });
+        bridge.addListener("pronunciationClicked", (String messageType, JSONObject messagePayload) -> {
+            if (avPlayer == null) {
+                avPlayer = new DefaultAvPlayer(new MediaPlayerImplementation());
+                avPlayer.init();
+            }
+            if (avCallback == null) {
+                avCallback = new AvCallback();
+            }
+            if (!avPlayer.isPlaying()) {
+                updateProgressBar(true, true, 0);
+                avPlayer.play(getPage().getTitlePronunciationUrl(), avCallback, avCallback);
+            } else {
+                updateProgressBar(false, true, 0);
+                avPlayer.stop();
+            }
+        });
+    }
+
+    public void verifyBeforeEditingDescription(@Nullable String text) {
+        if (getPage() != null && getPage().getPageProperties().canEdit()) {
+            if (!AccountUtil.isLoggedIn() && Prefs.getTotalAnonDescriptionsEdited() >= getResources().getInteger(R.integer.description_max_anon_edits)) {
+                new AlertDialog.Builder(requireActivity())
+                        .setMessage(R.string.description_edit_anon_limit)
+                        .setPositiveButton(R.string.page_editing_login, (DialogInterface dialogInterface, int i) ->
+                                startActivity(LoginActivity.newIntent(requireContext(), LoginFunnel.SOURCE_EDIT)))
+                        .setNegativeButton(R.string.description_edit_login_cancel_button_text, null)
+                        .show();
+            } else {
+                startDescriptionEditActivity(text);
+            }
+        } else {
+            getEditHandler().showUneditableDialog();
+        }
+    }
+
+    private void startDescriptionEditActivity(@Nullable String text) {
+        if (isDescriptionEditTutorialEnabled()) {
+            startActivityForResult(DescriptionEditTutorialActivity.newIntent(requireContext(), text),
+                    Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT_TUTORIAL);
+        } else {
+            SuggestedEditsSummary sourceSummary = new SuggestedEditsSummary(getTitle().getPrefixedText(), getTitle().getWikiSite().languageCode(), getTitle(),
+                    getTitle().getDisplayText(), getTitle().getDisplayText(), getTitle().getDescription(), getTitle().getThumbUrl(), getTitle().getThumbUrl(),
+                    null, null, null, null);
+            startActivityForResult(DescriptionEditActivity.newIntent(requireContext(), getTitle(), text, sourceSummary, null, PAGE_ACTIVITY),
+                    Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT);
+        }
     }
 
     /**
@@ -1224,55 +1035,29 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         if (closeFindInPage()) {
             return true;
         }
-        if (pageFragmentLoadState.popBackStack()) {
+        if (pageFragmentLoadState.goBack()) {
             return true;
-        }
-        if (tabsProvider.onBackPressed()) {
-            return true;
-        }
-        if (tabList.size() > 1) {
-            // if we're at the end of the current tab's backstack, then pop the current tab.
-            tabList.remove(tabList.size() - 1);
-            tabsProvider.invalidate();
         }
         return false;
     }
 
-    public void updatePageInfo(@Nullable PageInfo pageInfo) {
-        this.pageInfo = pageInfo;
-        if (getActivity() != null) {
-            getActivity().invalidateOptionsMenu();
-        }
+    public void goForward() {
+        pageFragmentLoadState.goForward();
     }
 
-    private void checkAndShowSelectTextOnboarding() {
-        if (model.getPage().isArticle()
-                &&  PrefsOnboardingStateMachine.getInstance().isSelectTextTutorialEnabled()) {
-            showSelectTextOnboarding();
-        }
-    }
-
-    private void showSelectTextOnboarding() {
-        final View targetView = getView().findViewById(R.id.fragment_page_tool_tip_select_text_target);
-        FeedbackUtil.showTapTargetView(getActivity(), targetView,
-                R.string.tool_tip_select_text_title, R.string.tool_tip_select_text, null);
-        PrefsOnboardingStateMachine.getInstance().setSelectTextTutorial();
-    }
-
-    private void initTabs() {
-        if (Prefs.hasTabs()) {
-            tabList.addAll(Prefs.getTabs());
-        }
-
-        if (tabList.isEmpty()) {
-            tabList.add(new Tab());
+    private void checkAndShowBookmarkOnboarding() {
+        if (Prefs.shouldShowBookmarkToolTip() && Prefs.getOverflowReadingListsOptionClickCount() == 2) {
+            View targetView = tabLayout.getChildAt(PageActionTab.ADD_TO_READING_LIST.code());
+            FeedbackUtil.showTapTargetView(requireActivity(), targetView,
+                    R.string.tool_tip_bookmark_icon_title, R.string.tool_tip_bookmark_icon_text, null);
+            Prefs.shouldShowBookmarkToolTip(false);
         }
     }
 
     private void sendDecorOffsetMessage() {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("offset", getContentTopOffset(getActivity()));
+            payload.put("offset", getContentTopOffset(requireActivity()));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -1322,13 +1107,6 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         }
     }
 
-    private void showLinkPreview(@NonNull PageTitle title, int source) {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onPageShowLinkPreview(title, source);
-        }
-    }
-
     private void loadMainPageInForegroundTab() {
         Callback callback = callback();
         if (callback != null) {
@@ -1356,13 +1134,6 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         }
     }
 
-    public void showToolbar() {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onPageShowToolbar();
-        }
-    }
-
     public void hideSoftKeyboard() {
         Callback callback = callback();
         if (callback != null) {
@@ -1370,31 +1141,35 @@ public class PageFragment extends Fragment implements BackPressedHandler {
         }
     }
 
-    public void addToReadingList(@NonNull PageTitle title, @NonNull AddToReadingListDialog.InvokeSource source) {
+    public void setToolbarElevationEnabled(boolean enabled) {
+        Callback callback = callback();
+        if (callback != null) {
+            callback.onPageSetToolbarElevationEnabled(enabled);
+        }
+    }
+
+    public void addToReadingList(@NonNull PageTitle title, @NonNull InvokeSource source) {
         Callback callback = callback();
         if (callback != null) {
             callback.onPageAddToReadingList(title, source);
         }
     }
 
-    public View getTabsContainerView() {
-        return getActivity().findViewById(R.id.tabs_container);
-    }
-
     public void startLangLinksActivity() {
         Intent langIntent = new Intent();
-        langIntent.setClass(getActivity(), LangLinksActivity.class);
+        langIntent.setClass(requireActivity(), LangLinksActivity.class);
         langIntent.setAction(LangLinksActivity.ACTION_LANGLINKS_FOR_TITLE);
         langIntent.putExtra(LangLinksActivity.EXTRA_PAGETITLE, model.getTitle());
-        getActivity().startActivityForResult(langIntent, Constants.ACTIVITY_REQUEST_LANGLINKS);
+        requireActivity().startActivityForResult(langIntent, Constants.ACTIVITY_REQUEST_LANGLINKS);
     }
 
     private void trimTabCount() {
-        while (tabList.size() > Constants.MAX_TABS) {
-            tabList.remove(0);
+        while (app.getTabList().size() > Constants.MAX_TABS) {
+            app.getTabList().remove(0);
         }
     }
 
+    @SuppressLint("CheckResult")
     private void addTimeSpentReading(int timeSpentSec) {
         if (model.getCurEntry() == null) {
             return;
@@ -1403,7 +1178,9 @@ public class PageFragment extends Fragment implements BackPressedHandler {
                 new Date(),
                 model.getCurEntry().getSource(),
                 timeSpentSec));
-        new UpdateHistoryTask(model.getCurEntry(), app).execute();
+        Completable.fromAction(new UpdateHistoryTask(model.getCurEntry()))
+                .subscribeOn(Schedulers.io())
+                .subscribe(() -> { }, L::e);
     }
 
     private LinearLayout.LayoutParams getContentTopOffsetParams(@NonNull Context context) {
@@ -1415,10 +1192,43 @@ public class PageFragment extends Fragment implements BackPressedHandler {
     }
 
     private void disableActionTabs(@Nullable Throwable caught) {
-        boolean offline = caught != null && isOffline(caught);
-        for (int i = 0; i < tabLayout.getTabCount(); i++) {
+        boolean offline = isOffline(caught);
+        for (int i = 0; i < tabLayout.getChildCount(); i++) {
             if (!(offline && PageActionTab.of(i).equals(PageActionTab.ADD_TO_READING_LIST))) {
                 tabLayout.disableTab(i);
+            }
+        }
+    }
+
+    private class AvCallback implements AvPlayer.Callback, AvPlayer.ErrorCallback {
+        @Override
+        public void onSuccess() {
+            if (avPlayer != null) {
+                avPlayer.stop();
+                updateProgressBar(false, true, 0);
+            }
+        }
+        @Override
+        public void onError() {
+            if (avPlayer != null) {
+                avPlayer.stop();
+                updateProgressBar(false, true, 0);
+            }
+        }
+    }
+
+    private class WebViewScrollTriggerListener implements ObservableWebView.OnContentHeightChangedListener {
+        private int stagedScrollY;
+
+        void setStagedScrollY(int stagedScrollY) {
+            this.stagedScrollY = stagedScrollY;
+        }
+
+        @Override
+        public void onContentHeightChanged(int contentHeight) {
+            if (stagedScrollY > 0 && (contentHeight * DimenUtil.getDensityScalar() - webView.getHeight()) > stagedScrollY) {
+                webView.setScrollY(stagedScrollY);
+                stagedScrollY = 0;
             }
         }
     }

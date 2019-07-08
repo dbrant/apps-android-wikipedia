@@ -3,37 +3,50 @@ package org.wikipedia.edit.richtext;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.text.Editable;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.format.DateUtils;
 import android.widget.EditText;
 
-import org.wikipedia.concurrency.SaneAsyncTask;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.util.log.L;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.concurrent.Callable;
+
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class SyntaxHighlighter {
     @VisibleForTesting
-    interface OnSyntaxHighlightListener {
+    public interface OnSyntaxHighlightListener {
         void syntaxHighlightResults(List<SpanExtents> spanExtents);
+        void findTextMatches(List<SpanExtents> spanExtents);
     }
 
     private Context context;
     private EditText textBox;
     private List<SyntaxRule> syntaxRules;
+    private String searchText;
+    private int selectedMatchResultPosition;
 
     private Handler handler;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Nullable private OnSyntaxHighlightListener syntaxHighlightListener;
 
     private Runnable syntaxHighlightCallback = new Runnable() {
         private SyntaxHighlightTask currentTask;
+        private SyntaxHighlightSearchMatchesTask searchTask;
 
         @Override public void run() {
             if (context != null) {
@@ -41,7 +54,45 @@ public class SyntaxHighlighter {
                     currentTask.cancel();
                 }
                 currentTask = new SyntaxHighlightTask(textBox.getText());
-                currentTask.execute();
+                searchTask = new SyntaxHighlightSearchMatchesTask(textBox.getText(), searchText, selectedMatchResultPosition);
+                disposables.clear();
+                disposables.add(Observable.zip(Observable.fromCallable(currentTask),
+                        Observable.fromCallable(searchTask), (f, s) -> {
+                            f.addAll(s);
+                            return f;
+                        })
+                        .subscribeOn(Schedulers.computation())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(result -> {
+                            if (syntaxHighlightListener != null) {
+                                syntaxHighlightListener.syntaxHighlightResults(result);
+                            }
+
+                            // TODO: probably possible to make this more efficient...
+                            // Right now, on longer articles, this is quite heavy on the UI thread.
+                            // remove any of our custom spans from the previous cycle...
+                            long time = System.currentTimeMillis();
+                            Object[] prevSpans = textBox.getText().getSpans(0, textBox.getText().length(), SpanExtents.class);
+                            for (Object sp : prevSpans) {
+                                textBox.getText().removeSpan(sp);
+                            }
+
+                            List<SpanExtents> findTextList = new ArrayList<>();
+
+                            // and add our new spans
+                            for (SpanExtents spanEx : result) {
+                                textBox.getText().setSpan(spanEx, spanEx.getStart(), spanEx.getEnd(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                if (spanEx.getSyntaxRule().getSpanStyle().equals(SyntaxRuleStyle.SEARCH_MATCHES)) {
+                                    findTextList.add(spanEx);
+                                }
+                            }
+
+                            if ((searchText != null && searchText.length() > 0) && syntaxHighlightListener != null) {
+                                syntaxHighlightListener.findTextMatches(findTextList);
+                            }
+                            time = System.currentTimeMillis() - time;
+                            L.d("That took " + time + "ms");
+                        }, L::e));
             }
         }
     };
@@ -115,13 +166,29 @@ public class SyntaxHighlighter {
             }
             @Override
             public void afterTextChanged(final Editable editable) {
-                // queue up syntax highlighting.
-                // if the user adds more text within 1/2 second, the previous request
-                // is cancelled, and a new one is placed.
-                handler.removeCallbacks(syntaxHighlightCallback);
-                handler.postDelayed(syntaxHighlightCallback, DateUtils.SECOND_IN_MILLIS / 2);
+                postHighlightCallback();
             }
         });
+    }
+
+    public void applyFindTextSyntax(@Nullable String searchText, @Nullable OnSyntaxHighlightListener listener) {
+        this.searchText = searchText;
+        this.syntaxHighlightListener = listener;
+        setSelectedMatchResultPosition(0);
+        postHighlightCallback();
+    }
+
+    public void setSelectedMatchResultPosition(int selectedMatchResultPosition) {
+        this.selectedMatchResultPosition = selectedMatchResultPosition;
+        postHighlightCallback();
+    }
+
+    private void postHighlightCallback() {
+        // queue up syntax highlighting.
+        // if the user adds more text within 1/2 second, the previous request
+        // is cancelled, and a new one is placed.
+        handler.removeCallbacks(syntaxHighlightCallback);
+        handler.postDelayed(syntaxHighlightCallback, TextUtils.isEmpty(searchText) ? DateUtils.SECOND_IN_MILLIS / 2 : 0);
     }
 
     public void cleanup() {
@@ -131,17 +198,23 @@ public class SyntaxHighlighter {
             textBox = null;
             context = null;
         }
+        disposables.clear();
     }
 
-    private class SyntaxHighlightTask extends SaneAsyncTask<List<SpanExtents>> {
+    private class SyntaxHighlightTask implements Callable<List<SpanExtents>> {
         SyntaxHighlightTask(Editable text) {
             this.text = text;
         }
 
         private Editable text;
+        private boolean cancelled;
+
+        public void cancel() {
+            cancelled = true;
+        }
 
         @Override
-        public List<SpanExtents> performTask() throws Throwable {
+        public List<SpanExtents> call() {
             Stack<SpanExtents> spanStack = new Stack<>();
             List<SpanExtents> spansToSet = new ArrayList<>();
 
@@ -182,7 +255,6 @@ public class SyntaxHighlighter {
                             i += syntaxItem.getStartSymbol().length();
                             incrementDone = true;
                         }
-
                     } else {
 
                         boolean pass = true;
@@ -223,41 +295,66 @@ public class SyntaxHighlighter {
                     }
                 }
 
-                if (!incrementDone) {
-                    i++;
+                if (cancelled) {
+                    break;
                 }
 
-                if (isCancelled()) {
-                    break;
+                if (!incrementDone) {
+                    i++;
                 }
             }
 
             return spansToSet;
         }
+    }
+
+    private class SyntaxHighlightSearchMatchesTask implements Callable<List<SpanExtents>> {
+        SyntaxHighlightSearchMatchesTask(Editable text, String searchText, int selectedMatchResultPosition) {
+            this.text = StringUtils.lowerCase(text.toString());
+            this.searchText = StringUtils.lowerCase(searchText);
+            this.selectedMatchResultPosition = selectedMatchResultPosition;
+        }
+
+        private String searchText;
+        private int selectedMatchResultPosition;
+        private String text;
+        private boolean cancelled;
+
+        public void cancel() {
+            cancelled = true;
+        }
 
         @Override
-        public void onFinish(List<SpanExtents> result) {
-            if (context == null) {
-                return;
-            }
-            if (syntaxHighlightListener != null) {
-                syntaxHighlightListener.syntaxHighlightResults(result);
+        public List<SpanExtents>  call() {
+            List<SpanExtents> spansToSet = new ArrayList<>();
+            if (TextUtils.isEmpty(searchText)) {
+                return spansToSet;
             }
 
-            // TODO: probably possible to make this more efficient...
-            // Right now, on longer articles, this is quite heavy on the UI thread.
-            // remove any of our custom spans from the previous cycle...
-            long time = System.currentTimeMillis();
-            Object[] prevSpans = textBox.getText().getSpans(0, text.length(), SpanExtents.class);
-            for (Object sp : prevSpans) {
-                textBox.getText().removeSpan(sp);
-            }
-            // and add our new spans
-            for (SpanExtents spanEx : result) {
-                textBox.getText().setSpan(spanEx, spanEx.getStart(), spanEx.getEnd(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            }
-            time = System.currentTimeMillis() - time;
-            L.v("That took " + time + "ms");
+            SyntaxRule syntaxItem = new SyntaxRule("", "", SyntaxRuleStyle.SEARCH_MATCHES);
+            int position = 0;
+            int matches = 0;
+            do {
+                position = text.indexOf(searchText, position);
+                if (position >= 0) {
+                    SpanExtents newSpanInfo;
+                    if (matches == selectedMatchResultPosition) {
+                        newSpanInfo = SyntaxRuleStyle.SEARCH_MATCH_SELECTED.createSpan(context, position, syntaxItem);
+                    } else {
+                        newSpanInfo = SyntaxRuleStyle.SEARCH_MATCHES.createSpan(context, position, syntaxItem);
+                    }
+                    newSpanInfo.setStart(position);
+                    newSpanInfo.setEnd(position + searchText.length());
+                    spansToSet.add(newSpanInfo);
+                    position += searchText.length();
+                    matches++;
+                }
+                if (cancelled) {
+                    break;
+                }
+            } while(position >= 0);
+
+            return spansToSet;
         }
     }
 }

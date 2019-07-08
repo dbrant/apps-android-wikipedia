@@ -1,16 +1,18 @@
 package org.wikipedia.feed.becauseyouread;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import org.wikipedia.R;
+import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.view.ListCardItemView;
 import org.wikipedia.feed.view.ListCardRecyclerAdapter;
 import org.wikipedia.feed.view.ListCardView;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.util.DateUtil;
 import org.wikipedia.views.DefaultViewHolder;
 import org.wikipedia.views.ItemTouchHelperSwipeAdapter;
 
@@ -18,6 +20,9 @@ import java.util.List;
 
 public class BecauseYouReadCardView extends ListCardView<BecauseYouReadCard>
         implements ItemTouchHelperSwipeAdapter.SwipeableView {
+    public interface Callback {
+        void onSelectPageFromExistingTab(@NonNull Card card, @NonNull HistoryEntry entry);
+    }
 
     public BecauseYouReadCardView(Context context) {
         super(context);
@@ -27,28 +32,22 @@ public class BecauseYouReadCardView extends ListCardView<BecauseYouReadCard>
         super.setCard(card);
         header(card);
         set(new RecyclerAdapter(card.items()));
+        setLayoutDirectionByWikiSite(card.wikiSite(), getLayoutDirectionView());
     }
 
     private void header(@NonNull final BecauseYouReadCard card) {
         int age = (int) card.daysOld();
-        String subtitle = getSubtitle(age);
         headerView().setTitle(card.title())
                 .setImage(R.drawable.ic_restore_black_24dp)
                 .setImageCircleColor(R.color.base30)
+                .setLangCode(null)
                 .setCard(card)
                 .setCallback(getCallback());
         largeHeaderView().setTitle(card.pageTitle())
                 .setImage(card.image())
-                .setSubtitle(subtitle)
+                .setSubtitle(DateUtil.getDaysAgoString(age))
                 .onClickListener(new SelectPageCallbackAdapter(card))
                 .setVisibility(VISIBLE);
-    }
-
-    @VisibleForTesting @NonNull String getSubtitle(int age) {
-        if (age == 0) {
-            return getResources().getString(R.string.view_continue_reading_card_subtitle_today);
-        }
-        return getResources().getQuantityString(R.plurals.view_continue_reading_card_subtitle, age, age);
     }
 
     private class SelectPageCallbackAdapter implements OnClickListener {
@@ -76,7 +75,7 @@ public class BecauseYouReadCardView extends ListCardView<BecauseYouReadCard>
         }
 
         @Override
-        public void onBindViewHolder(DefaultViewHolder<ListCardItemView> holder, int i) {
+        public void onBindViewHolder(@NonNull DefaultViewHolder<ListCardItemView> holder, int i) {
             BecauseYouReadItemCard card = item(i);
             holder.getView().setCard(card)
                     .setHistoryEntry(new HistoryEntry(card.pageTitle(),

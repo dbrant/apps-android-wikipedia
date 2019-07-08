@@ -6,7 +6,6 @@
     <string name="mapbox_public_token">pk.eyJ1IjoiZG1pdHJ5YnJhbnQiLCJhIjoiY2lnd3FzdTI1MHNicHZrbTVhMno4anF4dCJ9.HG3mJUj8xbqOvk_ieFDCfA</string>
 
     <!-- URLs -->
-    <string name="zero_webpage_url">https://m.wikimediafoundation.org/wiki/Wikipedia_Zero_App_FAQ</string>
     <string name="donate_url">https://donate.wikimedia.org/?utm_medium=WikipediaApp&amp;utm_campaign=Android&amp;utm_source=%1$s&amp;uselang=%2$s</string>
 
     <!-- Accounts -->
@@ -48,42 +47,6 @@
     <!-- Find in page -->
     <string name="find_in_page_result">%1$d/%2$d</string>
 
-    <!-- Description editing -->
-    <string name="description_edit_help_body"><![CDATA[
-        <p>
-            <font color=\'#3366cc\'><strong>:helpAboutTitle</strong></font>
-        </p>
-        <p>
-            :helpAboutDescription
-            <br/>
-        </p>
-        <p>
-            <font color=\'#3366cc\'><strong>:helpTipsTitle</strong></font>
-        </p>
-        <p>
-            :helpTipsDescription
-        </p>
-        <p>
-            :helpTipsExamples
-        </p>
-        <p>
-            <strong><em>:helpTipsExample1</em></strong>
-            <br/>
-            :helpTipsExample1Hint
-        </p>
-        <p>
-            <strong><em>:helpTipsExample2</em></strong>
-            <br/>
-            :helpTipsExample2Hint
-            <br/>
-        </p>
-        <p>
-            <font color=\'#3366cc\'><strong>:helpMoreInfo</strong></font>
-        </p>
-        <p>
-            :helpMetaInfo
-        </p>
-    ]]></string>
 
     <string name="description_edit_revert_help_body"><![CDATA[
         :revertSubtitle<br />
@@ -105,8 +68,14 @@
     <string name="transition_news_item">newsItemTransition</string>
     <string name="transition_random_activity">randomActivityTransition</string>
     <string name="transition_on_this_day">onThisDayTransition</string>
+    <string name="transition_floating_queue">floatingQueue</string>
 
     <!-- Miscellaneous -->
     <string name="text_size_percent">%d%%</string>
+    <string name="onboarding_option_string">%s.\t\t%s</string>
+    <string name="language_data">multilingual</string>
+    <string name="add_square_brackets_to_string">[%s]</string>
+    <string name="empty" />
+    <string name="suggested_edits_image_file_page_commons_link">https://commons.wikimedia.org/wiki/%s</string>
 
 </resources>

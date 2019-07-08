@@ -12,11 +12,10 @@
   <string name="menu_page_other_languages">Цоги мацӀалда цӀализе</string>
   <string name="menu_page_share" fuzzy="true">Рехсезе</string>
   <string name="menu_page_find_in_page">Гьумералда батизе</string>
-  <string name="last_updated_text">Ахирисеб цӀигьаби:%1$s</string>
+  <string name="last_updated_text">Ахирисеб цӀигьаби:%s</string>
   <string name="content_license_html">Жаниб бугеб жо &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; ихтияралда лъун бегьизе гьабуна (цоги жо хъван батӀичони)</string>
   <string name="preference_title_language">Википедиялъул мацӀал</string>
-  <string name="preference_languages_filter_hint">ЦIехезе</string>
-  <string name="langlinks_filter_hint">ЦIехезе</string>
+    <string name="langlinks_filter_hint">ЦIехезе</string>
   <string name="langlinks_empty">Гьаб гьумер цоги мацӀалда гьечӀо</string>
   <string name="langlinks_activity_title">Цоги мацӀазда</string>
   <string name="menu_save_changes">Хиса-басиял цIунизе</string>
@@ -48,12 +47,7 @@
   <string name="create_account_next">Хаду</string>
   <string name="create_account_button">Аккаунт гьабизе</string>
   <string name="preferences_general_heading">БетIераб</string>
-  <string name="zero_charged_verbiage">Wikipedia Zero СИНЗЕ ГЬАБУН БУГО</string>
-  <string name="zero_interstitial_continue">КӀанцизе</string>
-  <string name="zero_interstitial_cancel">Гьанив чӀезе</string>
-  <string name="zero_learn_more_learn_more">ЦӀцӀикӀун лъазе</string>
-  <string name="zero_learn_more_dismiss">Къазе</string>
-  <string name="edit_preview_fetching_dialog_message">ЦӀуниялда цебе хал-кӀач гьаби…</string>
+    <string name="edit_preview_fetching_dialog_message">ЦӀуниялда цебе хал-кӀач гьаби…</string>
   <string name="send_feedback">Приложение хӀакъалъулъ дурго пикру битӀизе</string>
   <string name="create_account_account_created_toast">Аккаунт гьабуна!</string>
   <string name="history_search_list_hint">ЦIехеялъул тарих</string>

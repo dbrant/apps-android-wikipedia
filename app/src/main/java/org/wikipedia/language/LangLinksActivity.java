@@ -1,31 +1,39 @@
 package org.wikipedia.language;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.annotation.VisibleForTesting;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.EditText;
-import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+import androidx.appcompat.view.ActionMode;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.BaseActivity;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
+import org.wikipedia.dataclient.mwapi.SiteMatrix;
 import org.wikipedia.history.HistoryEntry;
+import org.wikipedia.history.SearchActionModeCallback;
 import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.staticdata.MainPageNameData;
-import org.wikipedia.util.ResourceUtil;
+import org.wikipedia.settings.SiteInfoClient;
+import org.wikipedia.util.log.L;
+import org.wikipedia.views.SearchEmptyView;
 import org.wikipedia.views.ViewAnimations;
+import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
 
 import java.util.ArrayList;
@@ -34,7 +42,11 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 
-import retrofit2.Call;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.apache.commons.lang3.StringUtils.defaultString;
 import static org.wikipedia.util.DeviceUtil.hideSoftKeyboard;
@@ -45,92 +57,75 @@ public class LangLinksActivity extends BaseActivity {
     public static final String ACTION_LANGLINKS_FOR_TITLE = "org.wikipedia.langlinks_for_title";
     public static final String EXTRA_PAGETITLE = "org.wikipedia.pagetitle";
 
-    private static final String LANGUAGE_ENTRIES_BUNDLE_KEY = "languageEntries";
-
     private static final String GOTHIC_LANGUAGE_CODE = "got";
 
     private List<PageTitle> languageEntries;
     private PageTitle title;
 
     private WikipediaApp app;
-    private LangLinksClient client;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
-    private ListView langLinksList;
-    private View langLinksProgress;
-    private View langLinksContainer;
-    private View langLinksEmpty;
-    private View langLinksNoMatch;
-    private WikiErrorView langLinksError;
+    @BindView(R.id.langlinks_load_progress) View langLinksProgress;
+    @BindView(R.id.langlinks_error) WikiErrorView langLinksError;
+    @BindView(R.id.langlink_empty_view) SearchEmptyView langLinksEmpty;
+    @BindView(R.id.langlinks_recycler) RecyclerView langLinksList;
+
+    private LangLinksAdapter adapter;
+    private String currentSearchQuery;
+    private ActionMode actionMode;
+    private SearchActionModeCallback searchActionModeCallback;
+
+    @Nullable private List<SiteMatrix.SiteInfo> siteInfoList;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        app = WikipediaApp.getInstance();
-        setStatusBarColor(ResourceUtil.getThemedAttributeId(this, R.attr.page_status_bar_color));
-
         setContentView(R.layout.activity_langlinks);
+        ButterKnife.bind(this);
+        app = WikipediaApp.getInstance();
 
-        if (!getIntent().getAction().equals(ACTION_LANGLINKS_FOR_TITLE)) {
+        if (!ACTION_LANGLINKS_FOR_TITLE.equals(getIntent().getAction())) {
             throw new RuntimeException("Only ACTION_LANGLINKS_FOR_TITLE is supported");
         }
 
-        langLinksList = findViewById(R.id.langlinks_list);
-        langLinksProgress = findViewById(R.id.langlinks_load_progress);
-        langLinksContainer = findViewById(R.id.langlinks_list_container);
-        langLinksEmpty = findViewById(R.id.langlinks_empty);
-        langLinksNoMatch = findViewById(R.id.langlinks_no_match);
-        langLinksError = findViewById(R.id.langlinks_error);
-        EditText langLinksFilter = findViewById(R.id.langlinks_filter);
-
         title = getIntent().getParcelableExtra(EXTRA_PAGETITLE);
 
-        if (savedInstanceState != null && savedInstanceState.containsKey(LANGUAGE_ENTRIES_BUNDLE_KEY)) {
-            languageEntries = savedInstanceState.getParcelableArrayList(LANGUAGE_ENTRIES_BUNDLE_KEY);
-        }
+        langLinksEmpty.setVisibility(View.GONE);
+        langLinksProgress.setVisibility(View.VISIBLE);
 
-        client = new LangLinksClient();
         fetchLangLinks();
 
         langLinksError.setRetryClickListener((v) -> {
             ViewAnimations.crossFade(langLinksError, langLinksProgress);
             fetchLangLinks();
         });
+    }
 
-        langLinksList.setOnItemClickListener((parent, view, position, id) -> {
-            PageTitle langLink = (PageTitle) parent.getAdapter().getItem(position);
-            app.setMruLanguageCode(langLink.getWikiSite().languageCode());
-            HistoryEntry historyEntry = new HistoryEntry(langLink, HistoryEntry.SOURCE_LANGUAGE_LINK);
-            Intent intent = PageActivity.newIntentForCurrentTab(LangLinksActivity.this, historyEntry, langLink);
-            setResult(ACTIVITY_RESULT_LANGLINK_SELECT, intent);
-            hideSoftKeyboard(LangLinksActivity.this);
-            finish();
-        });
+    @Override
+    public void onDestroy() {
+        disposables.clear();
+        super.onDestroy();
+    }
 
-        langLinksFilter.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_languages_list, menu);
+        MenuItem searchIcon = menu.getItem(0);
+        searchIcon.setVisible((languageEntries != null && languageEntries.size() > 0));
+        return super.onCreateOptionsMenu(menu);
+    }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                // the languages might not be loaded yet...
-                if (langLinksList.getAdapter() == null) {
-                    return;
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_search_language:
+                if (actionMode == null) {
+                    actionMode = startSupportActionMode(searchActionModeCallback);
                 }
-                ((LangLinksAdapter) langLinksList.getAdapter()).setFilterText(s.toString());
-
-                //Check if there are no languages that match the filter
-                if (langLinksList.getAdapter().getCount() == 0) {
-                    langLinksNoMatch.setVisibility(View.VISIBLE);
-                } else {
-                    langLinksNoMatch.setVisibility(View.GONE);
-                }
-            }
-        });
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -139,87 +134,156 @@ public class LangLinksActivity extends BaseActivity {
         super.onBackPressed();
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        if (languageEntries != null) {
-           outState.putParcelableArrayList(LANGUAGE_ENTRIES_BUNDLE_KEY, new ArrayList<Parcelable>(languageEntries));
+    private class LanguageSearchCallback extends SearchActionModeCallback {
+        private LangLinksAdapter langLinksAdapter = (LangLinksAdapter) langLinksList.getAdapter();
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            actionMode = mode;
+            ViewUtil.finishActionModeWhenTappingOnView(langLinksList, actionMode);
+            return super.onCreateActionMode(mode, menu);
         }
+
+        @Override
+        protected void onQueryChange(String s) {
+            currentSearchQuery = s.trim();
+            langLinksAdapter.setFilterText(currentSearchQuery);
+
+            if (langLinksList.getAdapter().getItemCount() == 0) {
+                langLinksEmpty.setVisibility(View.VISIBLE);
+            } else {
+                langLinksEmpty.setVisibility(View.GONE);
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            super.onDestroyActionMode(mode);
+            if (!TextUtils.isEmpty(currentSearchQuery)) {
+                currentSearchQuery = "";
+            }
+            langLinksEmpty.setVisibility(View.GONE);
+            langLinksAdapter.reset();
+            actionMode = null;
+        }
+
+        @Override
+        protected String getSearchHintString() {
+            return getResources().getString(R.string.langlinks_filter_hint);
+        }
+
+        @Override
+        protected boolean finishActionModeIfKeyboardHiding() {
+            return false;
+        }
+
+        @Override
+        protected Context getParentContext() {
+            return LangLinksActivity.this;
+        }
+    }
+
+    private List<PageTitle> getEntriesByAppLanguages() {
+        List<PageTitle> list = new ArrayList<>();
+
+        for (PageTitle entry : languageEntries) {
+            if ((entry.getWikiSite().languageCode().equals(AppLanguageLookUpTable.NORWEGIAN_LEGACY_LANGUAGE_CODE)
+                    && app.language().getAppLanguageCodes().contains(AppLanguageLookUpTable.NORWEGIAN_BOKMAL_LANGUAGE_CODE))
+                    || app.language().getAppLanguageCodes().contains(entry.getWikiSite().languageCode())) {
+                list.add(entry);
+            }
+        }
+
+        return list;
     }
 
     private void displayLangLinks() {
         if (languageEntries.size() == 0) {
+            // TODO: Question: should we use the same empty view for the default empty view and search result empty view?
+            langLinksEmpty.setEmptyText(R.string.langlinks_empty);
             ViewAnimations.crossFade(langLinksProgress, langLinksEmpty);
         } else {
-            langLinksList.setAdapter(new LangLinksAdapter(languageEntries, app));
-            ViewAnimations.crossFade(langLinksProgress, langLinksContainer);
+            adapter = new LangLinksAdapter(languageEntries, getEntriesByAppLanguages());
+            langLinksEmpty.setEmptyText(R.string.langlinks_no_match);
+            langLinksList.setAdapter(adapter);
+            langLinksList.setLayoutManager(new LinearLayoutManager(this));
+            searchActionModeCallback = new LanguageSearchCallback();
+
+            disposables.add(ServiceFactory.get(app.getWikiSite()).getSiteMatrix()
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .map(SiteMatrix::getSites)
+                    .doFinally(() -> {
+                        langLinksProgress.setVisibility(View.INVISIBLE);
+                        adapter.notifyDataSetChanged();
+                    })
+                    .subscribe(sites -> siteInfoList = sites, L::e));
+
+            ViewAnimations.crossFade(langLinksProgress, langLinksList);
         }
+
+        invalidateOptionsMenu();
     }
 
     private void fetchLangLinks() {
         if (languageEntries == null) {
-            client.request(title.getWikiSite(), title, new ClientCallback());
+            disposables.add(ServiceFactory.get(title.getWikiSite()).getLangLinks(title.getPrefixedText())
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(response -> {
+                        languageEntries = response.query().langLinks();
+                        updateLanguageEntriesSupported(languageEntries);
+                        sortLanguageEntriesByMru(languageEntries);
+                        displayLangLinks();
+
+                    }, caught -> {
+                        ViewAnimations.crossFade(langLinksProgress, langLinksError);
+                        langLinksError.setError(caught);
+                    }));
         } else {
             displayLangLinks();
         }
     }
 
-    private class ClientCallback implements LangLinksClient.Callback {
-        @Override public void success(@NonNull Call<MwQueryResponse> call,
-                                      @NonNull List<PageTitle> links) {
-            languageEntries = links;
-            updateLanguageEntriesSupported(languageEntries);
-            sortLanguageEntriesByMru(languageEntries);
-            displayLangLinks();
-        }
+    private void updateLanguageEntriesSupported(List<PageTitle> languageEntries) {
+        boolean haveChineseEntry = false;
+        for (ListIterator<PageTitle> it = languageEntries.listIterator(); it.hasNext();) {
+            PageTitle link = it.next();
+            String languageCode = link.getWikiSite().languageCode();
 
-        @Override public void failure(@NonNull Call<MwQueryResponse> call,
-                                      @NonNull Throwable caught) {
-            ViewAnimations.crossFade(langLinksProgress, langLinksError);
-            langLinksError.setError(caught);
-        }
+            if (GOTHIC_LANGUAGE_CODE.equals(languageCode)) {
+                // Remove Gothic since it causes Android to segfault.
+                it.remove();
+            } else if ("be-x-old".equals(languageCode)) {
+                // Replace legacy name of тарашкевіца language with the correct name.
+                // TODO: Can probably be removed when T111853 is resolved.
+                it.remove();
+                it.add(new PageTitle(link.getText(), WikiSite.forLanguageCode("be-tarask")));
+            } else if (AppLanguageLookUpTable.CHINESE_LANGUAGE_CODE.equals(languageCode)) {
+                // Replace Chinese with Simplified and Traditional dialects.
+                haveChineseEntry = true;
+                it.remove();
+                for (String dialect : Arrays.asList(AppLanguageLookUpTable.SIMPLIFIED_CHINESE_LANGUAGE_CODE,
+                        AppLanguageLookUpTable.TRADITIONAL_CHINESE_LANGUAGE_CODE)) {
 
-        private void updateLanguageEntriesSupported(List<PageTitle> languageEntries) {
-            boolean haveChineseEntry = false;
-            for (ListIterator<PageTitle> it = languageEntries.listIterator(); it.hasNext();) {
-                PageTitle link = it.next();
-                String languageCode = link.getWikiSite().languageCode();
-
-                if (GOTHIC_LANGUAGE_CODE.equals(languageCode)) {
-                    // Remove Gothic since it causes Android to segfault.
-                    it.remove();
-                } else if ("be-x-old".equals(languageCode)) {
-                    // Replace legacy name of тарашкевіца language with the correct name.
-                    // TODO: Can probably be removed when T111853 is resolved.
-                    it.remove();
-                    it.add(new PageTitle(link.getText(), WikiSite.forLanguageCode("be-tarask")));
-                } else if (AppLanguageLookUpTable.CHINESE_LANGUAGE_CODE.equals(languageCode)) {
-                    // Replace Chinese with Simplified and Traditional dialects.
-                    haveChineseEntry = true;
-                    it.remove();
-                    for (String dialect : Arrays.asList(AppLanguageLookUpTable.SIMPLIFIED_CHINESE_LANGUAGE_CODE,
-                            AppLanguageLookUpTable.TRADITIONAL_CHINESE_LANGUAGE_CODE)) {
-
-                        it.add(new PageTitle((title.isMainPage()) ? MainPageNameData.valueFor(dialect) : link.getText(),
-                                WikiSite.forLanguageCode(dialect)));
-                    }
+                    it.add(new PageTitle((title.isMainPage()) ? SiteInfoClient.getMainPageForLang(dialect) : link.getPrefixedText(),
+                            WikiSite.forLanguageCode(dialect)));
                 }
             }
-
-            if (!haveChineseEntry) {
-                addChineseEntriesIfNeeded(title, languageEntries);
-            }
         }
 
-        private void sortLanguageEntriesByMru(List<PageTitle> entries) {
-            int addIndex = 0;
-            for (String language : app.getMruLanguageCodes()) {
-                for (int i = 0; i < entries.size(); i++) {
-                    if (entries.get(i).getWikiSite().languageCode().equals(language)) {
-                        PageTitle entry = entries.remove(i);
-                        entries.add(addIndex++, entry);
-                        break;
-                    }
+        if (!haveChineseEntry) {
+            addChineseEntriesIfNeeded(title, languageEntries);
+        }
+    }
+
+    private void sortLanguageEntriesByMru(List<PageTitle> entries) {
+        int addIndex = 0;
+        for (String language : app.language().getMruLanguageCodes()) {
+            for (int i = 0; i < entries.size(); i++) {
+                if (entries.get(i).getWikiSite().languageCode().equals(language)) {
+                    PageTitle entry = entries.remove(i);
+                    entries.add(addIndex++, entry);
+                    break;
                 }
             }
         }
@@ -235,71 +299,186 @@ public class LangLinksActivity extends BaseActivity {
 
             for (String languageCode : chineseLanguageCodes) {
                 if (!title.getWikiSite().languageCode().contains(languageCode)) {
-                    languageEntries.add(new PageTitle((title.isMainPage()) ? MainPageNameData.valueFor(languageCode) : title.getText(),
+                    languageEntries.add(new PageTitle((title.isMainPage()) ? SiteInfoClient.getMainPageForLang(languageCode) : title.getPrefixedText(),
                             WikiSite.forLanguageCode(languageCode)));
                 }
             }
         }
     }
 
-    private static final class LangLinksAdapter extends BaseAdapter {
-        private final List<PageTitle> originalLanguageEntries;
-        private final List<PageTitle> languageEntries;
-        private final WikipediaApp app;
+    @SuppressWarnings("checkstyle:magicnumber")
+    private final class LangLinksAdapter extends RecyclerView.Adapter<DefaultViewHolder> {
 
-        private LangLinksAdapter(List<PageTitle> languageEntries, WikipediaApp app) {
-            this.originalLanguageEntries = languageEntries;
-            this.languageEntries = new ArrayList<>(originalLanguageEntries);
-            this.app = app;
+        private static final int VIEW_TYPE_HEADER = 0;
+        private static final int VIEW_TYPE_ITEM = 1;
+        @NonNull private final List<PageTitle> originalLanguageEntries;
+        @NonNull private final List<PageTitle> appLanguageEntries;
+        @NonNull private final List<PageTitle> languageEntries = new ArrayList<>();
+        private boolean isSearching;
+
+        private LangLinksAdapter(@NonNull List<PageTitle> languageEntries, @NonNull List<PageTitle> appLanguageEntries) {
+            originalLanguageEntries = new ArrayList<>(languageEntries);
+            this.appLanguageEntries = appLanguageEntries;
+            reset();
         }
 
-        public void setFilterText(String filter) {
+        @Override
+        public int getItemViewType(int position) {
+            return shouldShowSectionHeader(position) ? VIEW_TYPE_HEADER : VIEW_TYPE_ITEM;
+        }
+
+        @Override
+        public int getItemCount() {
+            return this.languageEntries.size();
+        }
+
+        @NonNull
+        @Override
+        public DefaultViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            Context context = parent.getContext();
+            LayoutInflater inflater = LayoutInflater.from(context);
+
+            if (viewType == VIEW_TYPE_HEADER) {
+                View view = inflater.inflate(R.layout.view_section_header, parent, false);
+                return new DefaultViewHolder(languageEntries, view);
+            } else {
+                View view = inflater.inflate(R.layout.item_langlinks_list_entry, parent, false);
+                return new LangLinksItemViewHolder(languageEntries, view);
+            }
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull DefaultViewHolder holder, int pos) {
+            holder.bindItem(pos);
+        }
+
+        boolean shouldShowSectionHeader(int position) {
+            return !isSearching
+                    && (position == 0  || (appLanguageEntries.size() > 0
+                    && position == appLanguageEntries.size() + 1));
+        }
+
+        void setFilterText(String filter) {
+            isSearching = true;
             languageEntries.clear();
             filter = filter.toLowerCase(Locale.getDefault());
             for (PageTitle entry : originalLanguageEntries) {
                 String languageCode = entry.getWikiSite().languageCode();
-                String canonicalName = defaultString(app.getAppLanguageCanonicalName(languageCode));
-                String localizedName = defaultString(app.getAppLanguageLocalizedName(languageCode));
+                String canonicalName = defaultString(app.language().getAppLanguageCanonicalName(languageCode));
+                String localizedName = defaultString(app.language().getAppLanguageLocalizedName(languageCode));
                 if (canonicalName.toLowerCase(Locale.getDefault()).contains(filter)
                         || localizedName.toLowerCase(Locale.getDefault()).contains(filter)) {
                     languageEntries.add(entry);
                 }
             }
-            notifyDataSetInvalidated();
+            notifyDataSetChanged();
         }
 
-        @Override
-        public int getCount() {
-            return languageEntries.size();
-        }
-
-        @Override
-        public PageTitle getItem(int position) {
-            return languageEntries.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_language_list_entry, parent, false);
+        void reset() {
+            isSearching = false;
+            this.languageEntries.clear();
+            if (appLanguageEntries.size() > 0) {
+                languageEntries.add(new PageTitle(getString(R.string.langlinks_your_wikipedia_languages), app.getWikiSite()));
+                languageEntries.addAll(appLanguageEntries);
             }
 
-            PageTitle item = getItem(position);
+            List<PageTitle> remainingEntries = getNonDuplicateEntries();
+            if (remainingEntries.size() > 0) {
+                languageEntries.add(new PageTitle(getString(R.string.languages_list_all_text), app.getWikiSite()));
+                languageEntries.addAll(remainingEntries);
+            }
+
+            notifyDataSetChanged();
+        }
+
+        // To remove the already selected languages and suggested languages from all languages list
+        private List<PageTitle> getNonDuplicateEntries() {
+            List<PageTitle> list = new ArrayList<>(originalLanguageEntries);
+            list.removeAll(appLanguageEntries);
+            return list;
+        }
+    }
+
+    private class DefaultViewHolder extends RecyclerView.ViewHolder {
+        private TextView sectionHeaderTextView;
+        private final List<PageTitle> languageEntries;
+
+        DefaultViewHolder(@NonNull List<PageTitle> languageEntries, View itemView) {
+            super(itemView);
+            sectionHeaderTextView = itemView.findViewById(R.id.section_header_text);
+            this.languageEntries = languageEntries;
+        }
+
+        void bindItem(int position) {
+            // TODO: Optimize this
+            sectionHeaderTextView.setText(languageEntries.get(position).getDisplayText());
+        }
+    }
+
+    private class LangLinksItemViewHolder extends DefaultViewHolder implements View.OnClickListener {
+        private TextView localizedLanguageNameTextView;
+        private TextView nonLocalizedLanguageNameTextView;
+        private TextView articleTitleTextView;
+        private final List<PageTitle> languageEntries;
+        private int pos;
+
+        LangLinksItemViewHolder(@NonNull List<PageTitle> languageEntries, View itemView) {
+            super(languageEntries, itemView);
+            localizedLanguageNameTextView = itemView.findViewById(R.id.localized_language_name);
+            nonLocalizedLanguageNameTextView = itemView.findViewById(R.id.non_localized_language_name);
+            articleTitleTextView = itemView.findViewById(R.id.language_subtitle);
+            this.languageEntries = languageEntries;
+        }
+
+        void bindItem(int position) {
+            pos = position;
+            PageTitle item = languageEntries.get(position);
             String languageCode = item.getWikiSite().languageCode();
-            String localizedLanguageName = app.getAppLanguageLocalizedName(languageCode);
+            String localizedLanguageName = app.language().getAppLanguageLocalizedName(languageCode);
 
-            TextView localizedLanguageNameTextView = convertView.findViewById(R.id.localized_language_name);
-            TextView articleTitleTextView = convertView.findViewById(R.id.language_subtitle);
-
-            localizedLanguageNameTextView.setText(localizedLanguageName);
+            localizedLanguageNameTextView.setText(localizedLanguageName == null ? languageCode : StringUtils.capitalize(localizedLanguageName));
             articleTitleTextView.setText(item.getDisplayText());
 
-            return convertView;
+            if (langLinksProgress.getVisibility() != View.VISIBLE) {
+                String canonicalName = getCanonicalName(languageCode);
+                if (TextUtils.isEmpty(canonicalName)
+                        || languageCode.equals(app.language().getSystemLanguageCode())) {
+                    nonLocalizedLanguageNameTextView.setVisibility(View.GONE);
+                } else {
+                    // TODO: Fix an issue when app language is zh-hant, the subtitle in zh-hans will display in English
+                    nonLocalizedLanguageNameTextView.setText(canonicalName);
+                    nonLocalizedLanguageNameTextView.setVisibility(View.VISIBLE);
+                }
+            }
+            itemView.setOnClickListener(this);
         }
+
+        @Override
+        public void onClick(View v) {
+            PageTitle langLink = languageEntries.get(pos);
+            app.language().addMruLanguageCode(langLink.getWikiSite().languageCode());
+            HistoryEntry historyEntry = new HistoryEntry(langLink, HistoryEntry.SOURCE_LANGUAGE_LINK);
+            Intent intent = PageActivity.newIntentForCurrentTab(LangLinksActivity.this, historyEntry, langLink);
+            setResult(ACTIVITY_RESULT_LANGLINK_SELECT, intent);
+            hideSoftKeyboard(LangLinksActivity.this);
+            finish();
+        }
+    }
+
+    @Nullable
+    private String getCanonicalName(@NonNull String code) {
+        String canonicalName = null;
+        if (siteInfoList != null) {
+            for (SiteMatrix.SiteInfo info : siteInfoList) {
+                if (code.equals(info.code())) {
+                    canonicalName = info.localName();
+                    break;
+                }
+            }
+        }
+        if (TextUtils.isEmpty(canonicalName)) {
+            canonicalName = app.language().getAppLanguageCanonicalName(code);
+        }
+        return canonicalName;
     }
 }

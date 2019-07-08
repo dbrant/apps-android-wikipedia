@@ -15,8 +15,7 @@
   <string name="edit_save_action_license_logged_in">Сақтасаңыз &lt;a href=\"%1$s\"&gt;Қолдану шарттарымен&lt;/a&gt; келсіскеніңіз болып табылады және &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; лицензиясы аясында үлесіңізді қайтарымсыз жариялайсыз.</string>
   <string name="edit_save_action_license_anon">Сақтасаңыз &lt;a href=\"%1$s\"&gt;Қолдану шарттарымен&lt;/a&gt; келсіскеніңіз болып табылады және &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; лицензиясы аясында үлесіңізді қайтарымсыз жариялайсыз. Өңдемелеріңіз сіздің құрылғыңыздың IP мекенжайымен анықталады. Егер сіз&lt;a href=\"https://#login\"&gt;кірсеңіз&lt;/a&gt; сізде көбірек құпиялық   болады.</string>
   <string name="preference_title_language">Уикипедия тілі</string>
-  <string name="preference_languages_filter_hint">Іздеу</string>
-  <string name="langlinks_filter_hint">Іздеу</string>
+    <string name="langlinks_filter_hint">Іздеу</string>
   <string name="langlinks_empty">Бұл бет басқа тілдерде қолдетімді емес.</string>
   <string name="langlinks_no_match">Сіздің сұранысыңызға сәйкес тілдер табылмады.</string>
   <string name="langlinks_activity_title">Басқа тілдер</string>
@@ -56,16 +55,7 @@
   <string name="create_account_next">Келесі</string>
   <string name="create_account_button">Тіркелу</string>
   <string name="preferences_general_heading">Негізгі</string>
-  <string name="zero_charged_verbiage" fuzzy="true">Wikipedia Zero сөндірілген</string>
-  <string name="zero_warn_when_leaving">Wikipedia Zero-ны қалдырып кеткенде ескерту</string>
-  <string name="zero_webpage_title">Wikipedia Zero ЖҚС</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Wikipedia Zero-ны қалдырып кету</string>
-  <string name="zero_interstitial_continue">Кету</string>
-  <string name="zero_interstitial_cancel">Мұнда қалу</string>
-  <string name="zero_learn_more_learn_more" fuzzy="true">Көбірек оқу</string>
-  <string name="zero_learn_more_dismiss">Жабу</string>
-  <string name="edit_preview_fetching_dialog_message">Алдын-ала қарауды алу...</string>
+    <string name="edit_preview_fetching_dialog_message">Алдын-ала қарауды алу...</string>
   <string name="send_feedback">Қосымша туралы пікір жіберу</string>
   <string name="create_account_account_created_toast">Тіркелгі жасалды!</string>
   <string name="preference_title_eventlogging_opt_in">Қолдану есептерін жіберу</string>
@@ -84,7 +74,7 @@
   <string name="about_contributors_heading" fuzzy="true">авторлар</string>
   <string name="about_translators_heading" fuzzy="true">аудармашылар</string>
   <string name="about_translators_translatewiki">Бұл қосымшаны &lt;ahref=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt; аудару жобасында ерікті аудармашылар аударған.</string>
-  <string name="about_wmf">&lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Уикимедиа Қоры&lt;/a&gt; өнімі</string>
+  <string name="about_wmf">&lt;a href=\"https://wikimediafoundation.org/\"&gt;Уикимедиа Қоры&lt;/a&gt; өнімі</string>
   <string name="about_activity_title">Жоба туралы</string>
   <string name="edit_abandon_confirm">Бұл бет өзгертілген. Бұл бетті сақтамай кеткіңіз келгеніне сенімдісіз бе?</string>
   <string name="user_blocked_from_editing_title">Бұғатталған</string>
@@ -104,6 +94,4 @@
   <string name="abusefilter_title_disallow">Бұл өңдемені сақтай алмайсыз. Артқа қайтыңыз және оны өзгертіңіз.</string>
   <string name="abusefilter_text_warn">Автоматтандырылған сүзгіш бұл өңдемеден әлеуетті жүйесіздікті анықтады. Оның мәтінінде келесілердің бірін не бірнешеуін қамтыған болуы мүмкін:&lt;br /&gt;&lt;br /&gt;· Үлкен әріптермен жазу&lt;br /&gt;· Мақалаларды тазарту не спамдау&lt;br /&gt;· Орынсыз сыртқы сілтемелер немесе суреттер&lt;br /&gt;· Таңбаларды көп қайталау</string>
   <string name="abusefilter_text_disallow">Автоматтандырылған сүзгіш бұл өңдемеден әлеуетті жүйесіздікті немесе әлеуетті бұзақылықты анықтады.&lt;br /&gt;&lt;br /&gt; Уикипедия — бұл энцикопедия және мұнда тек бейтарап, елеулі контент болуы керек.</string>
-  <string name="dialog_page_issues">Бет бойынша сұрақтар</string>
-  <string name="button_page_issues">Бет бойынша сұрақтар</string>
 </resources>

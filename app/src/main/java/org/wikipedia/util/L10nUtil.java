@@ -3,10 +3,11 @@ package org.wikipedia.util;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.support.annotation.NonNull;
-import android.support.annotation.StringRes;
 import android.util.SparseArray;
 import android.view.View;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -62,10 +63,10 @@ public final class L10nUtil {
      * Set up directionality for both UI and content elements in a webview.
      *
      * @param contentLang The Content language to use to set directionality. Wiki Language code.
-     * @param uiLang The UI language to use to set directionality. Java language code.
+     * @param uiLocale The UI language to use to set directionality. Java language code.
      * @param bridge The CommunicationBridge to use to communicate with the WebView
      */
-    public static void setupDirectionality(String contentLang, String uiLang, CommunicationBridge bridge) {
+    public static void setupDirectionality(String contentLang, Locale uiLocale, CommunicationBridge bridge) {
         JSONObject payload = new JSONObject();
         try {
             if (isLangRTL(contentLang)) {
@@ -73,7 +74,7 @@ public final class L10nUtil {
             } else {
                 payload.put("contentDirection", "ltr");
             }
-            if (isLangRTL(LanguageUtil.languageCodeToWikiLanguageCode(uiLang))) {
+            if (isLangRTL(LanguageUtil.localeToWikiLanguageCode(uiLocale))) {
                 payload.put("uiDirection", "rtl");
             } else {
                 payload.put("uiDirection", "ltr");
@@ -193,7 +194,7 @@ public final class L10nUtil {
     /**
      * Formats provided date relative to the current system time
      * @param date Date to format
-     * @return String representing the relative time difference of the paramter from current time
+     * @return String representing the relative time difference of the parameter from current time
      */
     public static String formatDateRelative(Date date) {
         return getRelativeTimeSpanString(date.getTime(), currentTimeMillis(), SECOND_IN_MILLIS, 0).toString();
@@ -212,7 +213,7 @@ public final class L10nUtil {
         } else if (desiredLocale.getLanguage().equals(CHINESE_LANGUAGE_CODE)) {
             // create a new Locale object to manage only "zh" language code based on its app language
             // code. e.g.: search "HK" article in "zh-hant" or "zh-hans" will get "zh" language code
-            String appLanguageCode = WikipediaApp.getInstance().getAppLanguageCode();
+            String appLanguageCode = WikipediaApp.getInstance().language().getAppLanguageCode();
             if (appLanguageCode.equals(TRADITIONAL_CHINESE_LANGUAGE_CODE)) {
                 config.setLocale(TRADITIONAL_CHINESE);
             } else if (appLanguageCode.equals(SIMPLIFIED_CHINESE_LANGUAGE_CODE)) {

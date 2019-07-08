@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
 
     <style name="ThemeBlack" parent="ThemeDark">
 
@@ -7,15 +7,25 @@
         <item name="android:windowBackground">@color/base4</item>
 
         <!-- Overrides of our own custom color attributes -->
-        <item name="main_toolbar_color">@color/accent16</item>
-        <item name="main_status_bar_color">@color/accent10</item>
-        <item name="page_status_bar_color">@color/base0</item>
-        <item name="page_expanded_status_bar_color">@color/base0</item>
+        <item name="main_toolbar_color">@color/base14</item>
+        <item name="main_status_bar_color">@color/base14</item>
+        <item name="main_toolbar_title_color">@android:color/white</item>
+        <item name="main_toolbar_icon_color">@android:color/white</item>
+        <item name="page_status_bar_color">@color/base14</item>
+        <item name="page_expanded_status_bar_color">@color/base14</item>
         <item name="page_toolbar_color">@color/base14</item>
+        <item name="themed_icon_color">@android:color/white</item>
         <item name="nav_tab_background_color">@color/base14</item>
+        <item name="randomizer_dice_icon_color">@color/accent50</item>
+        <item name="toc_scroller_button_color">@color/base14</item>
+        <item name="button_background_color">@color/base18</item>
+        <item name="tab_placeholder_text_color">@color/base4</item>
+        <item name="chip_background_color">@color/base14</item>
+        <item name="chip_text_color">@color/base70</item>
 
         <!-- Background for cards, lists, and controls -->
         <item name="paper_color">@color/base0</item>
+        <item name="suggestions_background_color">@color/base0</item>
 
     </style>
 

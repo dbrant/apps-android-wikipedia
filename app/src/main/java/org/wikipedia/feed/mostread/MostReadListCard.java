@@ -1,10 +1,11 @@
 package org.wikipedia.feed.mostread;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
-import android.support.annotation.VisibleForTesting;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.annotation.VisibleForTesting;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -22,7 +23,7 @@ public class MostReadListCard extends ListCard<MostReadItemCard> {
     @NonNull private final MostReadArticles articles;
 
     public MostReadListCard(@NonNull MostReadArticles articles, @NonNull WikiSite wiki) {
-        super(toItems(articles.articles(), wiki));
+        super(toItems(articles.articles(), wiki), wiki);
         this.articles = articles;
     }
 
@@ -58,6 +59,6 @@ public class MostReadListCard extends ListCard<MostReadItemCard> {
 
     @Override
     protected int dismissHashCode() {
-        return (int) TimeUnit.MILLISECONDS.toDays(articles.date().getTime());
+        return (int) TimeUnit.MILLISECONDS.toDays(articles.date().getTime()) + wikiSite().hashCode();
     }
 }

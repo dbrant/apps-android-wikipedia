@@ -1,14 +1,15 @@
 package org.wikipedia.json;
 
 import android.net.Uri;
-import android.support.annotation.VisibleForTesting;
+
+import androidx.annotation.VisibleForTesting;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.wikipedia.dataclient.SharedPreferenceCookieManager;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.page.Namespace;
-import org.wikipedia.zero.ZeroConfig;
 
 public final class GsonUtil {
     private static final String DATE_FORMAT = "MMM dd, yyyy HH:mm:ss";
@@ -18,7 +19,7 @@ public final class GsonUtil {
             .registerTypeHierarchyAdapter(Uri.class, new UriTypeAdapter().nullSafe())
             .registerTypeHierarchyAdapter(Namespace.class, new NamespaceTypeAdapter().nullSafe())
             .registerTypeAdapter(WikiSite.class, new WikiSiteTypeAdapter().nullSafe())
-            .registerTypeAdapter(ZeroConfig.class, new ZeroConfigTypeAdapter().nullSafe())
+            .registerTypeAdapter(SharedPreferenceCookieManager.class, new CookieManagerTypeAdapter().nullSafe())
             .registerTypeAdapterFactory(new RequiredFieldsCheckOnReadTypeAdapterFactory())
             .registerTypeAdapterFactory(new PostProcessingTypeAdapter());
 

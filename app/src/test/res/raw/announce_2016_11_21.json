@@ -26,7 +26,7 @@
       "start_time": "2016-11-15T17:11:12Z",
       "end_time": "2016-11-30T17:11:12Z",
       "platforms": [
-        "AndroidApp"
+        "AndroidAppV2"
       ],
       "text": "Answer three questions and help us improve Wikipedia.",
       "action": {
@@ -46,10 +46,10 @@
       "start_time": "2016-11-15T17:11:12Z",
       "end_time": "2016-11-30T17:11:12Z",
       "platforms": [
-        "AndroidApp"
+        "AndroidAppV2"
       ],
       "text": "Help Wikipedia by making a donation.",
-      "image" : "https://image.url",
+      "image_url" : "https://image.url",
       "action": {
         "title": "Donate",
         "url": "https://donate.url?campaign_id=12345&source=android"
@@ -67,7 +67,7 @@
       "start_time": null,
       "end_time": null,
       "platforms": [
-        "AndroidApp"
+        "AndroidAppV2"
       ],
       "text": "Help Wikipedia by making a donation.",
       "action": {
@@ -84,7 +84,7 @@
       "id": "AnnouncementWithNoDates",
       "type": "fundraising",
       "platforms": [
-        "AndroidApp"
+        "AndroidAppV2"
       ],
       "text": "Help Wikipedia by making a donation.",
       "action": {
@@ -103,13 +103,59 @@
       "start_time": "2016-11-15T17:11:12Z",
       "end_time": "2016-11-30T17:11:12Z",
       "platforms": [
-        "AndroidApp"
+        "AndroidAppV2"
       ],
       "text": "Help Wikipedia by making a donation.",
       "action": {
         "title": "Donate",
         "url": "https://donate.url?campaign_id=12345&source=android"
       }
+    },
+    {
+      "id": "AnnouncementForBetaWithVersions",
+      "type": "fundraising",
+      "start_time": "2016-11-15T17:11:12Z",
+      "end_time": "2016-11-30T17:11:12Z",
+      "platforms": [
+        "AndroidAppV2"
+      ],
+      "text": "Help Wikipedia by making a donation.",
+      "image_url" : "https://image.url",
+      "action": {
+        "title": "Donate",
+        "url": "https://donate.url?campaign_id=12345&source=android"
+      },
+      "caption_HTML": "By donating, you are agreeing to our <a href=\"https://wikimediafoundation.org/wiki/Special:LandingCheck?basic=true&landing_page=Donor_policy&country=%1$slanguage=%2$s&uselang=%2$s&utm_medium=androidapp\">donor privacy policy</a>.",
+      "countries": [
+        "US",
+        "CA",
+        "GB"
+      ],
+      "beta": true,
+      "min_version": 200,
+      "max_version": 10000
+    },
+    {
+      "id": "AnnouncementForOldVersion",
+      "type": "fundraising",
+      "start_time": "2016-11-15T17:11:12Z",
+      "end_time": "2016-11-30T17:11:12Z",
+      "platforms": [
+        "AndroidAppV2"
+      ],
+      "text": "Help Wikipedia by making a donation.",
+      "image_url" : "https://image.url",
+      "action": {
+        "title": "Donate",
+        "url": "https://donate.url?campaign_id=12345&source=android"
+      },
+      "caption_HTML": "By donating, you are agreeing to our <a href=\"https://wikimediafoundation.org/wiki/Special:LandingCheck?basic=true&landing_page=Donor_policy&country=%1$slanguage=%2$s&uselang=%2$s&utm_medium=androidapp\">donor privacy policy</a>.",
+      "countries": [
+        "US",
+        "CA",
+        "GB"
+      ],
+      "max_version": 200
     }
   ]
 }

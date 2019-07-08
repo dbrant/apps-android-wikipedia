@@ -84,7 +84,7 @@
         <module name="AvoidStarImport" />
         <module name="ImportOrder">
             <property name="option" value="bottom" />
-            <property name="groups" value="android,com,junit,net,org,java,javax,*" />
+            <property name="groups" value="android,androidx,com,junit,net,org,java,javax,*" />
             <property name="separated" value="true" />
             <property name="sortStaticImportsAlphabetically" value="true" />
         </module>
@@ -187,6 +187,9 @@
             <!-- Testing -->
             <property name="ignoreAnnotationCanonicalNames" value="Rule" />
             <property name="ignoreAnnotationCanonicalNames" value="VisibleForTesting" />
+
+            <!-- General -->
+            <property name="packageAllowed" value="true"/>
         </module>
         <!-- Miscellaneous other checks.                   -->
         <!-- See http://checkstyle.sf.net/config_misc.html -->

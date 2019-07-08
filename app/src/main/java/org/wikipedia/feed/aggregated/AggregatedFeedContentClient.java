@@ -1,11 +1,16 @@
 package org.wikipedia.feed.aggregated;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
+
+import org.wikipedia.WikipediaApp;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.retrofit.RetrofitFactory;
+import org.wikipedia.feed.FeedContentType;
+import org.wikipedia.feed.FeedCoordinator;
 import org.wikipedia.feed.dataclient.FeedClient;
 import org.wikipedia.feed.featured.FeaturedArticleCard;
 import org.wikipedia.feed.image.FeaturedImageCard;
@@ -14,27 +19,23 @@ import org.wikipedia.feed.model.UtcDate;
 import org.wikipedia.feed.mostread.MostReadListCard;
 import org.wikipedia.feed.news.NewsListCard;
 import org.wikipedia.feed.onthisday.OnThisDayCard;
-import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.DateUtil;
 import org.wikipedia.util.log.L;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 
-import retrofit2.Call;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.http.GET;
-import retrofit2.http.Headers;
-import retrofit2.http.Path;
-
-import static org.wikipedia.Constants.ACCEPT_HEADER_PREFIX;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class AggregatedFeedContentClient {
-    @Nullable private Call<AggregatedFeedContent> call;
-    @Nullable private AggregatedFeedContent aggregatedResponse;
+    @NonNull private Map<String, AggregatedFeedContent> aggregatedResponses = new HashMap<>();
     private int aggregatedResponseAge = -1;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     public static class OnThisDayFeed extends BaseClient {
         public OnThisDayFeed(@NonNull AggregatedFeedContentClient aggregatedClient) {
@@ -42,10 +43,16 @@ public class AggregatedFeedContentClient {
         }
 
         @Override
-        void getCardFromResponse(@NonNull AggregatedFeedContent content, @NonNull WikiSite wiki,
-                                 int age, @NonNull List<Card> outCards) {
-            if (content.onthisday() != null && !content.onthisday().isEmpty()) {
-                outCards.add(new OnThisDayCard(content.onthisday(), wiki, age));
+        void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
+                                 @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards) {
+            for (String appLangCode : WikipediaApp.getInstance().language().getAppLanguageCodes()) {
+                if (responses.containsKey(appLangCode)
+                        && !FeedContentType.ON_THIS_DAY.getLangCodesDisabled().contains(appLangCode)) {
+                    AggregatedFeedContent content = responses.get(appLangCode);
+                    if (content.onthisday() != null && !content.onthisday().isEmpty()) {
+                        outCards.add(new OnThisDayCard(content.onthisday(), WikiSite.forLanguageCode(appLangCode), age));
+                    }
+                }
             }
         }
     }
@@ -55,11 +62,17 @@ public class AggregatedFeedContentClient {
         }
 
         @Override
-        void getCardFromResponse(@NonNull AggregatedFeedContent content, @NonNull WikiSite wiki,
-                                 int age, @NonNull List<Card> outCards) {
+        void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
+                                 @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards) {
             // todo: remove age check when news endpoint provides dated content, T139481.
-            if (age == 0 && content.news() != null) {
-                outCards.add(new NewsListCard(content.news(), age, wiki));
+            for (String appLangCode : WikipediaApp.getInstance().language().getAppLanguageCodes()) {
+                if (responses.containsKey(appLangCode)
+                        && !FeedContentType.NEWS.getLangCodesDisabled().contains(appLangCode)) {
+                    AggregatedFeedContent content = responses.get(appLangCode);
+                    if (age == 0 && content.news() != null) {
+                        outCards.add(new NewsListCard(content.news(), age, WikiSite.forLanguageCode(appLangCode)));
+                    }
+                }
             }
         }
     }
@@ -70,10 +83,16 @@ public class AggregatedFeedContentClient {
         }
 
         @Override
-        void getCardFromResponse(@NonNull AggregatedFeedContent content, @NonNull WikiSite wiki,
-                                 int age, @NonNull List<Card> outCards) {
-            if (content.tfa() != null) {
-                outCards.add(new FeaturedArticleCard(content.tfa(), age, wiki));
+        void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
+                                 @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards) {
+            for (String appLangCode : WikipediaApp.getInstance().language().getAppLanguageCodes()) {
+                if (responses.containsKey(appLangCode)
+                        && !FeedContentType.FEATURED_ARTICLE.getLangCodesDisabled().contains(appLangCode)) {
+                    AggregatedFeedContent content = responses.get(appLangCode);
+                    if (content.tfa() != null) {
+                        outCards.add(new FeaturedArticleCard(content.tfa(), age, WikiSite.forLanguageCode(appLangCode)));
+                    }
+                }
             }
         }
     }
@@ -84,10 +103,16 @@ public class AggregatedFeedContentClient {
         }
 
         @Override
-        void getCardFromResponse(@NonNull AggregatedFeedContent content, @NonNull WikiSite wiki,
-                                 int age, @NonNull List<Card> outCards) {
-            if (content.mostRead() != null) {
-                outCards.add(new MostReadListCard(content.mostRead(), wiki));
+        void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
+                                 @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards) {
+            for (String appLangCode : WikipediaApp.getInstance().language().getAppLanguageCodes()) {
+                if (responses.containsKey(appLangCode)
+                        && !FeedContentType.TRENDING_ARTICLES.getLangCodesDisabled().contains(appLangCode)) {
+                    AggregatedFeedContent content = responses.get(appLangCode);
+                    if (content.mostRead() != null) {
+                        outCards.add(new MostReadListCard(content.mostRead(), WikiSite.forLanguageCode(appLangCode)));
+                    }
+                }
             }
         }
     }
@@ -98,64 +123,26 @@ public class AggregatedFeedContentClient {
         }
 
         @Override
-        void getCardFromResponse(@NonNull AggregatedFeedContent content, @NonNull WikiSite wiki,
-                                 int age, @NonNull List<Card> outCards) {
-            if (content.potd() != null) {
-                outCards.add(new FeaturedImageCard(content.potd(), age, wiki));
+        void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
+                                 @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards) {
+            if (responses.containsKey(wiki.languageCode())) {
+                AggregatedFeedContent content = responses.get(wiki.languageCode());
+                if (content.potd() != null) {
+                    outCards.add(new FeaturedImageCard(content.potd(), age, wiki));
+                }
             }
         }
     }
 
-    void setAggregatedResponse(@Nullable AggregatedFeedContent content, int age) {
-        aggregatedResponse = content;
-        this.aggregatedResponseAge = age;
-    }
-
-    @Nullable AggregatedFeedContent getCurrentResponse() {
-        return aggregatedResponse;
-    }
-
-    int getCurrentAge() {
-        return aggregatedResponseAge;
-    }
-
-    void requestAggregated(@NonNull WikiSite wiki, int age, @NonNull retrofit2.Callback<AggregatedFeedContent> cb) {
-        cancel();
-        UtcDate date = DateUtil.getUtcRequestDateFor(age);
-        String endpoint = String.format(Locale.ROOT, Prefs.getRestbaseUriFormat(), wiki.scheme(),
-                wiki.authority());
-        Retrofit retrofit = RetrofitFactory.newInstance(endpoint, wiki);
-        AggregatedFeedContentClient.Service service = retrofit.create(Service.class);
-        call = service.get(date.year(), date.month(), date.date());
-        call.enqueue(cb);
+    public void invalidate() {
+        aggregatedResponseAge = -1;
     }
 
     public void cancel() {
-        if (call == null) {
-            return;
-        }
-        call.cancel();
-        call = null;
+        disposables.clear();
     }
 
-    private interface Service {
-
-        /**
-         * Gets aggregated content for the feed for the date provided.
-         *
-         * @param year four-digit year
-         * @param month two-digit month
-         * @param day two-digit day
-         */
-        @NonNull
-        @Headers(ACCEPT_HEADER_PREFIX + "aggregated-feed/0.5.0\"")
-        @GET("feed/featured/{year}/{month}/{day}")
-        Call<AggregatedFeedContent> get(@Path("year") String year,
-                                        @Path("month") String month,
-                                        @Path("day") String day);
-    }
-
-    private abstract static class BaseClient implements FeedClient, retrofit2.Callback<AggregatedFeedContent> {
+    private abstract static class BaseClient implements FeedClient {
         @NonNull private AggregatedFeedContentClient aggregatedClient;
         @Nullable private Callback cb;
         private WikiSite wiki;
@@ -165,53 +152,57 @@ public class AggregatedFeedContentClient {
             this.aggregatedClient = aggregatedClient;
         }
 
-        abstract void getCardFromResponse(@NonNull AggregatedFeedContent response,
+        abstract void getCardFromResponse(@NonNull Map<String, AggregatedFeedContent> responses,
                                           @NonNull WikiSite wiki, int age, @NonNull List<Card> outCards);
 
         @Override
         public void request(@NonNull Context context, @NonNull WikiSite wiki, int age, @NonNull Callback cb) {
             this.cb = cb;
             this.age = age;
-            if (aggregatedClient.getCurrentAge() == age
-                    && aggregatedClient.getCurrentResponse() != null
-                    && wiki.equals(this.wiki)) {
-                List<Card> cards = new ArrayList<>();
-                getCardFromResponse(aggregatedClient.getCurrentResponse(), wiki, age, cards);
-                cb.success(cards);
-            } else {
-                aggregatedClient.requestAggregated(wiki, age, this);
-            }
             this.wiki = wiki;
+            if (aggregatedClient.aggregatedResponseAge == age
+                    && aggregatedClient.aggregatedResponses.containsKey(wiki.languageCode())) {
+                List<Card> cards = new ArrayList<>();
+                getCardFromResponse(aggregatedClient.aggregatedResponses, wiki, age, cards);
+                FeedCoordinator.postCardsToCallback(cb, cards);
+            } else {
+                requestAggregated();
+            }
         }
 
         @Override
         public void cancel() {
         }
 
-        @Override public void onResponse(@NonNull Call<AggregatedFeedContent> call,
-                                         @NonNull Response<AggregatedFeedContent> response) {
-            AggregatedFeedContent content = response.body();
-            if (content == null) {
-                if (cb != null) {
-                    cb.error(new RuntimeException("Aggregated response was not in the correct format."));
-                }
-                return;
-            }
-            aggregatedClient.setAggregatedResponse(content, age);
-            List<Card> cards = new ArrayList<>();
-            if (aggregatedClient.getCurrentResponse() != null) {
-                getCardFromResponse(aggregatedClient.getCurrentResponse(), wiki, age, cards);
-            }
-            if (cb != null) {
-                cb.success(cards);
-            }
-        }
-
-        @Override public void onFailure(@NonNull Call<AggregatedFeedContent> call, @NonNull Throwable caught) {
-            L.v(caught);
-            if (cb != null) {
-                cb.error(caught);
-            }
+        private void requestAggregated() {
+            aggregatedClient.cancel();
+            UtcDate date = DateUtil.getUtcRequestDateFor(age);
+            aggregatedClient.disposables.add(Observable.fromIterable(FeedContentType.getAggregatedLanguages())
+                    .flatMap(lang -> ServiceFactory.getRest(WikiSite.forLanguageCode(lang)).getAggregatedFeed(date.year(), date.month(), date.date()).subscribeOn(Schedulers.io()), Pair::new)
+                    .toList()
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(pairList -> {
+                        List<Card> cards = new ArrayList<>();
+                        for (Pair<String, AggregatedFeedContent> pair : pairList) {
+                            AggregatedFeedContent content = pair.second;
+                            if (content == null) {
+                                continue;
+                            }
+                            aggregatedClient.aggregatedResponses.put(WikiSite.forLanguageCode(pair.first).languageCode(), content);
+                            aggregatedClient.aggregatedResponseAge = age;
+                        }
+                        if (aggregatedClient.aggregatedResponses.containsKey(wiki.languageCode())) {
+                            getCardFromResponse(aggregatedClient.aggregatedResponses, wiki, age, cards);
+                        }
+                        if (cb != null) {
+                            FeedCoordinator.postCardsToCallback(cb, cards);
+                        }
+                    }, caught -> {
+                        L.v(caught);
+                        if (cb != null) {
+                            cb.error(caught);
+                        }
+                    }));
         }
     }
 }

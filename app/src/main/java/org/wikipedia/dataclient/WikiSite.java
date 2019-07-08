@@ -3,14 +3,15 @@ package org.wikipedia.dataclient;
 import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
 
 import com.google.gson.annotations.SerializedName;
 
 import org.wikipedia.language.AppLanguageLookUpTable;
+import org.wikipedia.language.LanguageUtil;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.UriUtil;
 
 /**
@@ -39,6 +40,7 @@ import org.wikipedia.util.UriUtil;
  */
 public class WikiSite implements Parcelable {
     public static final String DEFAULT_SCHEME = "https";
+    private static String DEFAULT_BASE_URL;
 
     public static final Parcelable.Creator<WikiSite> CREATOR = new Parcelable.Creator<WikiSite>() {
         @Override
@@ -57,11 +59,15 @@ public class WikiSite implements Parcelable {
     @NonNull private String languageCode;
 
     public static boolean supportedAuthority(@NonNull String authority) {
-        return authority.endsWith(Prefs.getMediaWikiBaseUri().getAuthority());
+        return authority.endsWith(Uri.parse(DEFAULT_BASE_URL).getAuthority());
+    }
+
+    public static void setDefaultBaseUrl(@NonNull String url) {
+        DEFAULT_BASE_URL = TextUtils.isEmpty(url) ? Service.WIKIPEDIA_URL : url;
     }
 
     public static WikiSite forLanguageCode(@NonNull String languageCode) {
-        Uri uri = ensureScheme(Prefs.getMediaWikiBaseUri());
+        Uri uri = ensureScheme(Uri.parse(DEFAULT_BASE_URL));
         return new WikiSite((languageCode.isEmpty()
                 ? "" : (languageCodeToSubdomain(languageCode) + ".")) + uri.getAuthority(),
                 languageCode);
@@ -69,15 +75,25 @@ public class WikiSite implements Parcelable {
 
     public WikiSite(@NonNull Uri uri) {
         Uri tempUri = ensureScheme(uri);
+        String authority = tempUri.getAuthority();
+        if (("wikipedia.org".equals(authority) || "www.wikipedia.org".equals(authority))
+                && tempUri.getPath() != null && tempUri.getPath().startsWith("/wiki")) {
+            // Special case for Wikipedia only: assume English subdomain when none given.
+            authority = "en.wikipedia.org";
+        }
         String langVariant = UriUtil.getLanguageVariantFromUri(tempUri);
         if (!TextUtils.isEmpty(langVariant)) {
             languageCode = langVariant;
         } else {
-            languageCode = authorityToLanguageCode(tempUri.getAuthority());
+            languageCode = authorityToLanguageCode(authority);
+        }
+        // This prevents showing mixed Chinese variants article when the URL is /zh/ or /wiki/ in zh.wikipedia.org
+        if (languageCode.equals(AppLanguageLookUpTable.CHINESE_LANGUAGE_CODE)) {
+            languageCode = LanguageUtil.getFirstSelectedChineseVariant();
         }
         this.uri = new Uri.Builder()
                 .scheme(tempUri.getScheme())
-                .encodedAuthority(tempUri.getAuthority())
+                .encodedAuthority(authority)
                 .build();
     }
 
@@ -125,6 +141,15 @@ public class WikiSite implements Parcelable {
     @NonNull
     public String mobileAuthority() {
         return authorityToMobile(authority());
+    }
+
+    /**
+     * @return The canonical "desktop" form of the authority. For example, if the authority
+     * is in a "mobile" form, e.g. en.m.wikipedia.org, this will become en.wikipedia.org.
+     */
+    @NonNull
+    public String desktopAuthority() {
+        return authority().replace(".m.", ".");
     }
 
     @NonNull
@@ -198,7 +223,7 @@ public class WikiSite implements Parcelable {
     }
 
     @NonNull public String dbName() {
-        return subdomain() + "wiki";
+        return subdomain().replaceAll("-", "_") + "wiki";
     }
 
     // Auto-generated

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<org.wikipedia.onboarding.OnboardingPageView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<org.wikipedia.onboarding.OnboardingPageView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    app:centeredImage="@drawable/illustration_app_onboarding_0"
+    app:centeredImage="@drawable/app_onboarding_globe"
+    app:dataType="@string/language_data"
     app:imageSize="160dp"
-    app:primaryText="@string/onboarding_welcome_title"
-    app:secondaryText="@string/onboarding_welcome_text" />
+    app:primaryText="@string/onboarding_welcome_title_v2"
+    app:secondaryText="@string/onboarding_multilingual_secondary_text"
+    app:showListView="true" />

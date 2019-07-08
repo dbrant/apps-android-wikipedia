@@ -2,16 +2,17 @@ package org.wikipedia.page;
 
 import android.content.Context;
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.bridge.CommunicationBridge;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.util.UriUtil;
+import org.wikipedia.util.log.L;
 
 import java.util.Arrays;
 import java.util.List;
@@ -22,7 +23,7 @@ import static org.wikipedia.util.UriUtil.handleExternalLink;
 /**
  * Handles any html links coming from a {@link org.wikipedia.page.PageFragment}
  */
-public abstract class LinkHandler implements CommunicationBridge.JSEventListener, LinkMovementMethodExt.UrlHandler {
+public abstract class LinkHandler implements CommunicationBridge.JSEventListener, LinkMovementMethodExt.UrlHandlerWithText {
     private static final List<String> KNOWN_SCHEMES
             = Arrays.asList("http", "https", "geo", "file", "content");
 
@@ -32,7 +33,7 @@ public abstract class LinkHandler implements CommunicationBridge.JSEventListener
         this.context = context;
     }
 
-    public abstract void onPageLinkClicked(@NonNull String anchor);
+    public abstract void onPageLinkClicked(@NonNull String anchor, @NonNull String linkText);
 
     public abstract void onInternalLinkClicked(@NonNull PageTitle title);
 
@@ -43,17 +44,17 @@ public abstract class LinkHandler implements CommunicationBridge.JSEventListener
     public void onMessage(String messageType, JSONObject messagePayload) {
         try {
             String href = decodeURL(messagePayload.getString("href"));
-            onUrlClick(href, messagePayload.optString("title"));
+            onUrlClick(href, messagePayload.optString("title"), messagePayload.optString("text"));
         } catch (IllegalArgumentException e) {
             // The URL is malformed and URL decoder can't understand it. Just do nothing.
-            Log.d("Wikipedia", "A malformed URL was tapped.");
+            L.d("A malformed URL was tapped.");
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void onUrlClick(@NonNull String href, @Nullable String titleString) {
+    public void onUrlClick(@NonNull String href, @Nullable String titleString, @NonNull String linkText) {
         if (href.startsWith("//")) {
             // for URLs without an explicit scheme, add our default scheme explicitly.
             href = getWikiSite().scheme() + ":" + href;
@@ -76,7 +77,7 @@ public abstract class LinkHandler implements CommunicationBridge.JSEventListener
                     .build();
         }
 
-        Log.d("Wikipedia", "Link clicked was " + uri.toString());
+        L.d("Link clicked was " + uri.toString());
         if (!TextUtils.isEmpty(uri.getPath()) && WikiSite.supportedAuthority(uri.getAuthority())
                 && (uri.getPath().startsWith("/wiki/") || uri.getPath().startsWith("/zh-"))) {
             WikiSite site = new WikiSite(uri);
@@ -95,7 +96,7 @@ public abstract class LinkHandler implements CommunicationBridge.JSEventListener
             onInternalLinkClicked(title);
         } else if (!TextUtils.isEmpty(uri.getAuthority()) && WikiSite.supportedAuthority(uri.getAuthority())
                 && !TextUtils.isEmpty(uri.getFragment())) {
-            onPageLinkClicked(uri.getFragment());
+            onPageLinkClicked(uri.getFragment(), linkText);
         } else {
             onExternalLinkClicked(uri);
         }

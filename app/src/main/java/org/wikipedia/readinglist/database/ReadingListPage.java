@@ -1,17 +1,21 @@
 package org.wikipedia.readinglist.database;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.page.Namespace;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.settings.Prefs;
 
-public class ReadingListPage {
+import java.io.Serializable;
+
+public class ReadingListPage implements Serializable {
     public static final int STATUS_QUEUE_FOR_SAVE = 0;
     public static final int STATUS_SAVED = 1;
     public static final int STATUS_QUEUE_FOR_DELETE = 2;
+    public static final int STATUS_QUEUE_FOR_FORCED_SAVE = 3;
 
     public static final ReadingListPageTable DATABASE_TABLE = new ReadingListPageTable();
 
@@ -33,6 +37,7 @@ public class ReadingListPage {
     private long revId;
     private long remoteId;
 
+    private transient int downloadProgress;
     private transient boolean selected;
     @Nullable private transient String accentAndCaseInvariantTitle;
 
@@ -51,7 +56,7 @@ public class ReadingListPage {
         this.thumbUrl = title.getThumbUrl();
         this.description = title.getDescription();
         listId = -1;
-        offline = true;
+        offline = Prefs.isDownloadingReadingListArticlesEnabled();
         status = STATUS_QUEUE_FOR_SAVE;
         long now = System.currentTimeMillis();
         mtime = now;
@@ -168,6 +173,14 @@ public class ReadingListPage {
     }
 
     public boolean saving() {
-        return offline && status == STATUS_QUEUE_FOR_SAVE;
+        return offline && (status == STATUS_QUEUE_FOR_SAVE || status == STATUS_QUEUE_FOR_FORCED_SAVE);
+    }
+
+    public void downloadProgress(int downloadProgress) {
+        this.downloadProgress = downloadProgress;
+    }
+
+    public int downloadProgress() {
+        return downloadProgress;
     }
 }

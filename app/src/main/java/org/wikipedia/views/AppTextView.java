@@ -1,23 +1,46 @@
 package org.wikipedia.views;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import org.wikipedia.R;
+import org.wikipedia.util.StringUtil;
 
 // TODO: Document where it is desirable to use this class vs. a vanilla TextView
 public class AppTextView extends ConfigurableTextView {
 
     public AppTextView(Context context) {
-        this(context, null);
+        super(context);
+        init(context, null);
     }
 
     public AppTextView(Context context, AttributeSet attrs) {
-        this(context, attrs, android.R.attr.textViewStyle);
+        super(context, attrs);
+        init(context, attrs);
     }
 
     public AppTextView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        init(context, attrs);
+    }
+
+    private void init(@NonNull Context context, @Nullable AttributeSet attrs) {
+        if (attrs != null) {
+            TypedArray array = context.obtainStyledAttributes(attrs, R.styleable.AppTextView);
+            String htmlText = array.getString(R.styleable.AppTextView_html);
+
+            if (htmlText != null) {
+                setText(StringUtil.fromHtml(htmlText));
+            }
+
+            array.recycle();
+        }
     }
 
     @Override
@@ -32,27 +55,12 @@ public class AppTextView extends ConfigurableTextView {
                 setText(text);
             }
         }
-        return super.dispatchTouchEvent(event);
-    }
-
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        remeasureForLineSpacing();
-    }
-
-    // Ensure the descenders of the final line are not truncated. This usually happens when
-    // lineSpacingMultiplier is less than one.
-    private void remeasureForLineSpacing() {
-        setMeasuredDimension(getMeasuredWidth(), getMeasuredHeight() + calculateExtraDescenderSpace());
-    }
-
-    private int calculateExtraDescenderSpace() {
-        return Math.max(0, getIntrinsicLineHeight() - getLineHeight());
-    }
-
-    /** @return Line height without space multiplication and extra spacing addition. */
-    private int getIntrinsicLineHeight() {
-        return getPaint().getFontMetricsInt(null);
+        try {
+            // Workaround for some obscure AOSP crashes when highlighting text.
+            return super.dispatchTouchEvent(event);
+        } catch (Exception e) {
+            // ignore
+        }
+        return true;
     }
 }

@@ -1,39 +1,45 @@
 package org.wikipedia.search;
 
+import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v7.widget.SearchView;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import org.wikipedia.BackPressedHandler;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+
+import org.wikipedia.Constants;
+import org.wikipedia.Constants.InvokeSource;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
-import org.wikipedia.activity.FragmentUtil;
+import org.wikipedia.analytics.IntentFunnel;
 import org.wikipedia.analytics.SearchFunnel;
-import org.wikipedia.concurrency.SaneAsyncTask;
 import org.wikipedia.database.contract.SearchHistoryContract;
 import org.wikipedia.history.HistoryEntry;
-import org.wikipedia.offline.OfflineManager;
+import org.wikipedia.language.LanguageSettingsInvokeSource;
+import org.wikipedia.page.ExclusiveBottomSheetPresenter;
+import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.readinglist.AddToReadingListDialog;
-import org.wikipedia.settings.LanguagePreferenceDialog;
+import org.wikipedia.settings.Prefs;
+import org.wikipedia.settings.languages.WikipediaLanguagesActivity;
+import org.wikipedia.util.ClipboardUtil;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.FeedbackUtil;
+import org.wikipedia.util.ShareUtil;
+import org.wikipedia.util.log.L;
+import org.wikipedia.views.CabSearchView;
+import org.wikipedia.views.LanguageScrollView;
 import org.wikipedia.views.ViewUtil;
 
 import java.util.Locale;
@@ -42,43 +48,47 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
+import io.reactivex.Completable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.wikipedia.Constants.ACTIVITY_REQUEST_ADD_A_LANGUAGE_FROM_SEARCH;
+import static org.wikipedia.Constants.INTENT_EXTRA_INVOKE_SOURCE;
+import static org.wikipedia.Constants.InvokeSource.INTENT_PROCESS_TEXT;
+import static org.wikipedia.Constants.InvokeSource.INTENT_SHARE;
+import static org.wikipedia.settings.languages.WikipediaLanguagesFragment.ACTIVITY_RESULT_LANG_POSITION_DATA;
+import static org.wikipedia.util.ResourceUtil.getThemedColor;
 
-public class SearchFragment extends Fragment implements BackPressedHandler,
-        SearchResultsFragment.Callback, RecentSearchesFragment.Parent {
+public class SearchFragment extends Fragment implements SearchResultsFragment.Callback,
+        RecentSearchesFragment.Callback, LanguageScrollView.Callback {
 
-    public interface Callback {
-        void onSearchSelectPage(@NonNull HistoryEntry entry, boolean inNewTab);
-        void onSearchOpen();
-        void onSearchClose(boolean launchedFromIntent);
-        void onSearchResultCopyLink(@NonNull PageTitle title);
-        void onSearchResultAddToList(@NonNull PageTitle title,
-                                     @NonNull AddToReadingListDialog.InvokeSource source);
-        void onSearchResultShareLink(@NonNull PageTitle title);
-        void showWikidataInfoBox(@NonNull PageTitle title);
-    }
-
-    private static final String ARG_INVOKE_SOURCE = "invokeSource";
     private static final String ARG_QUERY = "lastQuery";
 
     private static final int PANEL_RECENT_SEARCHES = 0;
     private static final int PANEL_SEARCH_RESULTS = 1;
 
-    @BindView(R.id.search_container) View searchContainer;
     @BindView(R.id.search_toolbar) Toolbar toolbar;
-    @BindView(R.id.search_cab_view) SearchView searchView;
+    @BindView(R.id.search_cab_view) CabSearchView searchView;
     @BindView(R.id.search_progress_bar) ProgressBar progressBar;
     @BindView(R.id.search_lang_button_container) View langButtonContainer;
     @BindView(R.id.search_lang_button) TextView langButton;
-    @BindView(R.id.search_offline_library_state) View offlineLibraryStateView;
+    @BindView(R.id.lang_scroll) LanguageScrollView languageScrollView;
+    @BindView(R.id.language_scroll_container) View languageScrollContainer;
     private Unbinder unbinder;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     private WikipediaApp app;
-    @BindView(android.support.v7.appcompat.R.id.search_src_text) EditText searchEditText;
     private SearchFunnel funnel;
-    private SearchInvokeSource invokeSource;
-
+    private InvokeSource invokeSource;
+    private String searchLanguageCode;
+    private String tempLangCodeHolder;
+    private boolean langBtnClicked = false;
+    public static final int RESULT_LANG_CHANGED = 1;
+    public static final int RESULT_LANG_CONSISTENT = 2;
+    public static final int LANG_BUTTON_TEXT_SIZE_LARGER = 12;
+    public static final int LANG_BUTTON_TEXT_SIZE_SMALLER = 8;
     /**
      * Whether the Search fragment is currently showing.
      */
@@ -90,6 +100,7 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
      */
     @Nullable private String query;
 
+    private ExclusiveBottomSheetPresenter bottomSheetPresenter = new ExclusiveBottomSheetPresenter();
     private RecentSearchesFragment recentSearchesFragment;
     private SearchResultsFragment searchResultsFragment;
 
@@ -97,7 +108,7 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         @Override
         public boolean onClose() {
             closeSearch();
-            funnel.searchCancel();
+            funnel.searchCancel(searchLanguageCode);
             return false;
         }
     };
@@ -117,17 +128,18 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
 
         @Override
         public boolean onQueryTextChange(String queryText) {
+            searchView.setCloseButtonVisibility(queryText);
             startSearch(queryText.trim(), false);
             return true;
         }
     };
 
-    @NonNull public static SearchFragment newInstance(@NonNull SearchInvokeSource source,
+    @NonNull public static SearchFragment newInstance(InvokeSource source,
                                                       @Nullable String query) {
         SearchFragment fragment = new SearchFragment();
 
         Bundle args = new Bundle();
-        args.putInt(ARG_INVOKE_SOURCE, source.code());
+        args.putSerializable(INTENT_EXTRA_INVOKE_SOURCE, source);
         args.putString(ARG_QUERY, query);
 
         fragment.setArguments(args);
@@ -139,9 +151,12 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         super.onCreate(savedInstanceState);
         app = WikipediaApp.getInstance();
 
-        invokeSource = SearchInvokeSource.of(getArguments().getInt(ARG_INVOKE_SOURCE));
-        query = getArguments().getString(ARG_QUERY);
+        if (savedInstanceState == null) {
+            handleIntent(requireActivity().getIntent());
+        }
 
+        invokeSource = (InvokeSource) getArguments().getSerializable(INTENT_EXTRA_INVOKE_SOURCE);
+        query = getArguments().getString(ARG_QUERY);
         funnel = new SearchFunnel(app, invokeSource);
     }
 
@@ -152,7 +167,7 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
     }
 
     @Override
-    public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         app = WikipediaApp.getInstance();
         View view = inflater.inflate(R.layout.fragment_search, container, false);
         unbinder = ButterKnife.bind(this, view);
@@ -160,31 +175,95 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         FragmentManager childFragmentManager = getChildFragmentManager();
         recentSearchesFragment = (RecentSearchesFragment)childFragmentManager.findFragmentById(
                 R.id.search_panel_recent);
+        recentSearchesFragment.setCallback(this);
         searchResultsFragment = (SearchResultsFragment)childFragmentManager.findFragmentById(
                 R.id.fragment_search_results);
 
-        toolbar.setNavigationOnClickListener((v) -> onBackPressed());
+        toolbar.setNavigationOnClickListener((v) -> requireActivity().finish());
 
         initSearchView();
-        initLangButton();
-        updateOfflineLibraryState();
 
         if (!TextUtils.isEmpty(query)) {
             showPanel(PANEL_SEARCH_RESULTS);
         }
 
+        setUpLanguageScroll(0);
         startSearch(query, false);
-
+        searchView.setCloseButtonVisibility(query);
         return view;
     }
 
     @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == ACTIVITY_REQUEST_ADD_A_LANGUAGE_FROM_SEARCH) {
+            int position = 0;
+            requireActivity().setResult(RESULT_LANG_CHANGED);
+            if (data != null && data.hasExtra(ACTIVITY_RESULT_LANG_POSITION_DATA)) {
+                position = data.getIntExtra(ACTIVITY_RESULT_LANG_POSITION_DATA, 0);
+            } else if (app.language().getAppLanguageCodes().contains(searchLanguageCode)) {
+                position = app.language().getAppLanguageCodes().indexOf(searchLanguageCode);
+            }
+            setUpLanguageScroll(position);
+            startSearch(query, true);
+        }
+    }
+
+    public void handleIntent(Intent intent) {
+        IntentFunnel intentFunnel = new IntentFunnel(WikipediaApp.getInstance());
+        if (Intent.ACTION_SEND.equals(intent.getAction())
+                && Constants.PLAIN_TEXT_MIME_TYPE.equals(intent.getType())) {
+            intentFunnel.logShareIntent();
+            getArguments().putString(ARG_QUERY, intent.getStringExtra(Intent.EXTRA_TEXT));
+            getArguments().putSerializable(INTENT_EXTRA_INVOKE_SOURCE, INTENT_SHARE);
+        } else if (Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())
+                && Constants.PLAIN_TEXT_MIME_TYPE.equals(intent.getType())
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            intentFunnel.logProcessTextIntent();
+            getArguments().putString(ARG_QUERY, intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT));
+            getArguments().putSerializable(INTENT_EXTRA_INVOKE_SOURCE, INTENT_PROCESS_TEXT);
+        }
+    }
+
+    private void setUpLanguageScroll(int position) {
+        searchLanguageCode = app.language().getAppLanguageCode();
+
+        if (app.language().getAppLanguageCodes().size() > 1) {
+            languageScrollContainer.setVisibility(View.VISIBLE);
+            languageScrollView.setUpLanguageScrollTabData(app.language().getAppLanguageCodes(), this, position);
+            langButtonContainer.setVisibility(View.GONE);
+        } else {
+            showMultiLingualOnboarding();
+            languageScrollContainer.setVisibility(View.GONE);
+            langButtonContainer.setVisibility(View.VISIBLE);
+            initLangButton();
+        }
+    }
+
+
+    private void showMultiLingualOnboarding() {
+        if (Prefs.isMultilingualSearchTutorialEnabled()) {
+            FeedbackUtil.showTapTargetView(requireActivity(), langButton, R.string.empty,
+                    R.string.tool_tip_lang_button, null);
+            Prefs.setMultilingualSearchTutorialEnabled(false);
+        }
+    }
+
+    @Override
     public void onDestroyView() {
+        disposables.clear();
         searchView.setOnCloseListener(null);
         searchView.setOnQueryTextListener(null);
         unbinder.unbind();
         unbinder = null;
+        funnel.searchCancel(searchLanguageCode);
         super.onDestroyView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        DeviceUtil.setWindowSoftInputModeResizable(requireActivity());
     }
 
     @Override
@@ -193,14 +272,15 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         return funnel;
     }
 
-    public boolean isLaunchedFromIntent() {
-        return invokeSource.fromIntent();
-    }
-
     @Override
     public void switchToSearch(@NonNull String queryText) {
         startSearch(queryText, true);
         searchView.setQuery(queryText, false);
+    }
+
+    @Override
+    public void onAddLanguageClicked() {
+        onLangButtonClick();
     }
 
     /**
@@ -219,62 +299,32 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         }
     }
 
-    /**
-     * Determine whether the Search fragment is currently active.
-     * @return Whether the Search fragment is active.
-     */
-    public boolean isSearchActive() {
-        return isSearchActive;
-    }
-
-    @Override
-    public boolean onBackPressed() {
-        if (isSearchActive) {
-            // todo: activity or fragment transition
-            closeSearch();
-            funnel.searchCancel();
-            return true;
-        }
-        return false;
-    }
-
     @Override
     public void navigateToTitle(@NonNull PageTitle title, boolean inNewTab, int position) {
         if (!isAdded()) {
             return;
         }
-        funnel.searchClick(position);
+        funnel.searchClick(position, searchLanguageCode);
         HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_SEARCH);
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchSelectPage(historyEntry, inNewTab);
-        }
+        startActivity(inNewTab ? PageActivity.newIntentForNewTab(requireContext(), historyEntry, historyEntry.getTitle())
+                : PageActivity.newIntentForExistingTab(requireContext(), historyEntry, historyEntry.getTitle()));
         closeSearch();
     }
 
     @Override
     public void onSearchResultCopyLink(@NonNull PageTitle title) {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchResultCopyLink(title);
-        }
+        ClipboardUtil.setPlainText(requireContext(), null, title.getCanonicalUri());
+        FeedbackUtil.showMessage(this, R.string.address_copied);
     }
 
     @Override
-    public void onSearchResultAddToList(@NonNull PageTitle title,
-                                        @NonNull AddToReadingListDialog.InvokeSource source) {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchResultAddToList(title, source);
-        }
+    public void onSearchResultAddToList(@NonNull PageTitle title, @NonNull InvokeSource source) {
+        bottomSheetPresenter.show(getChildFragmentManager(), AddToReadingListDialog.newInstance(title, source));
     }
 
     @Override
     public void onSearchResultShareLink(@NonNull PageTitle title) {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchResultShareLink(title);
-        }
+        ShareUtil.shareText(requireContext(), title);
     }
 
     @Override
@@ -288,8 +338,12 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         // this fragment is shown)
     }
 
-    @OnClick(R.id.search_lang_button_container) void onLangButtonClick() {
-        showLangPreferenceDialog();
+    @OnClick(R.id.search_lang_button_container)
+    void onLangButtonClick() {
+        langBtnClicked = true;
+        tempLangCodeHolder = searchLanguageCode;
+        Intent intent = WikipediaLanguagesActivity.newIntent(requireActivity(), LanguageSettingsInvokeSource.SEARCH.text());
+        startActivityForResult(intent, ACTIVITY_REQUEST_ADD_A_LANGUAGE_FROM_SEARCH);
     }
 
     /**
@@ -319,7 +373,6 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
             return;
         }
 
-        updateOfflineLibraryState();
         searchResultsFragment.startSearch(term, force);
     }
 
@@ -328,15 +381,9 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
      */
     private void openSearch() {
         // create a new funnel every time Search is opened, to get a new session ID
-        funnel = new SearchFunnel(WikipediaApp.getInstance(), invokeSource);
+        funnel = new SearchFunnel(app, invokeSource);
         funnel.searchStart();
         isSearchActive = true;
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchOpen();
-        }
-        // show ourselves
-        ViewUtil.fadeIn(searchContainer);
 
         searchView.setIconified(false);
         searchView.requestFocusFromTouch();
@@ -344,26 +391,14 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
         // automatically trigger the showing of the corresponding search results.
         if (isValidQuery(query)) {
             searchView.setQuery(query, false);
-            searchEditText.selectAll();
+            searchView.selectAllQueryTexts();
         }
     }
 
     public void closeSearch() {
         isSearchActive = false;
-        // hide ourselves
-        ViewUtil.fadeOut(searchContainer);
         DeviceUtil.hideSoftKeyboard(getView());
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onSearchClose(invokeSource.fromIntent());
-        }
         addRecentSearch(query);
-    }
-
-    private void updateOfflineLibraryState() {
-        offlineLibraryStateView.setVisibility(
-                (OfflineManager.hasCompilation() && !DeviceUtil.isOnline())
-                        ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -371,6 +406,7 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
      * - PANEL_RECENT_SEARCHES
      * - PANEL_SEARCH_RESULTS
      * Automatically hides the previous panel.
+     *
      * @param panel Which panel to show.
      */
     private void showPanel(int panel) {
@@ -400,30 +436,17 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
     private void initSearchView() {
         searchView.setOnQueryTextListener(searchQueryListener);
         searchView.setOnCloseListener(searchCloseListener);
+        searchView.setSearchHintTextColor(getThemedColor(requireContext(), R.attr.material_theme_de_emphasised_color));
 
-        // reset its background
-        searchEditText.setBackgroundColor(Color.TRANSPARENT);
-        // make the search frame match_parent
-        View searchEditFrame = searchView
-                .findViewById(android.support.v7.appcompat.R.id.search_edit_frame);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        searchEditFrame.setLayoutParams(params);
-        // center the search text in it
-        searchEditText.setGravity(Gravity.CENTER_VERTICAL);
         // remove focus line from search plate
         View searchEditPlate = searchView
-                .findViewById(android.support.v7.appcompat.R.id.search_plate);
+                .findViewById(androidx.appcompat.R.id.search_plate);
         searchEditPlate.setBackgroundColor(Color.TRANSPARENT);
-
-        ImageView searchClose = searchView.findViewById(
-                android.support.v7.appcompat.R.id.search_close_btn);
-        FeedbackUtil.setToolbarButtonLongPressToast(searchClose);
     }
 
     private void initLangButton() {
-        langButton.setText(app.getAppOrSystemLanguageCode().toUpperCase(Locale.ENGLISH));
-        formatLangButtonText();
+        langButton.setText(app.language().getAppLanguageCode().toUpperCase(Locale.ENGLISH));
+        ViewUtil.formatLangButton(langButton, app.language().getAppLanguageCode().toUpperCase(Locale.ENGLISH), LANG_BUTTON_TEXT_SIZE_SMALLER, LANG_BUTTON_TEXT_SIZE_LARGER);
         FeedbackUtil.setToolbarButtonLongPressToast(langButtonContainer);
     }
 
@@ -433,71 +456,37 @@ public class SearchFragment extends Fragment implements BackPressedHandler,
 
     private void addRecentSearch(String title) {
         if (isValidQuery(title)) {
-            new SaveRecentSearchTask(new RecentSearch(title)).execute();
+            disposables.add(Completable.fromAction(() -> app.getDatabaseClient(RecentSearch.class).upsert(new RecentSearch(title), SearchHistoryContract.Query.SELECTION))
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(() -> recentSearchesFragment.updateList(),
+                            L::e));
         }
     }
 
-    private final class SaveRecentSearchTask extends SaneAsyncTask<Void> {
-        private final RecentSearch entry;
-        SaveRecentSearchTask(RecentSearch entry) {
-            this.entry = entry;
+    @Override
+    public void onLanguageTabSelected(String selectedLanguageCode) {
+        if (langBtnClicked) {
+            //We need to skip an event when we return back from 'add languages' screen,
+            // because it triggers two events while re-drawing the UI
+            langBtnClicked = false;
+        } else {
+            //We need a temporary language code holder because the previously selected search language code[searchLanguageCode]
+            // gets overwritten when UI is re-drawn
+            funnel.searchLanguageSwitch(!TextUtils.isEmpty(tempLangCodeHolder) && !tempLangCodeHolder.equals(selectedLanguageCode) ? tempLangCodeHolder : searchLanguageCode, selectedLanguageCode);
+            tempLangCodeHolder = null;
         }
-
-        @Override
-        public Void performTask() throws Throwable {
-            app.getDatabaseClient(RecentSearch.class).upsert(entry, SearchHistoryContract.Query.SELECTION);
-            return null;
-        }
-
-        @Override
-        public void onFinish(Void result) {
-            super.onFinish(result);
-            recentSearchesFragment.updateList();
-        }
-
-        @Override
-        public void onCatch(Throwable caught) {
-            Log.w("SaveRecentSearchTask", "Caught " + caught.getMessage(), caught);
-        }
+        searchLanguageCode = selectedLanguageCode;
+        searchResultsFragment.setLayoutDirection(searchLanguageCode);
+        startSearch(query, true);
     }
 
-    private void formatLangButtonText() {
-        final int langCodeStandardLength = 3;
-        final int langButtonTextMaxLength = 7;
-
-        // These values represent scaled pixels (sp)
-        final int langButtonTextSizeSmaller = 10;
-        final int langButtonTextSizeLarger = 13;
-
-        String langCode = app.getAppOrSystemLanguageCode();
-        if (langCode.length() > langCodeStandardLength) {
-            langButton.setTextSize(langButtonTextSizeSmaller);
-            if (langCode.length() > langButtonTextMaxLength) {
-                langButton.setText(langCode.substring(0, langButtonTextMaxLength).toUpperCase(Locale.ENGLISH));
-            }
-            return;
-        }
-        langButton.setTextSize(langButtonTextSizeLarger);
+    @Override
+    public void onLanguageButtonClicked() {
+        onLangButtonClick();
     }
 
-    @Nullable
-    private Callback callback() {
-        return FragmentUtil.getCallback(this, Callback.class);
-    }
-
-    private void showLangPreferenceDialog() {
-        LanguagePreferenceDialog langPrefDialog = new LanguagePreferenceDialog(getContext(), true);
-        langPrefDialog.setOnDismissListener((dialog) -> {
-            if (getActivity() == null) {
-                return;
-            }
-
-            langButton.setText(app.getAppOrSystemLanguageCode().toUpperCase(Locale.ENGLISH));
-            formatLangButtonText();
-            if (!TextUtils.isEmpty(query)) {
-                startSearch(query, true);
-            }
-        });
-        langPrefDialog.show();
+    public String getSearchLanguageCode() {
+        return searchLanguageCode;
     }
 }

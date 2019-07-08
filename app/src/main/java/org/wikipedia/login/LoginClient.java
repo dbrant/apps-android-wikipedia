@@ -1,49 +1,46 @@
 package org.wikipedia.login;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.text.TextUtils;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.lang3.StringUtils;
-import org.wikipedia.Constants;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwException;
+import org.wikipedia.dataclient.mwapi.ListUserResponse;
 import org.wikipedia.dataclient.mwapi.MwQueryResponse;
 import org.wikipedia.dataclient.mwapi.MwServiceError;
-import org.wikipedia.dataclient.retrofit.MwCachedService;
-import org.wikipedia.dataclient.retrofit.WikiCachedService;
 import org.wikipedia.util.log.L;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.Headers;
-import retrofit2.http.POST;
 
 /**
  * Responsible for making login related requests to the server.
  */
 public class LoginClient {
-    @NonNull private final WikiCachedService<Service> cachedService = new MwCachedService<>(Service.class);
-
     @Nullable private Call<MwQueryResponse> tokenCall;
     @Nullable private Call<LoginResponse> loginCall;
 
     public interface LoginCallback {
         void success(@NonNull LoginResult result);
         void twoFactorPrompt(@NonNull Throwable caught, @Nullable String token);
+        void passwordResetPrompt(@Nullable String token);
         void error(@NonNull Throwable caught);
     }
 
@@ -51,38 +48,32 @@ public class LoginClient {
                         @NonNull final String password, @NonNull final LoginCallback cb) {
         cancel();
 
-        tokenCall = cachedService.service(wiki).requestLoginToken();
+        tokenCall = ServiceFactory.get(wiki).getLoginToken();
         tokenCall.enqueue(new Callback<MwQueryResponse>() {
-            @Override public void onResponse(Call<MwQueryResponse> call,
-                                             Response<MwQueryResponse> response) {
-                if (response.body().success()) {
-                    // noinspection ConstantConditions
-                    login(wiki, userName, password, null, response.body().query().loginToken(), cb);
-                } else if (response.body().getError() != null) {
-                    // noinspection ConstantConditions
-                    cb.error(new MwException(response.body().getError()));
-                } else {
-                    cb.error(new IOException("Unexpected error trying to retrieve login token. "
-                            + response.body().toString()));
-                }
+            @Override public void onResponse(@NonNull Call<MwQueryResponse> call,
+                                             @NonNull Response<MwQueryResponse> response) {
+                login(wiki, userName, password, null, null, response.body().query().loginToken(), cb);
             }
 
             @Override
-            public void onFailure(Call<MwQueryResponse> call, Throwable caught) {
+            public void onFailure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable caught) {
+                if (call.isCanceled()) {
+                    return;
+                }
                 cb.error(caught);
             }
         });
     }
 
-    void login(@NonNull final WikiSite wiki, @NonNull final String userName,
-                       @NonNull final String password, @Nullable final String twoFactorCode,
-                       @Nullable final String loginToken, @NonNull final LoginCallback cb) {
-        loginCall = StringUtils.defaultIfEmpty(twoFactorCode, "").isEmpty()
-                ? cachedService.service(wiki).logIn(userName, password, loginToken, Constants.WIKIPEDIA_URL)
-                : cachedService.service(wiki).logIn(userName, password, twoFactorCode, loginToken, true);
+    void login(@NonNull final WikiSite wiki, @NonNull final String userName, @NonNull final String password,
+               @Nullable final String retypedPassword, @Nullable final String twoFactorCode,
+               @Nullable final String loginToken, @NonNull final LoginCallback cb) {
+        loginCall = TextUtils.isEmpty(twoFactorCode) && TextUtils.isEmpty(retypedPassword)
+                ? ServiceFactory.get(wiki).postLogIn(userName, password, loginToken, Service.WIKIPEDIA_URL)
+                : ServiceFactory.get(wiki).postLogIn(userName, password, retypedPassword, twoFactorCode, loginToken, true);
         loginCall.enqueue(new Callback<LoginResponse>() {
             @Override
-            public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
+            public void onResponse(@NonNull Call<LoginResponse> call, @NonNull Response<LoginResponse> response) {
                 LoginResponse loginResponse = response.body();
                 LoginResult loginResult = loginResponse.toLoginResult(wiki, password);
                 if (loginResult != null) {
@@ -94,6 +85,8 @@ public class LoginClient {
                     } else if ("UI".equals(loginResult.getStatus())) {
                         if (loginResult instanceof LoginOAuthResult) {
                             cb.twoFactorPrompt(new LoginFailedException(loginResult.getMessage()), loginToken);
+                        } else if (loginResult instanceof LoginResetPasswordResult) {
+                            cb.passwordResetPrompt(loginToken);
                         } else {
                             cb.error(new LoginFailedException(loginResult.getMessage()));
                         }
@@ -106,7 +99,10 @@ public class LoginClient {
             }
 
             @Override
-            public void onFailure(Call<LoginResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<LoginResponse> call, @NonNull Throwable t) {
+                if (call.isCanceled()) {
+                    return;
+                }
                 cb.error(t);
             }
         });
@@ -114,16 +110,15 @@ public class LoginClient {
 
     public void loginBlocking(@NonNull final WikiSite wiki, @NonNull final String userName,
                               @NonNull final String password, @Nullable final String twoFactorCode) throws Throwable {
-        Response<MwQueryResponse> tokenResponse = cachedService.service(wiki).requestLoginToken().execute();
-        if (tokenResponse.body() == null || !tokenResponse.body().success()
-                || TextUtils.isEmpty(tokenResponse.body().query().loginToken())) {
+        Response<MwQueryResponse> tokenResponse = ServiceFactory.get(wiki).getLoginToken().execute();
+        if (tokenResponse.body() == null || TextUtils.isEmpty(tokenResponse.body().query().loginToken())) {
             throw new IOException("Unexpected response when getting login token.");
         }
         String loginToken = tokenResponse.body().query().loginToken();
 
         Call<LoginResponse> tempLoginCall = StringUtils.defaultIfEmpty(twoFactorCode, "").isEmpty()
-                ? cachedService.service(wiki).logIn(userName, password, loginToken, Constants.WIKIPEDIA_URL)
-                : cachedService.service(wiki).logIn(userName, password, twoFactorCode, loginToken, true);
+                ? ServiceFactory.get(wiki).postLogIn(userName, password, loginToken, Service.WIKIPEDIA_URL)
+                : ServiceFactory.get(wiki).postLogIn(userName, password, null, twoFactorCode, loginToken, true);
         Response<LoginResponse> response = tempLoginCall.execute();
         LoginResponse loginResponse = response.body();
         if (loginResponse == null) {
@@ -150,25 +145,23 @@ public class LoginClient {
         }
     }
 
+    @SuppressLint("CheckResult")
     private void getExtendedInfo(@NonNull final WikiSite wiki, @NonNull String userName,
                                  @NonNull final LoginResult loginResult, @NonNull final LoginCallback cb) {
-        UserExtendedInfoClient infoClient = new UserExtendedInfoClient();
-        infoClient.request(wiki, userName, new UserExtendedInfoClient.Callback() {
-            @Override
-            public void success(@NonNull Call<MwQueryResponse> call, int id, @NonNull Set<String> groups) {
-                loginResult.setUserId(id);
-                loginResult.setGroups(groups);
-                cb.success(loginResult);
-
-                L.v("Found user ID " + id + " for " + wiki.subdomain());
-            }
-
-            @Override
-            public void failure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable caught) {
-                L.e("Login succeeded but getting group information failed. " + caught);
-                cb.error(caught);
-            }
-        });
+        ServiceFactory.get(wiki).getUserInfo(userName)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(response -> {
+                    ListUserResponse user = response.query().getUserResponse(userName);
+                    int id = response.query().userInfo().id();
+                    loginResult.setUserId(id);
+                    loginResult.setGroups(user.getGroups());
+                    cb.success(loginResult);
+                    L.v("Found user ID " + id + " for " + wiki.subdomain());
+                }, caught -> {
+                    L.e("Login succeeded but getting group information failed. " + caught);
+                    cb.error(caught);
+                });
     }
 
     public void cancel() {
@@ -192,33 +185,7 @@ public class LoginClient {
         loginCall = null;
     }
 
-    private interface Service {
-
-        /** Request a login token to be used later to log in. */
-        @NonNull
-        @Headers("Cache-Control: no-cache")
-        @POST("w/api.php?format=json&formatversion=2&action=query&meta=tokens&type=login")
-        Call<MwQueryResponse> requestLoginToken();
-
-        /** Actually log in. Has to be x-www-form-urlencoded */
-        @NonNull
-        @Headers("Cache-Control: no-cache")
-        @FormUrlEncoded
-        @POST("w/api.php?action=clientlogin&format=json&formatversion=2&rememberMe=")
-        Call<LoginResponse> logIn(@Field("username") String user, @Field("password") String pass,
-                                  @Field("logintoken") String token, @Field("loginreturnurl") String url);
-
-        /** Actually log in. Has to be x-www-form-urlencoded */
-        @NonNull
-        @Headers("Cache-Control: no-cache")
-        @FormUrlEncoded
-        @POST("w/api.php?action=clientlogin&format=json&formatversion=2&rememberMe=")
-        Call<LoginResponse> logIn(@Field("username") String user, @Field("password") String pass,
-                                  @Field("OATHToken") String twoFactorCode, @Field("logintoken") String token,
-                                  @Field("logincontinue") boolean loginContinue);
-    }
-
-    private static final class LoginResponse {
+    public static final class LoginResponse {
         @SuppressWarnings("unused") @SerializedName("error") @Nullable
         private MwServiceError error;
 
@@ -246,6 +213,8 @@ public class LoginClient {
                         for (Request req : requests) {
                             if ("TOTPAuthenticationRequest".equals(req.id())) {
                                 return new LoginOAuthResult(site, status, userName, password, message);
+                            } else if ("MediaWiki\\Auth\\PasswordAuthenticationRequest".equals(req.id())) {
+                                return new LoginResetPasswordResult(site, status, userName, password, message);
                             }
                         }
                     }

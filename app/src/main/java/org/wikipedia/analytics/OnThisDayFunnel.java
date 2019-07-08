@@ -1,21 +1,22 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
+import org.wikipedia.Constants;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.WikiSite;
 
 public class OnThisDayFunnel extends TimedFunnel {
     private static final String SCHEMA_NAME = "MobileWikiAppOnThisDay";
-    private static final int REV_ID = 17490767;
+    private static final int REV_ID = 18118721;
 
     private final int source;
     private int maxScrolledPosition;
 
-    public OnThisDayFunnel(WikipediaApp app, WikiSite wiki, int source) {
+    public OnThisDayFunnel(WikipediaApp app, WikiSite wiki, Constants.InvokeSource source) {
         super(app, SCHEMA_NAME, REV_ID, Funnel.SAMPLE_LOG_ALL, wiki);
-        this.source = source;
+        this.source = source.ordinal();
     }
 
     @Override protected void preprocessSessionToken(@NonNull JSONObject eventData) { }

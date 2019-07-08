@@ -3,19 +3,20 @@ package org.wikipedia.edit.richtext;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
 
 import org.wikipedia.R;
+import org.wikipedia.util.ResourceUtil;
 
-import static android.support.v4.content.ContextCompat.getColor;
 import static org.wikipedia.util.ResourceUtil.getThemedColor;
 
 public enum SyntaxRuleStyle {
     TEMPLATE {
         @NonNull @Override public SpanExtents createSpan(@NonNull Context ctx, int spanStart,
                                                          SyntaxRule syntaxItem) {
-            @ColorInt int color = getThemedColor(ctx, R.attr.material_theme_secondary_color);
+            @ColorInt int color = getThemedColor(ctx, R.attr.secondary_text_color);
             return new ColorSpanEx(color, Color.TRANSPARENT, spanStart, syntaxItem);
         }
     },
@@ -36,7 +37,7 @@ public enum SyntaxRuleStyle {
     REF {
         @NonNull @Override public SpanExtents createSpan(@NonNull Context ctx, int spanStart,
                                                          SyntaxRule syntaxItem) {
-            return new ColorSpanEx(getColor(ctx, R.color.green30), Color.TRANSPARENT, spanStart,
+            return new ColorSpanEx(ResourceUtil.getThemedColor(ctx, R.attr.green_highlight_color), Color.TRANSPARENT, spanStart,
                     syntaxItem);
         }
     },
@@ -56,6 +57,20 @@ public enum SyntaxRuleStyle {
         @NonNull @Override public SpanExtents createSpan(@NonNull Context ctx, int spanStart,
                                                          SyntaxRule syntaxItem) {
             return new StyleSpanEx(Typeface.ITALIC, spanStart, syntaxItem);
+        }
+    },
+    SEARCH_MATCHES {
+        @NonNull @Override public SpanExtents createSpan(@NonNull Context ctx, int spanStart, SyntaxRule syntaxItem) {
+            @ColorInt int foreColor = ctx.getResources().getColor(android.R.color.black);
+            @ColorInt int backColor = ctx.getResources().getColor(R.color.find_in_page);
+            return new ColorSpanEx(foreColor, backColor, spanStart, syntaxItem);
+        }
+    },
+    SEARCH_MATCH_SELECTED {
+        @NonNull @Override public SpanExtents createSpan(@NonNull Context ctx, int spanStart, SyntaxRule syntaxItem) {
+            @ColorInt int foreColor = ctx.getResources().getColor(android.R.color.black);
+            @ColorInt int backColor = ctx.getResources().getColor(R.color.find_in_page_active);
+            return new ColorSpanEx(foreColor, backColor, spanStart, syntaxItem);
         }
     };
 

@@ -5,70 +5,88 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ShortcutManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.annotation.ColorRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.MenuItem;
 
-import com.facebook.drawee.drawable.ScalingUtils;
-import com.facebook.drawee.view.DraweeTransition;
-import com.squareup.otto.Subscribe;
+import androidx.annotation.ColorRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import org.wikipedia.Constants;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.analytics.LoginFunnel;
+import org.wikipedia.appshortcuts.AppShortcuts;
 import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.crash.CrashReportActivity;
+import org.wikipedia.events.CaptionEditUnlockEvent;
+import org.wikipedia.events.DescriptionEditUnlockEvent;
+import org.wikipedia.events.LoggedOutInBackgroundEvent;
 import org.wikipedia.events.NetworkConnectEvent;
 import org.wikipedia.events.ReadingListsEnableDialogEvent;
 import org.wikipedia.events.ReadingListsMergeLocalDialogEvent;
 import org.wikipedia.events.ReadingListsNoLongerSyncedEvent;
 import org.wikipedia.events.SplitLargeListsEvent;
 import org.wikipedia.events.ThemeChangeEvent;
-import org.wikipedia.events.WikipediaZeroEnterEvent;
-import org.wikipedia.offline.Compilation;
-import org.wikipedia.offline.OfflineManager;
+import org.wikipedia.login.LoginActivity;
 import org.wikipedia.readinglist.ReadingListSyncBehaviorDialogs;
 import org.wikipedia.readinglist.sync.ReadingListSyncAdapter;
 import org.wikipedia.recurring.RecurringTasksExecutor;
 import org.wikipedia.savedpages.SavedPageSyncService;
 import org.wikipedia.settings.Prefs;
+import org.wikipedia.settings.SiteInfoClient;
+import org.wikipedia.suggestededits.SuggestedEditsCardsActivity;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.PermissionUtil;
 import org.wikipedia.util.log.L;
 
-import java.util.List;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+
+import static org.wikipedia.Constants.INTENT_EXTRA_INVOKE_SOURCE;
 
 public abstract class BaseActivity extends AppCompatActivity {
-    private static EventBusMethodsExclusive EXCLUSIVE_BUS_METHODS;
+    private static ExclusiveBusConsumer EXCLUSIVE_BUS_METHODS;
+    private static Disposable EXCLUSIVE_DISPOSABLE;
 
-    private EventBusMethodsNonExclusive localBusMethods;
-    private EventBusMethodsExclusive exclusiveBusMethods;
+    private ExclusiveBusConsumer exclusiveBusMethods;
     private NetworkStateReceiver networkStateReceiver = new NetworkStateReceiver();
+    private boolean previousNetworkState = WikipediaApp.getInstance().isOnline();
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        localBusMethods = new EventBusMethodsNonExclusive();
-        exclusiveBusMethods = new EventBusMethodsExclusive();
-        WikipediaApp.getInstance().getBus().register(localBusMethods);
-
+        exclusiveBusMethods = new ExclusiveBusConsumer();
+        disposables.add(WikipediaApp.getInstance().getBus().subscribe(new NonExclusiveBusConsumer()));
         setTheme();
         removeSplashBackground();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1
+                && AppShortcuts.ACTION_APP_SHORTCUT.equals(getIntent().getAction())) {
+            getIntent().putExtra(INTENT_EXTRA_INVOKE_SOURCE, Constants.InvokeSource.APP_SHORTCUTS);
+            String shortcutId = getIntent().getStringExtra("APP_SHORTCUT_ID");
+            if (!TextUtils.isEmpty(shortcutId)) {
+                getApplicationContext().getSystemService(ShortcutManager.class)
+                        .reportShortcutUsed(shortcutId);
+            }
+        }
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
-        ActivityUtil.forceOverflowMenuIcon(this);
 
         // Conditionally execute all recurring tasks
         new RecurringTasksExecutor(WikipediaApp.getInstance()).run();
@@ -81,26 +99,35 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(networkStateReceiver, filter);
+
+        DeviceUtil.setLightSystemUiVisibility(this);
+
+        maybeShowLoggedOutInBackgroundDialog();
     }
 
     @Override protected void onDestroy() {
         unregisterReceiver(networkStateReceiver);
-        WikipediaApp.getInstance().getBus().unregister(localBusMethods);
-        localBusMethods = null;
+        disposables.dispose();
         if (EXCLUSIVE_BUS_METHODS == exclusiveBusMethods) {
             unregisterExclusiveBusMethods();
         }
-        exclusiveBusMethods = null;
         super.onDestroy();
+    }
+
+    @Override
+    protected void onStop() {
+        WikipediaApp.getInstance().getSessionFunnel().persistSession();
+        super.onStop();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        WikipediaApp.getInstance().getSessionFunnel().touchSession();
 
         // allow this activity's exclusive bus methods to override any existing ones.
         unregisterExclusiveBusMethods();
         EXCLUSIVE_BUS_METHODS = exclusiveBusMethods;
-        WikipediaApp.getInstance().getBus().register(EXCLUSIVE_BUS_METHODS);
+        EXCLUSIVE_DISPOSABLE = WikipediaApp.getInstance().getBus().subscribe(EXCLUSIVE_BUS_METHODS);
 
         // The UI is likely shown, giving the user the opportunity to exit and making a crash loop
         // less probable.
@@ -124,11 +151,8 @@ public abstract class BaseActivity extends AppCompatActivity {
                                            @NonNull int[] grantResults) {
         switch (requestCode) {
             case Constants.ACTIVITY_REQUEST_WRITE_EXTERNAL_STORAGE_PERMISSION:
-                if (PermissionUtil.isPermitted(grantResults)) {
-                    searchOfflineCompilations(true);
-                } else {
+                if (!PermissionUtil.isPermitted(grantResults)) {
                     L.i("Write permission was denied by user");
-                    onOfflineCompilationsError(new RuntimeException(getString(R.string.offline_read_permission_error)));
                     if (PermissionUtil.shouldShowWritePermissionRationale(this)) {
                         showStoragePermissionSnackbar();
                     } else {
@@ -142,7 +166,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     protected void setStatusBarColor(@ColorRes int color) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             getWindow().setStatusBarColor(ContextCompat.getColor(this, color));
         }
     }
@@ -151,56 +175,10 @@ public abstract class BaseActivity extends AppCompatActivity {
         setTheme(WikipediaApp.getInstance().getCurrentTheme().getResourceId());
     }
 
-    protected void setSharedElementTransitions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            // For using shared element transitions with Fresco, we need to explicitly define
-            // a DraweeTransition that will be automatically used by Drawees that are used in
-            // transitions between activities.
-            getWindow().setSharedElementEnterTransition(DraweeTransition
-                    .createTransitionSet(ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP));
-            getWindow().setSharedElementReturnTransition(DraweeTransition
-                    .createTransitionSet(ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP));
-        }
-    }
-
     protected void onGoOffline() {
     }
 
     protected void onGoOnline() {
-    }
-
-    protected void onOfflineCompilationsFound() {
-    }
-
-    protected void onOfflineCompilationsError(Throwable t) {
-    }
-
-    public void searchOfflineCompilationsWithPermission(boolean force) {
-        if (!PermissionUtil.hasWriteExternalStoragePermission(this)) {
-           requestStoragePermission();
-        } else {
-            searchOfflineCompilations(force);
-        }
-    }
-
-    private void searchOfflineCompilations(boolean force) {
-        if ((!DeviceUtil.isOnline() && OfflineManager.instance().shouldSearchAgain()) || force) {
-            OfflineManager.instance().searchForCompilations(new OfflineManager.Callback() {
-                @Override
-                public void onCompilationsFound(@NonNull List<Compilation> compilations) {
-                    if (isDestroyed()) {
-                        return;
-                    }
-                    onOfflineCompilationsFound();
-                }
-
-                @Override
-                public void onError(@NonNull Throwable t) {
-                    L.e(t);
-                    onOfflineCompilationsError(t);
-                }
-            });
-        }
     }
 
     private void requestStoragePermission() {
@@ -212,7 +190,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     private void showStoragePermissionSnackbar() {
         Snackbar snackbar = FeedbackUtil.makeSnackbar(this,
                 getString(R.string.offline_read_permission_rationale), FeedbackUtil.LENGTH_DEFAULT);
-        snackbar.setAction(R.string.page_error_retry, (v) -> requestStoragePermission());
+        snackbar.setAction(R.string.storage_access_error_retry, (v) -> requestStoragePermission());
         snackbar.show();
     }
 
@@ -233,12 +211,18 @@ public abstract class BaseActivity extends AppCompatActivity {
     private class NetworkStateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (DeviceUtil.isOnline()) {
-                onGoOnline();
+            boolean isDeviceOnline = WikipediaApp.getInstance().isOnline();
+
+            if (isDeviceOnline) {
+                if (!previousNetworkState) {
+                    onGoOnline();
+                }
                 SavedPageSyncService.enqueue();
             } else {
                 onGoOffline();
             }
+
+            previousNetworkState = isDeviceOnline;
         }
     }
 
@@ -247,55 +231,73 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void unregisterExclusiveBusMethods() {
-        if (EXCLUSIVE_BUS_METHODS != null) {
-            WikipediaApp.getInstance().getBus().unregister(EXCLUSIVE_BUS_METHODS);
+        if (EXCLUSIVE_BUS_METHODS != null && EXCLUSIVE_DISPOSABLE != null) {
+            EXCLUSIVE_DISPOSABLE.dispose();
+            EXCLUSIVE_DISPOSABLE = null;
             EXCLUSIVE_BUS_METHODS = null;
         }
     }
 
+    private void maybeShowLoggedOutInBackgroundDialog() {
+        if (Prefs.wasLoggedOutInBackground()) {
+            Prefs.setLoggedOutInBackground(false);
+            new AlertDialog.Builder(this)
+                    .setCancelable(false)
+                    .setTitle(R.string.logged_out_in_background_title)
+                    .setMessage(R.string.logged_out_in_background_dialog)
+                    .setPositiveButton(R.string.logged_out_in_background_login, (dialog, which)
+                            -> startActivity(LoginActivity.newIntent(BaseActivity.this, LoginFunnel.SOURCE_LOGOUT_BACKGROUND)))
+                    .setNegativeButton(R.string.logged_out_in_background_cancel, null)
+                    .show();
+        }
+    }
+
     /**
-     * Bus methods that should be caught by all created activities.
+     * Bus consumer that should be registered by all created activities.
      */
-    private class EventBusMethodsNonExclusive {
-        @Subscribe public void on(ThemeChangeEvent event) {
-            recreate();
+    private class NonExclusiveBusConsumer implements Consumer<Object> {
+        @Override
+        public void accept(Object event) throws Exception {
+            if (event instanceof ThemeChangeEvent) {
+                BaseActivity.this.recreate();
+            }
         }
     }
 
     /**
      * Bus methods that should be caught only by the topmost activity.
      */
-    private class EventBusMethodsExclusive {
-        // todo: reevaluate lifecycle. the bus is active when this activity is paused and we show ui
-        @Subscribe public void on(WikipediaZeroEnterEvent event) {
-            if (Prefs.isZeroTutorialEnabled()) {
-                Prefs.setZeroTutorialEnabled(false);
-                WikipediaApp.getInstance().getWikipediaZeroHandler()
-                        .showZeroTutorialDialog(BaseActivity.this);
+    private class ExclusiveBusConsumer implements Consumer<Object> {
+        @Override
+        public void accept(Object event) throws Exception {
+            if (event instanceof NetworkConnectEvent) {
+                SavedPageSyncService.enqueue();
+            } else if (event instanceof SplitLargeListsEvent) {
+                new AlertDialog.Builder(BaseActivity.this)
+                        .setMessage(getString(R.string.split_reading_list_message, SiteInfoClient.getMaxPagesPerReadingList()))
+                        .setPositiveButton(R.string.reading_list_split_dialog_ok_button_text, null)
+                        .show();
+            } else if (event instanceof ReadingListsNoLongerSyncedEvent) {
+                ReadingListSyncBehaviorDialogs.detectedRemoteTornDownDialog(BaseActivity.this);
+            } else if (event instanceof ReadingListsMergeLocalDialogEvent) {
+                ReadingListSyncBehaviorDialogs.mergeExistingListsOnLoginDialog(BaseActivity.this);
+            } else if (event instanceof ReadingListsEnableDialogEvent) {
+                ReadingListSyncBehaviorDialogs.promptEnableSyncDialog(BaseActivity.this);
+            } else if (event instanceof DescriptionEditUnlockEvent) {
+                if (((DescriptionEditUnlockEvent) event).getNumTargetsPassed() == 1) {
+                    SuggestedEditsCardsActivity.Companion.showEditDescriptionUnlockDialog(BaseActivity.this);
+                } else if (((DescriptionEditUnlockEvent) event).getNumTargetsPassed() == 2) {
+                    SuggestedEditsCardsActivity.Companion.showTranslateDescriptionUnlockDialog(BaseActivity.this);
+                }
+            } else if (event instanceof CaptionEditUnlockEvent) {
+                if (((CaptionEditUnlockEvent) event).getNumTargetsPassed() == 1) {
+                    SuggestedEditsCardsActivity.Companion.showEditCaptionUnlockDialog(BaseActivity.this);
+                } else if (((CaptionEditUnlockEvent) event).getNumTargetsPassed() == 2) {
+                    SuggestedEditsCardsActivity.Companion.showTranslateCaptionUnlockDialog(BaseActivity.this);
+                }
+            } else if (event instanceof LoggedOutInBackgroundEvent) {
+                maybeShowLoggedOutInBackgroundDialog();
             }
-        }
-
-        @Subscribe public void on(NetworkConnectEvent event) {
-            SavedPageSyncService.enqueue();
-        }
-
-        @Subscribe public void on(SplitLargeListsEvent event) {
-            new AlertDialog.Builder(BaseActivity.this)
-                    .setMessage(getString(R.string.split_reading_list_message, Constants.MAX_READING_LIST_ARTICLE_LIMIT))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show();
-        }
-
-        @Subscribe public void on(ReadingListsNoLongerSyncedEvent event) {
-            ReadingListSyncBehaviorDialogs.detectedRemoteTornDownDialog(BaseActivity.this);
-        }
-
-        @Subscribe public void on(ReadingListsMergeLocalDialogEvent event) {
-            ReadingListSyncBehaviorDialogs.mergeExistingListsOnLoginDialog(BaseActivity.this);
-        }
-
-        @Subscribe public void on(ReadingListsEnableDialogEvent event) {
-            ReadingListSyncBehaviorDialogs.promptEnableSyncDialog(BaseActivity.this);
         }
     }
 }

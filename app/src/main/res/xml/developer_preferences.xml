@@ -1,8 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.preference.PreferenceScreen
+<androidx.preference.PreferenceScreen
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory android:title="@string/preferences_developer_feature_testing_heading">
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/preferences_developer_announcements_heading">
+
+        <org.wikipedia.settings.EditTextAutoSummarizePreference
+            style="@style/EditTextAutoSummarizePreference"
+            android:key="@string/preference_key_announcement_country_override"
+            android:title="@string/preferences_developer_announcement_country_override"
+            android:dialogMessage="@string/preferences_developer_announcement_country_override_hint" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_announcement_ignore_date"
+            android:title="@string/preferences_developer_announcement_ignore_date" />
+
+        <org.wikipedia.settings.IntPreference
+            style="@style/IntPreference"
+            android:key="@string/preference_key_announcement_version_code"
+            android:title="@string/preference_key_announcement_version_code"
+            android:dialogMessage="@string/preferences_developer_announcement_version_code_hint"/>
 
     </PreferenceCategory>
 
@@ -80,8 +100,8 @@
 
     <PreferenceCategory android:title="@string/preferences_developer_misc_heading">
         <SwitchPreferenceCompat
-            android:key="@string/preference_key_suppress_notification_polling"
-            android:title="@string/preference_key_suppress_notification_polling"
+            android:key="@string/preference_key_notification_show_all"
+            android:title="@string/preference_key_notification_show_all"
             android:defaultValue="false" />
 
         <org.wikipedia.settings.LongPreference
@@ -110,18 +130,43 @@
 
         <org.wikipedia.settings.EditTextAutoSummarizePreference
             style="@style/DataStringPreference"
+            android:key="@string/preference_key_language_app"
+            android:title="@string/preference_key_language_app" />
+
+        <org.wikipedia.settings.EditTextAutoSummarizePreference
+            style="@style/DataStringPreference"
             android:key="@string/preference_key_language_mru"
             android:title="@string/preference_key_language_mru" />
 
         <org.wikipedia.settings.IntPreference
             style="@style/IntPreference"
-            android:key="@string/preference_key_zero_config_hash"
-            android:title="@string/preference_key_zero_config_hash" />
-
-        <org.wikipedia.settings.IntPreference
-            style="@style/IntPreference"
             android:key="@string/preference_key_total_anon_descriptions_edited"
             android:title="@string/preference_key_total_anon_descriptions_edited" />
+
+        <Preference
+            android:key="@string/preference_key_missing_description_test"
+            android:title="@string/preference_key_missing_description_test"
+            android:summary="Fetch a random article that has no description in the current app language." />
+
+        <Preference
+            android:key="@string/preference_key_missing_description_test2"
+            android:title="@string/preference_key_missing_description_test2"
+            android:summary="Fetch a random article that has a description in the current app language, but does *not* have a description in the *second* app language." />
+
+        <Preference
+            android:key="@string/preference_key_dialog_with_image_test"
+            android:title="@string/preference_key_dialog_with_image_test"
+            android:summary="Show our customized dialog with an image above the title." />
+
+        <org.wikipedia.settings.EditTextAutoSummarizePreference
+            style="@style/DataStringPreference"
+            android:key="@string/preference_key_locally_known_notifications"
+            android:title="@string/preference_key_locally_known_notifications" />
+
+        <org.wikipedia.settings.EditTextAutoSummarizePreference
+            style="@style/DataStringPreference"
+            android:key="@string/preference_key_remote_notifications_seen_time"
+            android:title="@string/preference_key_remote_notifications_seen_time" />
 
         <!-- TODO: expose in wildcard preference. -->
         <org.wikipedia.settings.LongPreference
@@ -158,24 +203,16 @@
             android:title="@string/preference_key_description_edit_tutorial_enabled" />
 
         <SwitchPreferenceCompat
-            android:key="@string/preference_key_offline_onboarding_card_enabled"
-            android:title="@string/preference_key_offline_onboarding_card_enabled" />
-
-        <SwitchPreferenceCompat
-            android:key="@string/preference_key_offline_onboarding_enabled"
-            android:title="@string/preference_key_offline_onboarding_enabled" />
-
-        <SwitchPreferenceCompat
             android:key="@string/preference_key_toc_tutorial_enabled"
             android:title="@string/preference_key_toc_tutorial_enabled" />
 
         <SwitchPreferenceCompat
-            android:key="@string/preference_key_select_text_tutorial_enabled"
-            android:title="@string/preference_key_select_text_tutorial_enabled" />
-
-        <SwitchPreferenceCompat
             android:key="@string/preference_key_share_tutorial_enabled"
             android:title="@string/preference_key_share_tutorial_enabled" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_multilingual_search_tutorial_enabled"
+            android:title="@string/preference_key_multilingual_search_tutorial_enabled" />
 
         <SwitchPreferenceCompat
             android:key="@string/preference_key_reading_list_tutorial_enabled"
@@ -188,10 +225,6 @@
         <SwitchPreferenceCompat
             android:key="@string/preference_key_reading_list_login_reminder_enabled"
             android:title="@string/preference_key_reading_list_login_reminder_enabled" />
-
-        <SwitchPreferenceCompat
-            android:key="@string/preference_key_zero_tutorial_enabled"
-            android:title="@string/preference_key_zero_tutorial_enabled" />
 
         <SwitchPreferenceCompat
             android:key="@string/preference_key_feed_customize_onboarding_card_enabled"
@@ -213,6 +246,14 @@
         <SwitchPreferenceCompat
             android:key="@string/preference_key_reading_lists_first_time_sync"
             android:title="@string/preference_key_reading_lists_first_time_sync" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_show_remove_chinese_variant_prompt"
+            android:title="@string/preference_key_show_remove_chinese_variant_prompt" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_show_description_edit_success_prompt"
+            android:title="@string/preference_key_show_description_edit_success_prompt" />
 
     </PreferenceCategory>
 
@@ -241,19 +282,71 @@
             android:key="@string/preference_key_delete_test_reading_lists"
             android:title="@string/preferences_developer_test_delete_lists" />
 
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        android:title="@string/preferences_developer_cookies_heading"
-        android:key="@string/preferences_developer_cookies_key">
-
-
         <org.wikipedia.settings.EditTextAutoSummarizePreference
-            style="@style/DataStringPreference"
-            android:key="@string/preference_key_cookie_domains"
-            android:title="@string/preference_key_cookie_domains" />
-
-        <!-- dynamically added site entries -->
+            style="@style/EditTextAutoSummarizePreference"
+            android:dialogMessage="This number of malformed pages will be added to the default reading list:"
+            android:key="@string/preference_key_add_malformed_reading_list_page"
+            android:title="Add malformed pages to reading list" />
 
     </PreferenceCategory>
-</android.support.v7.preference.PreferenceScreen>
+
+    <PreferenceCategory android:title="@string/preferences_developer_suggested_edits_category">
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_show_edit_tasks_onboarding"
+            android:title="@string/preference_key_show_edit_tasks_onboarding" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_show_suggested_edits_multilingual_teaser_task"
+            android:title="@string/preference_key_show_suggested_edits_multilingual_teaser_task" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_suggested_edits_add_descriptions_unlocked"
+            android:title="@string/preference_key_suggested_edits_add_descriptions_unlocked" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_suggested_edits_translate_descriptions_unlocked"
+            android:title="@string/preference_key_suggested_edits_translate_descriptions_unlocked" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_suggested_edits_add_captions_unlocked"
+            android:title="@string/preference_key_suggested_edits_add_captions_unlocked" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/preference_key_suggested_edits_translate_captions_unlocked"
+            android:title="@string/preference_key_suggested_edits_translate_captions_unlocked" />
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_add_description_dialog"
+            android:title="@string/preferences_developer_suggested_edits_add_description_dialog"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_add_description_notification"
+            android:title="@string/preferences_developer_suggested_edits_add_description_notification"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_translate_description_dialog"
+            android:title="@string/preferences_developer_suggested_edits_translate_description_dialog"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_translate_description_notification"
+            android:title="@string/preferences_developer_suggested_edits_translate_description_notification"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_add_caption_dialog"
+            android:title="@string/preferences_developer_suggested_edits_add_caption_dialog"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_add_caption_notification"
+            android:title="@string/preferences_developer_suggested_edits_add_caption_notification"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_translate_caption_dialog"
+            android:title="@string/preferences_developer_suggested_edits_translate_caption_dialog"/>
+
+        <Preference
+            android:key="@string/preferences_developer_suggested_edits_translate_caption_notification"
+            android:title="@string/preferences_developer_suggested_edits_translate_caption_notification"/>
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

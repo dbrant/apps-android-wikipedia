@@ -6,14 +6,15 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,14 +22,17 @@ import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.analytics.EditFunnel;
 import org.wikipedia.bridge.CommunicationBridge;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.dataclient.okhttp.OkHttpWebViewClient;
 import org.wikipedia.edit.EditSectionActivity;
 import org.wikipedia.edit.summaries.EditSummaryTag;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.page.LinkHandler;
 import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.theme.ThemeBridgeAdapter;
+import org.wikipedia.page.PageViewModel;
+import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.ConfigurationCompat;
 import org.wikipedia.util.L10nUtil;
 import org.wikipedia.util.log.L;
@@ -39,7 +43,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import retrofit2.Call;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.wikipedia.util.DeviceUtil.hideSoftKeyboard;
 import static org.wikipedia.util.UriUtil.handleExternalLink;
@@ -53,6 +59,7 @@ public class EditPreviewFragment extends Fragment {
 
     private String previewHTML;
 
+    private PageViewModel model = new PageViewModel();
     private CommunicationBridge bridge;
 
     private List<EditSummaryTag> summaryTags;
@@ -60,15 +67,20 @@ public class EditPreviewFragment extends Fragment {
 
     private ProgressDialog progressDialog;
     private EditFunnel funnel;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View parent = inflater.inflate(R.layout.fragment_preview_edit, container, false);
         webview = parent.findViewById(R.id.edit_preview_webview);
         previewContainer = parent.findViewById(R.id.edit_preview_container);
         editSummaryTagsContainer = parent.findViewById(R.id.edit_summary_tags_container);
-
-        bridge = new CommunicationBridge(webview, "file:///android_asset/preview.html");
+        bridge = new CommunicationBridge(webview);
+        webview.setWebViewClient(new OkHttpWebViewClient() {
+            @NonNull @Override public PageViewModel getModel() {
+                return model;
+            }
+        });
 
         return parent;
     }
@@ -79,6 +91,10 @@ public class EditPreviewFragment extends Fragment {
 
         parentActivity = (EditSectionActivity)getActivity();
         PageTitle pageTitle = parentActivity.getPageTitle();
+        model.setTitle(pageTitle);
+        model.setTitleOriginal(pageTitle);
+        model.setCurEntry(new HistoryEntry(pageTitle, HistoryEntry.SOURCE_INTERNAL_LINK));
+        bridge.resetHtml("preview.html", pageTitle.getWikiSite().url());
         funnel = WikipediaApp.getInstance().getFunnelManager().getEditFunnel(pageTitle);
 
         /*
@@ -176,20 +192,17 @@ public class EditPreviewFragment extends Fragment {
     private void displayPreview(final String html) {
         if (!isWebViewSetup) {
             isWebViewSetup = true;
-            L10nUtil.setupDirectionality(parentActivity.getPageTitle().getWikiSite().languageCode(), Locale.getDefault().getLanguage(), bridge);
-            if (!WikipediaApp.getInstance().getCurrentTheme().isDefault()) {
-                ThemeBridgeAdapter.setTheme(bridge);
-            }
+            L10nUtil.setupDirectionality(parentActivity.getPageTitle().getWikiSite().languageCode(), Locale.getDefault(), bridge);
 
-            bridge.addListener("linkClicked", new LinkHandler(getActivity()) {
+            bridge.addListener("linkClicked", new LinkHandler(requireActivity()) {
                 @Override
-                public void onPageLinkClicked(@NonNull String href) {
+                public void onPageLinkClicked(@NonNull String href, @NonNull String linkText) {
                     // TODO: also need to handle references, issues, disambig, ... in preview eventually
                 }
 
                 @Override
                 public void onInternalLinkClicked(@NonNull final PageTitle title) {
-                    showLeavingEditDialogue(() -> startActivity(PageActivity.newIntentForNewTab(getContext(),
+                    showLeavingEditDialogue(() -> startActivity(PageActivity.newIntentForCurrentTab(getContext(),
                             new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title)));
                 }
 
@@ -205,7 +218,7 @@ public class EditPreviewFragment extends Fragment {
                  */
                 private void showLeavingEditDialogue(final Runnable runnable) {
                     //Ask the user if they really meant to leave the edit workflow
-                    final AlertDialog leavingEditDialog = new AlertDialog.Builder(getActivity())
+                    final AlertDialog leavingEditDialog = new AlertDialog.Builder(requireActivity())
                             .setMessage(R.string.dialog_message_leaving_edit)
                             .setPositiveButton(R.string.dialog_message_leaving_edit_leave, (dialog, which) -> {
                                 //They meant to leave; close dialogue and run specified action
@@ -234,12 +247,14 @@ public class EditPreviewFragment extends Fragment {
         }
 
         ViewAnimations.fadeIn(previewContainer, () -> parentActivity.supportInvalidateOptionsMenu());
-        ViewAnimations.fadeOut(getActivity().findViewById(R.id.edit_section_container));
+        ViewAnimations.fadeOut(requireActivity().findViewById(R.id.edit_section_container));
 
         JSONObject payload = new JSONObject();
         try {
             payload.put("html", html);
             payload.put("siteBaseUrl", parentActivity.getPageTitle().getWikiSite().url());
+            payload.put("theme", WikipediaApp.getInstance().getCurrentTheme().getMarshallingId());
+            payload.put("dimImages", Prefs.shouldDimDarkModeImages());
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -254,34 +269,25 @@ public class EditPreviewFragment extends Fragment {
      * @param wikiText The text of the section to be shown in the Preview.
      */
     public void showPreview(final PageTitle title, final String wikiText) {
-        hideSoftKeyboard(getActivity());
+        hideSoftKeyboard(requireActivity());
         progressDialog.show();
 
-        new EditPreviewClient().request(parentActivity.getPageTitle().getWikiSite(), title, wikiText,
-                new EditPreviewClient.Callback() {
-            @Override
-            public void success(@NonNull Call<EditPreview> call, @NonNull String preview) {
-                if (!progressDialog.isShowing()) {
-                    // no longer attached to activity!
-                    return;
-                }
-                displayPreview(preview);
-                previewHTML = preview;
-                parentActivity.supportInvalidateOptionsMenu();
-                progressDialog.dismiss();
-            }
-
-            @Override
-            public void failure(@NonNull Call<EditPreview> call, @NonNull Throwable caught) {
-                if (!progressDialog.isShowing()) {
-                    // no longer attached to activity!
-                    return;
-                }
-                progressDialog.dismiss();
-                parentActivity.showError(caught);
-                L.e(caught);
-            }
-        });
+        disposables.add(ServiceFactory.get(parentActivity.getPageTitle().getWikiSite()).postEditPreview(title.getPrefixedText(), wikiText)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doFinally(() -> {
+                    if (progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
+                })
+                .subscribe(response -> {
+                    displayPreview(response.result());
+                    previewHTML = response.result();
+                    parentActivity.supportInvalidateOptionsMenu();
+                }, throwable -> {
+                    parentActivity.showError(throwable);
+                    L.e(throwable);
+                }));
     }
 
     /**
@@ -312,7 +318,12 @@ public class EditPreviewFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        webview.destroy();
+        disposables.clear();
+        if (webview != null) {
+            webview.clearAllListeners();
+            ((ViewGroup) webview.getParent()).removeView(webview);
+            webview = null;
+        }
         super.onDestroyView();
     }
 
@@ -329,7 +340,7 @@ public class EditPreviewFragment extends Fragment {
      * When fade-out completes, the state of the actionbar button(s) is updated.
      */
     public void hide() {
-        View editSectionContainer = getActivity().findViewById(R.id.edit_section_container);
+        View editSectionContainer = requireActivity().findViewById(R.id.edit_section_container);
         ViewAnimations.crossFade(previewContainer, editSectionContainer, () -> parentActivity.supportInvalidateOptionsMenu());
     }
 
@@ -338,7 +349,7 @@ public class EditPreviewFragment extends Fragment {
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("previewHTML", previewHTML);
         outState.putBoolean("isActive", isActive());

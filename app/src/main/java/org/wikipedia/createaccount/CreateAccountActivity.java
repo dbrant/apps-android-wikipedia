@@ -2,15 +2,20 @@ package org.wikipedia.createaccount;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.VisibleForTesting;
-import android.support.design.widget.TextInputLayout;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.textfield.TextInputLayout;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -18,28 +23,33 @@ import org.wikipedia.activity.BaseActivity;
 import org.wikipedia.analytics.CreateAccountFunnel;
 import org.wikipedia.captcha.CaptchaHandler;
 import org.wikipedia.captcha.CaptchaResult;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
+import org.wikipedia.dataclient.mwapi.ListUserResponse;
 import org.wikipedia.readinglist.sync.ReadingListSyncAdapter;
 import org.wikipedia.util.FeedbackUtil;
+import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.NonEmptyValidator;
 import org.wikipedia.views.WikiErrorView;
 
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import retrofit2.Call;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.wikipedia.util.DeviceUtil.hideSoftKeyboard;
+import static org.wikipedia.util.UriUtil.visitInExternalBrowser;
 
 public class CreateAccountActivity extends BaseActivity {
     public static final int RESULT_ACCOUNT_CREATED = 1;
     public static final int RESULT_ACCOUNT_NOT_CREATED = 2;
-
-    public static final int ACTION_CREATE_ACCOUNT = 1;
 
     public static final String LOGIN_REQUEST_SOURCE = "login_request_source";
     public static final String LOGIN_SESSION_TOKEN = "login_session_token";
@@ -49,12 +59,11 @@ public class CreateAccountActivity extends BaseActivity {
     public static final Pattern USERNAME_PATTERN = Pattern.compile("[^#<>\\[\\]|{}\\/@]*");
     private static final int PASSWORD_MIN_LENGTH = 6;
 
-    enum ValidateResult {
-        SUCCESS, INVALID_USERNAME, INVALID_PASSWORD, PASSWORD_MISMATCH, INVALID_EMAIL
+    public enum ValidateResult {
+        SUCCESS, INVALID_USERNAME, INVALID_PASSWORD, PASSWORD_MISMATCH, NO_EMAIL, INVALID_EMAIL
     }
 
-    private CreateAccountInfoClient createAccountInfoClient;
-    private CreateAccountClient createAccountClient;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     @BindView(R.id.create_account_primary_container) View primaryContainer;
     @BindView(R.id.create_account_onboarding_container) View onboardingContainer;
@@ -72,6 +81,8 @@ public class CreateAccountActivity extends BaseActivity {
     private CreateAccountResult createAccountResult;
     private CreateAccountFunnel funnel;
     private WikiSite wiki;
+    private UserNameTextWatcher userNameTextWatcher = new UserNameTextWatcher();
+    private UserNameVerifyRunnable userNameVerifyRunnable = new UserNameVerifyRunnable();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -92,8 +103,6 @@ public class CreateAccountActivity extends BaseActivity {
         errorView.setRetryClickListener((v) -> errorView.setVisibility(View.GONE));
 
         wiki = WikipediaApp.getInstance().getWikiSite();
-        createAccountInfoClient = new CreateAccountInfoClient();
-        createAccountClient = new CreateAccountClient();
 
         captchaHandler = new CaptchaHandler(this, WikipediaApp.getInstance().getWikiSite(),
                 progressDialog, primaryContainer, getString(R.string.create_account_activity_title),
@@ -113,6 +122,8 @@ public class CreateAccountActivity extends BaseActivity {
             }
             return false;
         });
+
+        usernameInput.getEditText().addTextChangedListener(userNameTextWatcher);
 
         if (savedInstanceState != null && savedInstanceState.containsKey("result")) {
             createAccountResult = savedInstanceState.getParcelable("result");
@@ -151,31 +162,35 @@ public class CreateAccountActivity extends BaseActivity {
     }
 
     public void handleAccountCreationError(@NonNull String message) {
-        FeedbackUtil.showMessage(this, message);
+        if (message.contains("blocked")) {
+            FeedbackUtil.makeSnackbar(this, getString(R.string.create_account_ip_block_message), FeedbackUtil.LENGTH_DEFAULT)
+                    .setAction(R.string.create_account_ip_block_details, v -> visitInExternalBrowser(CreateAccountActivity.this,
+                            Uri.parse(getString(R.string.create_account_ip_block_help_url))))
+                    .show();
+        } else {
+            FeedbackUtil.showMessage(this, StringUtil.fromHtml(message));
+        }
         L.w("Account creation failed with result " + message);
     }
 
     public void getCreateAccountInfo() {
-        createAccountInfoClient.request(wiki, new CreateAccountInfoClient.Callback() {
-            @Override
-            public void success(@NonNull Call<MwQueryResponse> call,
-                                @NonNull CreateAccountInfoResult result) {
-                if (result.token() == null) {
-                    handleAccountCreationError(getString(R.string.create_account_generic_error));
-                } else if (result.hasCaptcha()) {
-                    captchaHandler.handleCaptcha(result.token(), new CaptchaResult(result.captchaId()));
-                } else {
-                    doCreateAccount(result.token());
-                }
-            }
-
-            @Override
-            public void failure(@NonNull Call<MwQueryResponse> call,
-                                @NonNull Throwable caught) {
-                showError(caught);
-                L.e(caught);
-            }
-        });
+        disposables.add(ServiceFactory.get(wiki).getAuthManagerInfo()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(response -> {
+                    String token = response.query().createAccountToken();
+                    String captchaId = response.query().captchaId();
+                    if (TextUtils.isEmpty(token)) {
+                        handleAccountCreationError(getString(R.string.create_account_generic_error));
+                    } else if (!TextUtils.isEmpty(captchaId)) {
+                        captchaHandler.handleCaptcha(token, new CaptchaResult(captchaId));
+                    } else {
+                        doCreateAccount(token);
+                    }
+                }, caught -> {
+                    showError(caught);
+                    L.e(caught);
+                }));
     }
 
     public void doCreateAccount(@NonNull String token) {
@@ -188,41 +203,35 @@ public class CreateAccountActivity extends BaseActivity {
         String password = getText(passwordInput).toString();
         String repeat = getText(passwordRepeatInput).toString();
 
-        createAccountClient.request(wiki, getText(usernameInput).toString(),
-                password, repeat, token, email,
+        disposables.add(ServiceFactory.get(wiki).postCreateAccount(getText(usernameInput).toString(), password, repeat, token, Service.WIKIPEDIA_URL,
+                email,
                 captchaHandler.isActive() ? captchaHandler.captchaId() : "null",
-                captchaHandler.isActive() ? captchaHandler.captchaWord() : "null",
-                new CreateAccountClient.Callback() {
-                    @Override
-                    public void success(@NonNull Call<CreateAccountResponse> call,
-                                        @NonNull final CreateAccountSuccessResult result) {
-                        if (!progressDialog.isShowing()) {
-                            // no longer attached to activity!
-                            return;
-                        }
-                        finishWithUserResult(result);
-
+                captchaHandler.isActive() ? captchaHandler.captchaWord() : "null")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(response -> {
+                    if ("PASS".equals(response.status())) {
+                        finishWithUserResult(new CreateAccountSuccessResult(response.user()));
+                    } else {
+                        throw new CreateAccountException(response.message());
                     }
-
-                    @Override
-                    public void failure(@NonNull Call<CreateAccountResponse> call, @NonNull Throwable caught) {
-                        L.e(caught.toString());
-                        if (!progressDialog.isShowing()) {
-                            // no longer attached to activity!
-                            return;
-                        }
-                        progressDialog.dismiss();
-                        if (caught instanceof CreateAccountException) {
-                            handleAccountCreationError(caught.getMessage());
-                        } else {
-                            showError(caught);
-                        }
+                }, caught -> {
+                    L.e(caught.toString());
+                    progressDialog.dismiss();
+                    if (caught instanceof CreateAccountException) {
+                        handleAccountCreationError(caught.getMessage());
+                    } else {
+                        showError(caught);
                     }
-                });
+                }));
     }
 
     @Override
     public void onBackPressed() {
+        if (captchaHandler.isActive()) {
+            captchaHandler.cancelCaptcha();
+            return;
+        }
         hideSoftKeyboard(this);
         super.onBackPressed();
     }
@@ -233,6 +242,14 @@ public class CreateAccountActivity extends BaseActivity {
             progressDialog.dismiss();
         }
         super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        disposables.clear();
+        captchaHandler.dispose();
+        usernameInput.getEditText().removeTextChangedListener(userNameTextWatcher);
+        super.onDestroy();
     }
 
     private void clearErrors() {
@@ -264,11 +281,32 @@ public class CreateAccountActivity extends BaseActivity {
                 emailInput.requestFocus();
                 emailInput.setError(getString(R.string.create_account_email_error));
                 return;
+
+            case NO_EMAIL:
+                new AlertDialog.Builder(this)
+                        .setCancelable(false)
+                        .setTitle(R.string.email_recommendation_dialog_title)
+                        .setMessage(StringUtil.fromHtml(getResources().getString(R.string.email_recommendation_dialog_message)))
+                        .setPositiveButton(R.string.email_recommendation_dialog_create_without_email_action,
+                                (dialogInterface, i) -> {
+                                    createAccount();
+                                })
+                        .setNegativeButton(R.string.email_recommendation_dialog_create_with_email_action,
+                                (dialogInterface, i) -> {
+                                    emailInput.requestFocus();
+                                })
+                        .show();
+                break;
+
             case SUCCESS:
+                createAccount();
             default:
                 break;
         }
 
+    }
+
+    private void createAccount() {
         if (captchaHandler.isActive() && captchaHandler.token() != null) {
             doCreateAccount(captchaHandler.token());
         } else {
@@ -276,8 +314,7 @@ public class CreateAccountActivity extends BaseActivity {
         }
     }
 
-    @VisibleForTesting
-    static ValidateResult validateInput(@NonNull CharSequence username,
+    public static ValidateResult validateInput(@NonNull CharSequence username,
                                          @NonNull CharSequence password,
                                          @NonNull CharSequence passwordRepeat,
                                          @NonNull CharSequence email) {
@@ -289,6 +326,8 @@ public class CreateAccountActivity extends BaseActivity {
             return ValidateResult.PASSWORD_MISMATCH;
         } else if (!TextUtils.isEmpty(email) && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             return ValidateResult.INVALID_EMAIL;
+        } else if (TextUtils.isEmpty(email)) {
+            return ValidateResult.NO_EMAIL;
         }
         return ValidateResult.SUCCESS;
     }
@@ -314,5 +353,49 @@ public class CreateAccountActivity extends BaseActivity {
     private void showError(@NonNull Throwable caught) {
         errorView.setError(caught);
         errorView.setVisibility(View.VISIBLE);
+        L.logRemoteErrorIfProd(caught);
+    }
+
+    private class UserNameTextWatcher implements TextWatcher {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence text, int start, int before, int count) {
+            usernameInput.removeCallbacks(userNameVerifyRunnable);
+            usernameInput.setErrorEnabled(false);
+            if (TextUtils.isEmpty(text.toString())) {
+                return;
+            }
+            userNameVerifyRunnable.setUserName(text.toString());
+            usernameInput.postDelayed(userNameVerifyRunnable, TimeUnit.SECONDS.toMillis(1));
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+        }
+    }
+
+    private class UserNameVerifyRunnable implements Runnable {
+        private String userName;
+
+        public void setUserName(@NonNull String userName) {
+            this.userName = userName;
+        }
+
+        public void run() {
+            disposables.add(ServiceFactory.get(wiki).getUserInfo(userName)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(response -> {
+                        ListUserResponse user = response.query().getUserResponse(userName);
+                        if (user.canCreate()) {
+                            usernameInput.setErrorEnabled(false);
+                        } else {
+                            usernameInput.setError(getString(R.string.create_account_name_unavailable, userName));
+                        }
+                    }, L::e));
+        }
     }
 }

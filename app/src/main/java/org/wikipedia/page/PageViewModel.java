@@ -1,14 +1,16 @@
 package org.wikipedia.page;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.readinglist.database.ReadingListPage;
 
+import okhttp3.CacheControl;
+
 /**
  * Shared data between PageFragment and PageFragmentLoadState
  */
-class PageViewModel {
+public class PageViewModel {
     @Nullable private Page page;
     @Nullable private PageTitle title;
     @Nullable private PageTitle titleOriginal;
@@ -71,5 +73,9 @@ class PageViewModel {
 
     public boolean shouldForceNetwork() {
         return forceNetwork;
+    }
+
+    public CacheControl getCacheControl() {
+        return shouldForceNetwork() ? CacheControl.FORCE_NETWORK : new CacheControl.Builder().build();
     }
 }

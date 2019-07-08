@@ -1,7 +1,7 @@
 package org.wikipedia.dataclient.mwapi;
 
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -27,13 +27,11 @@ public class MwQueryResponse extends MwResponse {
         return query;
     }
 
-    @Override public boolean success() {
-        return super.success() && query != null;
+    public boolean success() {
+        return query != null;
     }
 
     @VisibleForTesting protected void setQuery(@Nullable MwQueryResult query) {
         this.query = query;
     }
-
-
 }

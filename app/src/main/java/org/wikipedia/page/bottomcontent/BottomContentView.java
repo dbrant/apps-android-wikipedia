@@ -3,57 +3,56 @@ package org.wikipedia.page.bottomcontent;
 import android.content.Context;
 import android.graphics.Paint;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.util.AttributeSet;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.Constants;
-import org.wikipedia.LongPressHandler.ListViewContextMenuListener;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.analytics.SuggestedPagesFunnel;
 import org.wikipedia.bridge.CommunicationBridge;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
+import org.wikipedia.dataclient.ServiceFactory;
+import org.wikipedia.dataclient.restbase.page.RbPageSummary;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.page.Namespace;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageContainerLongPressHandler;
 import org.wikipedia.page.PageFragment;
 import org.wikipedia.page.PageTitle;
-import org.wikipedia.search.FullTextSearchClient;
-import org.wikipedia.search.SearchResult;
-import org.wikipedia.search.SearchResults;
+import org.wikipedia.readinglist.database.ReadingList;
 import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.GeoUtil;
 import org.wikipedia.util.L10nUtil;
 import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ConfigurableTextView;
-import org.wikipedia.views.GoneIfEmptyTextView;
 import org.wikipedia.views.LinearLayoutOverWebView;
 import org.wikipedia.views.ObservableWebView;
-import org.wikipedia.views.ViewUtil;
+import org.wikipedia.views.PageItemView;
 
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import retrofit2.Call;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
-import static org.wikipedia.util.DateUtil.getShortDateString;
 import static org.wikipedia.util.L10nUtil.formatDateRelative;
 import static org.wikipedia.util.L10nUtil.getStringForArticleLanguage;
 import static org.wikipedia.util.L10nUtil.setConditionalLayoutDirection;
@@ -66,6 +65,7 @@ public class BottomContentView extends LinearLayoutOverWebView
     private PageFragment parentFragment;
     private WebView webView;
     private boolean firstTimeShown = false;
+    private boolean webViewPadded = false;
     private int prevLayoutHeight;
     private Page page;
 
@@ -85,8 +85,9 @@ public class BottomContentView extends LinearLayoutOverWebView
 
     private SuggestedPagesFunnel funnel;
     private ReadMoreAdapter readMoreAdapter = new ReadMoreAdapter();
-    private SearchResults readMoreItems;
+    private List<RbPageSummary> readMoreItems;
     private CommunicationBridge bridge;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     public BottomContentView(Context context) {
         super(context);
@@ -120,16 +121,19 @@ public class BottomContentView extends LinearLayoutOverWebView
         pageExternalLink.setPaintFlags(pageExternalLink.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
 
         if (parentFragment.callback() != null) {
-            ListViewContextMenuListener contextMenuListener
+            org.wikipedia.LongPressHandler.ListViewOverflowMenuListener overflowMenuListener
                     = new LongPressHandler(parentFragment);
 
             new org.wikipedia.LongPressHandler(readMoreList, HistoryEntry.SOURCE_INTERNAL_LINK,
-                    contextMenuListener);
+                    overflowMenuListener);
         }
 
         addOnLayoutChangeListener((View v, int left, int top, int right, int bottom,
                                        int oldLeft, int oldTop, int oldRight, int oldBottom) -> {
             if (prevLayoutHeight == getHeight()) {
+                if (!webViewPadded) {
+                    padWebView();
+                }
                 return;
             }
             prevLayoutHeight = getHeight();
@@ -137,21 +141,20 @@ public class BottomContentView extends LinearLayoutOverWebView
         });
 
         readMoreList.setAdapter(readMoreAdapter);
-        readMoreList.setOnItemClickListener((AdapterView<?> parent, View view, int position, long id) -> {
-            PageTitle title = readMoreAdapter.getItem(position).getPageTitle();
-            HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
-            parentFragment.loadPage(title, historyEntry);
-            funnel.logSuggestionClicked(page.getTitle(), readMoreItems.getResults(), position);
-        });
 
         // hide ourselves by default
         hide();
+    }
+
+    public void dispose() {
+        disposables.clear();
     }
 
     public void setPage(@NonNull Page page) {
         this.page = page;
         funnel = new SuggestedPagesFunnel(WikipediaApp.getInstance());
         firstTimeShown = false;
+        webViewPadded = false;
 
         setConditionalLayoutDirection(readMoreList, page.getTitle().getWikiSite().languageCode());
 
@@ -164,7 +167,6 @@ public class BottomContentView extends LinearLayoutOverWebView
             hideReadMore();
         }
         setVisibility(View.INVISIBLE);
-        perturb();
     }
 
     @OnClick(R.id.page_external_link) void onExternalLinkClick(View v) {
@@ -186,7 +188,7 @@ public class BottomContentView extends LinearLayoutOverWebView
     }
 
     @OnClick(R.id.page_view_map_container) void onViewMapClick(View v) {
-        GeoUtil.sendGeoIntent(parentFragment.getActivity(), page.getPageProperties().getGeo(), page.getDisplayTitle());
+        GeoUtil.sendGeoIntent(parentFragment.requireActivity(), page.getPageProperties().getGeo(), page.getDisplayTitle());
     }
 
     @Override
@@ -209,7 +211,8 @@ public class BottomContentView extends LinearLayoutOverWebView
             }
             if (!firstTimeShown && readMoreItems != null) {
                 firstTimeShown = true;
-                funnel.logSuggestionsShown(page.getTitle(), readMoreItems.getResults());
+                readMoreAdapter.notifyDataSetChanged();
+                funnel.logSuggestionsShown(page.getTitle(), readMoreItems);
             }
         }
     }
@@ -241,13 +244,18 @@ public class BottomContentView extends LinearLayoutOverWebView
         // pad the bottom of the webview, to make room for ourselves
         JSONObject payload = new JSONObject();
         try {
-            payload.put("paddingBottom", (int)(getHeight() / DimenUtil.getDensityScalar()));
+            payload.put("paddingBottom",
+                    (int)((getHeight() + getResources().getDimension(R.dimen.bottom_toolbar_height)) / DimenUtil.getDensityScalar()));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
         bridge.sendMessage("setPaddingBottom", payload);
+        webViewPadded = true;
         // ^ sending the padding event will guarantee a ContentHeightChanged event to be triggered,
         // which will update our margin based on the scroll offset, so we don't need to do it here.
+        // And while we wait, let's make ourselves invisible, until we're made explicitly visible
+        // by the scroll handler.
+        setVisibility(View.INVISIBLE);
     }
 
     private void setupPageButtons() {
@@ -282,25 +290,16 @@ public class BottomContentView extends LinearLayoutOverWebView
         pageLicenseText.setMovementMethod(new LinkMovementMethod());
     }
 
-    private String compilationInfoString(Page page) {
-        return String.format(parentFragment.getString(R.string.page_offline_notice_compilation_download_date),
-                page.getCompilationName(), getShortDateString(page.getCompilationDate()));
-    }
-
     private void preRequestReadMoreItems() {
         if (page.isMainPage()) {
-            new MainPageReadMoreTopicTask() {
-                @Override
-                public void onFinish(HistoryEntry entry) {
-                    requestReadMoreItems(entry);
-                }
-
-                @Override
-                public void onCatch(Throwable caught) {
-                    // Read More titles are expendable.
-                    L.w("Error while getting Read More topic for main page.", caught);
-                }
-            }.execute();
+            disposables.add(Observable.fromCallable(new MainPageReadMoreTopicTask())
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(this::requestReadMoreItems,
+                            throwable -> {
+                                L.w("Error while getting Read More topic for main page.", throwable);
+                                requestReadMoreItems(null);
+                            }));
         } else {
             requestReadMoreItems(new HistoryEntry(page.getTitle(), HistoryEntry.SOURCE_INTERNAL_LINK));
         }
@@ -312,30 +311,22 @@ public class BottomContentView extends LinearLayoutOverWebView
             return;
         }
         final long timeMillis = System.currentTimeMillis();
-        new FullTextSearchClient().requestMoreLike(entry.getTitle().getWikiSite(),
-                entry.getTitle().getPrefixedText(), null, null,
-                Constants.MAX_SUGGESTION_RESULTS * 2, new FullTextSearchClient.Callback() {
-                    @Override
-                    public void success(@NonNull Call<MwQueryResponse> call,
-                                        @NonNull SearchResults results) {
-                        funnel.setLatency(System.currentTimeMillis() - timeMillis);
-                        readMoreItems = SearchResults.filter(results, entry.getTitle().getPrefixedText(), true);
-                        if (!readMoreItems.getResults().isEmpty()) {
-                            readMoreAdapter.setResults(results.getResults());
-                            showReadMore();
-                        } else {
-                            // If there's no results, just hide the section
-                            hideReadMore();
-                        }
-                    }
 
-                    @Override
-                    public void failure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable caught) {
-                        // Read More titles are expendable.
-                        L.w("Error while fetching Read More titles.", caught);
+        disposables.add(ServiceFactory.getRest(entry.getTitle().getWikiSite()).getRelatedPages(entry.getTitle().getConvertedText())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(response -> response.getPages(Constants.MAX_SUGGESTION_RESULTS * 2))
+                .subscribe(results -> {
+                    funnel.setLatency(System.currentTimeMillis() - timeMillis);
+                    readMoreItems = results;
+                    if (readMoreItems != null && readMoreItems.size() > 0) {
+                        readMoreAdapter.setResults(results);
+                        showReadMore();
+                    } else {
+                        // If there's no results, just hide the section
+                        hideReadMore();
                     }
-                }
-        );
+                }, caught -> L.w("Error while fetching Read More titles.", caught)));
     }
 
     private void hideReadMore() {
@@ -352,7 +343,7 @@ public class BottomContentView extends LinearLayoutOverWebView
     }
 
     private class LongPressHandler extends PageContainerLongPressHandler
-            implements ListViewContextMenuListener {
+            implements org.wikipedia.LongPressHandler.ListViewOverflowMenuListener {
         private int lastPosition;
         LongPressHandler(@NonNull PageFragment fragment) {
             super(fragment);
@@ -361,26 +352,26 @@ public class BottomContentView extends LinearLayoutOverWebView
         @Override
         public PageTitle getTitleForListPosition(int position) {
             lastPosition = position;
-            return ((SearchResult) readMoreList.getAdapter().getItem(position)).getPageTitle();
+            return ((RbPageSummary) readMoreList.getAdapter().getItem(position)).getPageTitle(page.getTitle().getWikiSite());
         }
 
         @Override
         public void onOpenLink(PageTitle title, HistoryEntry entry) {
             super.onOpenLink(title, entry);
-            funnel.logSuggestionClicked(page.getTitle(), readMoreItems.getResults(), lastPosition);
+            funnel.logSuggestionClicked(page.getTitle(), readMoreItems, lastPosition);
         }
 
         @Override
         public void onOpenInNewTab(PageTitle title, HistoryEntry entry) {
             super.onOpenInNewTab(title, entry);
-            funnel.logSuggestionClicked(page.getTitle(), readMoreItems.getResults(), lastPosition);
+            funnel.logSuggestionClicked(page.getTitle(), readMoreItems, lastPosition);
         }
     }
 
-    private final class ReadMoreAdapter extends BaseAdapter {
-        private List<SearchResult> results;
+    private final class ReadMoreAdapter extends BaseAdapter implements PageItemView.Callback<RbPageSummary> {
+        private List<RbPageSummary> results;
 
-        public void setResults(List<SearchResult> results) {
+        public void setResults(List<RbPageSummary> results) {
             this.results = results;
             notifyDataSetChanged();
         }
@@ -391,7 +382,7 @@ public class BottomContentView extends LinearLayoutOverWebView
         }
 
         @Override
-        public SearchResult getItem(int position) {
+        public RbPageSummary getItem(int position) {
             return results.get(position);
         }
 
@@ -401,20 +392,41 @@ public class BottomContentView extends LinearLayoutOverWebView
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = LayoutInflater.from(parent.getContext())
-                        .inflate(R.layout.item_page_list_entry, parent, false);
-            }
-            TextView pageTitleText = convertView.findViewById(R.id.page_list_item_title);
-            SearchResult result = getItem(position);
-            pageTitleText.setText(result.getPageTitle().getDisplayText());
+        public View getView(int position, View convView, ViewGroup parent) {
+            PageItemView<RbPageSummary> itemView = new PageItemView<>(getContext());
+            RbPageSummary result = getItem(position);
+            PageTitle pageTitle = result.getPageTitle(page.getTitle().getWikiSite());
+            itemView.setItem(result);
+            itemView.setCallback(this);
+            itemView.setTitle(pageTitle.getDisplayText());
+            itemView.setDescription(StringUtils.capitalize(pageTitle.getDescription()));
+            itemView.setImageUrl(pageTitle.getThumbUrl());
+            return itemView;
+        }
 
-            GoneIfEmptyTextView descriptionText = convertView.findViewById(R.id.page_list_item_description);
-            descriptionText.setText(StringUtils.capitalize(result.getPageTitle().getDescription()));
+        @Override public void onClick(@Nullable RbPageSummary item) {
+            PageTitle title = item.getPageTitle(page.getTitle().getWikiSite());
+            HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
+            parentFragment.loadPage(title, historyEntry);
+            funnel.logSuggestionClicked(page.getTitle(), readMoreItems, results.indexOf(item));
+        }
 
-            ViewUtil.loadImageUrlInto(convertView.findViewById(R.id.page_list_item_image), result.getPageTitle().getThumbUrl());
-            return convertView;
+        @Override public boolean onLongClick(@Nullable RbPageSummary item) {
+            return false;
+        }
+
+        @Override public void onThumbClick(@Nullable RbPageSummary item) {
+        }
+
+        @Override public void onActionClick(@Nullable RbPageSummary item, @NonNull View view) {
+        }
+
+        @Override public void onSecondaryActionClick(@Nullable RbPageSummary item, @NonNull View view) {
+        }
+
+        @Override
+        public void onListChipClick(@Nullable ReadingList readingList) {
         }
     }
+
 }

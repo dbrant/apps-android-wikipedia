@@ -1,6 +1,6 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
 import org.wikipedia.WikipediaApp;
@@ -9,7 +9,7 @@ import org.wikipedia.util.ReleaseUtil;
 // https://meta.wikimedia.org/wiki/Schema:MobileWikiAppWiktionaryPopup
 public class WiktionaryDialogFunnel extends TimedFunnel {
     private static final String SCHEMA_NAME = "MobileWikiAppWiktionaryPopup";
-    private static final int REV_ID = 15158116;
+    private static final int REV_ID = 18118768;
 
     private final String text;
 

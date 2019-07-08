@@ -1,20 +1,24 @@
 package org.wikipedia.feed.news;
 
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.AppBarLayout;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 
 import org.wikipedia.R;
 import org.wikipedia.dataclient.WikiSite;
@@ -26,7 +30,10 @@ import org.wikipedia.json.GsonUnmarshaller;
 import org.wikipedia.page.ExclusiveBottomSheetPresenter;
 import org.wikipedia.page.PageActivity;
 import org.wikipedia.readinglist.AddToReadingListDialog;
+import org.wikipedia.util.DeviceUtil;
+import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.GradientUtil;
+import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.ShareUtil;
 import org.wikipedia.views.DefaultRecyclerAdapter;
 import org.wikipedia.views.DefaultViewHolder;
@@ -39,15 +46,18 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+import static org.wikipedia.Constants.InvokeSource.NEWS_ACTIVITY;
 import static org.wikipedia.feed.news.NewsActivity.EXTRA_NEWS_ITEM;
 import static org.wikipedia.feed.news.NewsActivity.EXTRA_WIKI;
 import static org.wikipedia.richtext.RichTextUtil.stripHtml;
+import static org.wikipedia.util.L10nUtil.setConditionalLayoutDirection;
 
 public class NewsFragment extends Fragment {
     @BindView(R.id.view_news_fullscreen_header_image) FaceAndColorDetectImageView image;
     @BindView(R.id.view_news_fullscreen_story_text) TextView text;
     @BindView(R.id.view_news_fullscreen_link_card_list) RecyclerView links;
     @BindView(R.id.view_news_fullscreen_toolbar) Toolbar toolbar;
+    @BindView(R.id.news_toolbar_container) CollapsingToolbarLayout toolBarLayout;
     @BindView(R.id.news_app_bar) AppBarLayout appBarLayout;
     @BindView(R.id.view_news_fullscreen_gradient) View gradientView;
 
@@ -66,7 +76,7 @@ public class NewsFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_news, container, false);
         unbinder = ButterKnife.bind(this, view);
@@ -76,13 +86,27 @@ public class NewsFragment extends Fragment {
         getAppCompatActivity().getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getAppCompatActivity().getSupportActionBar().setTitle("");
 
-        NewsItem item = GsonUnmarshaller.unmarshal(NewsItem.class, getActivity().getIntent().getStringExtra(EXTRA_NEWS_ITEM));
-        WikiSite wiki = GsonUnmarshaller.unmarshal(WikiSite.class, getActivity().getIntent().getStringExtra(EXTRA_WIKI));
+        NewsItem item = GsonUnmarshaller.unmarshal(NewsItem.class, requireActivity().getIntent().getStringExtra(EXTRA_NEWS_ITEM));
+        WikiSite wiki = GsonUnmarshaller.unmarshal(WikiSite.class, requireActivity().getIntent().getStringExtra(EXTRA_WIKI));
+
+        setConditionalLayoutDirection(view, wiki.languageCode());
 
         Uri imageUri = item.featureImage();
         if (imageUri == null) {
             appBarLayout.setExpanded(false, false);
         }
+
+        DeviceUtil.updateStatusBarTheme(requireActivity(), toolbar, true);
+        appBarLayout.addOnOffsetChangedListener((layout, offset) ->
+                DeviceUtil.updateStatusBarTheme(requireActivity(), toolbar,
+                        (layout.getTotalScrollRange() + offset) > layout.getTotalScrollRange() / 2)
+        );
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            toolBarLayout.setStatusBarScrimColor(ResourceUtil.getThemedColor(requireContext(), R.attr.main_status_bar_color));
+        }
+
+
         image.loadImage(imageUri);
         text.setText(stripHtml(item.story()));
         initRecycler();
@@ -97,12 +121,12 @@ public class NewsFragment extends Fragment {
     }
 
     private AppCompatActivity getAppCompatActivity() {
-        return (AppCompatActivity) getActivity();
+        return (AppCompatActivity) requireActivity();
     }
 
     private void initRecycler() {
-        links.setLayoutManager(new LinearLayoutManager(getContext()));
-        links.addItemDecoration(new DrawableItemDecoration(getContext(), R.attr.list_separator_drawable));
+        links.setLayoutManager(new LinearLayoutManager(requireContext()));
+        links.addItemDecoration(new DrawableItemDecoration(requireContext(), R.attr.list_separator_drawable));
         links.setNestedScrollingEnabled(false);
     }
 
@@ -114,12 +138,13 @@ public class NewsFragment extends Fragment {
             this.callback = callback;
         }
 
-        @Override public DefaultViewHolder<ListCardItemView> onCreateViewHolder(ViewGroup parent, int viewType) {
+        @NonNull
+        @Override public DefaultViewHolder<ListCardItemView> onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return new DefaultViewHolder<>(new ListCardItemView(parent.getContext()));
         }
 
         @Override
-        public void onBindViewHolder(DefaultViewHolder<ListCardItemView> holder, int position) {
+        public void onBindViewHolder(@NonNull DefaultViewHolder<ListCardItemView> holder, int position) {
             NewsLinkCard card = item(position);
             holder.getView().setCard(card)
                     .setHistoryEntry(new HistoryEntry(card.pageTitle(), HistoryEntry.SOURCE_NEWS))
@@ -130,24 +155,24 @@ public class NewsFragment extends Fragment {
     private class Callback implements ListCardItemView.Callback {
         @Override
         public void onSelectPage(@NonNull Card card, @NonNull HistoryEntry entry) {
-            startActivity(PageActivity.newIntentForNewTab(getContext(), entry, entry.getTitle()));
+            startActivity(PageActivity.newIntentForCurrentTab(requireContext(), entry, entry.getTitle()));
         }
 
         @Override
         public void onAddPageToList(@NonNull HistoryEntry entry) {
             bottomSheetPresenter.show(getChildFragmentManager(),
-                    AddToReadingListDialog.newInstance(entry.getTitle(),
-                            AddToReadingListDialog.InvokeSource.NEWS_ACTIVITY));
+                    AddToReadingListDialog.newInstance(entry.getTitle(), NEWS_ACTIVITY));
         }
 
         @Override
         public void onRemovePageFromList(@NonNull HistoryEntry entry) {
-            // TODO
+            FeedbackUtil.showMessage(requireActivity(),
+                    getString(R.string.reading_list_item_deleted, entry.getTitle().getDisplayText()));
         }
 
         @Override
         public void onSharePage(@NonNull HistoryEntry entry) {
-            ShareUtil.shareText(getActivity(), entry.getTitle());
+            ShareUtil.shareText(requireActivity(), entry.getTitle());
         }
     }
 

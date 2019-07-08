@@ -1,15 +1,17 @@
 package org.wikipedia.feed.view;
 
 import android.content.Context;
-import android.support.annotation.ColorRes;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.StringRes;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.PopupMenu;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.StringRes;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
 
 import org.wikipedia.R;
 import org.wikipedia.feed.model.Card;
@@ -78,8 +80,10 @@ public abstract class StaticCardView<T extends Card> extends DefaultFeedCardView
     }
 
     private void showOverflowMenu(View anchorView) {
-        PopupMenu menu = new PopupMenu(anchorView.getContext(), anchorView);
+        PopupMenu menu = new PopupMenu(anchorView.getContext(), anchorView, Gravity.END);
         menu.getMenuInflater().inflate(R.menu.menu_feed_card_header, menu.getMenu());
+        MenuItem editCardLangItem = menu.getMenu().findItem(R.id.menu_feed_card_edit_card_languages);
+        editCardLangItem.setVisible(getCard().type().contentType().isPerLanguage());
         menu.setOnMenuItemClickListener(new OverflowMenuClickListener());
         menu.show();
     }
@@ -93,6 +97,13 @@ public abstract class StaticCardView<T extends Card> extends DefaultFeedCardView
                         return getCallback().onRequestDismissCard(getCard());
                     }
                     return false;
+
+                case R.id.menu_feed_card_edit_card_languages:
+                    if (getCallback() != null & getCard() != null) {
+                        getCallback().onRequestEditCardLanguages(getCard());
+                    }
+                    return true;
+
                 case R.id.menu_feed_card_customize:
                     if (getCallback() != null & getCard() != null) {
                         getCallback().onRequestCustomize(getCard());

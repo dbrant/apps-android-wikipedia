@@ -1,21 +1,27 @@
 package org.wikipedia.feed;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.support.annotation.NonNull;
 
+import androidx.annotation.NonNull;
+
+import org.wikipedia.WikipediaApp;
 import org.wikipedia.feed.aggregated.AggregatedFeedContentClient;
 import org.wikipedia.feed.announcement.AnnouncementClient;
+import org.wikipedia.feed.dataclient.FeedClient;
+import org.wikipedia.feed.model.Card;
 import org.wikipedia.feed.offline.OfflineCardClient;
-import org.wikipedia.feed.offline.OfflineCompilationClient;
 import org.wikipedia.feed.onboarding.OnboardingClient;
 import org.wikipedia.feed.searchbar.SearchClient;
-import org.wikipedia.offline.OfflineManager;
-import org.wikipedia.util.DeviceUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import io.reactivex.Completable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 public class FeedCoordinator extends FeedCoordinatorBase {
     @NonNull private AggregatedFeedContentClient aggregatedClient = new AggregatedFeedContentClient();
@@ -26,13 +32,18 @@ public class FeedCoordinator extends FeedCoordinatorBase {
     }
 
     @Override
+    public void reset() {
+        super.reset();
+        aggregatedClient.invalidate();
+    }
+
+    @Override
     protected void buildScript(int age) {
-        boolean online = DeviceUtil.isOnline();
+        boolean online = WikipediaApp.getInstance().isOnline();
 
         conditionallyAddPendingClient(new SearchClient(), age == 0);
-        conditionallyAddPendingClient(new OfflineCompilationClient(), age == 0 && !online && OfflineManager.hasCompilation());
-        addPendingClient(new OnboardingClient());
         conditionallyAddPendingClient(new AnnouncementClient(), age == 0 && online);
+        conditionallyAddPendingClient(new OnboardingClient(), age == 0);
 
         List<FeedContentType> orderedContentTypes = new ArrayList<>();
         orderedContentTypes.addAll(Arrays.asList(FeedContentType.values()));
@@ -40,10 +51,20 @@ public class FeedCoordinator extends FeedCoordinatorBase {
                 -> a.getOrder().compareTo(b.getOrder()));
 
         for (FeedContentType contentType : orderedContentTypes) {
-            addPendingClient(contentType.newClient(aggregatedClient, age, online));
+            addPendingClient(contentType.newClient(aggregatedClient, age));
         }
 
         conditionallyAddPendingClient(new OfflineCardClient(), age == 0 && !online);
 
+    }
+
+    @SuppressLint("CheckResult")
+    public static void postCardsToCallback(@NonNull FeedClient.Callback cb, @NonNull List<Card> cards) {
+        Completable.fromAction(() -> {
+            final int delayMillis = 150;
+            Thread.sleep(delayMillis);
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(() -> cb.success(cards));
     }
 }

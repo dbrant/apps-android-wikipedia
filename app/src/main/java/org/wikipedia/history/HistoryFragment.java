@@ -1,21 +1,9 @@
 package org.wikipedia.history;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.view.ActionMode;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,6 +11,23 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.view.ActionMode;
+import androidx.fragment.app.Fragment;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.CursorLoader;
+import androidx.loader.content.Loader;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import org.wikipedia.BackPressedHandler;
 import org.wikipedia.R;
@@ -30,13 +35,18 @@ import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.database.DatabaseClient;
 import org.wikipedia.database.contract.PageHistoryContract;
-import org.wikipedia.page.PageTitle;
+import org.wikipedia.main.MainFragment;
+import org.wikipedia.page.PageAvailableOfflineHandler;
+import org.wikipedia.readinglist.database.ReadingList;
+import org.wikipedia.settings.Prefs;
+import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.views.DefaultViewHolder;
 import org.wikipedia.views.MultiSelectActionModeCallback;
 import org.wikipedia.views.PageItemView;
 import org.wikipedia.views.SearchEmptyView;
 import org.wikipedia.views.SwipeableItemTouchHelperCallback;
+import org.wikipedia.views.ViewUtil;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -47,12 +57,14 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import io.reactivex.Completable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.wikipedia.Constants.HISTORY_FRAGMENT_LOADER_ID;
 
 public class HistoryFragment extends Fragment implements BackPressedHandler {
     public interface Callback {
-        void onLoadPage(PageTitle title, HistoryEntry entry);
+        void onLoadPage(@NonNull HistoryEntry entry);
         void onClearHistory();
     }
 
@@ -85,20 +97,21 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_history, container, false);
         unbinder = ButterKnife.bind(this, view);
 
         searchEmptyView.setEmptyText(R.string.search_history_no_results);
 
-        ItemTouchHelper.Callback touchCallback = new SwipeableItemTouchHelperCallback(getContext());
+        SwipeableItemTouchHelperCallback touchCallback = new SwipeableItemTouchHelperCallback(requireContext());
+        touchCallback.setSwipeableEnabled(true);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(touchCallback);
         itemTouchHelper.attachToRecyclerView(historyList);
 
         historyList.setLayoutManager(new LinearLayoutManager(getContext()));
         historyList.setAdapter(adapter);
 
-        getActivity().getSupportLoaderManager().initLoader(HISTORY_FRAGMENT_LOADER_ID, null, loaderCallback);
+        requireActivity().getSupportLoaderManager().initLoader(HISTORY_FRAGMENT_LOADER_ID, null, loaderCallback);
         return view;
     }
 
@@ -109,8 +122,14 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        updateEmptyState();
+    }
+
+    @Override
     public void onDestroyView() {
-        getActivity().getSupportLoaderManager().destroyLoader(HISTORY_FRAGMENT_LOADER_ID);
+        requireActivity().getSupportLoaderManager().destroyLoader(HISTORY_FRAGMENT_LOADER_ID);
         historyList.setAdapter(null);
         adapter.setCursor(null);
         unbinder.unbind();
@@ -137,15 +156,29 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
         return false;
     }
 
+    private void updateEmptyState() {
+        updateEmptyState(null);
+    }
+
     private void updateEmptyState(@Nullable String searchQuery) {
         if (TextUtils.isEmpty(searchQuery)) {
             searchEmptyView.setVisibility(View.GONE);
-            historyEmptyView.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
+            setEmptyContainerVisibility(adapter.isEmpty());
         } else {
             searchEmptyView.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
-            historyEmptyView.setVisibility(View.GONE);
+            setEmptyContainerVisibility(false);
         }
         historyList.setVisibility(adapter.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    private void setEmptyContainerVisibility(boolean visible) {
+        if (visible) {
+            historyEmptyView.setVisibility(View.VISIBLE);
+            requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+        } else {
+            historyEmptyView.setVisibility(View.GONE);
+            DeviceUtil.setWindowSoftInputModeResizable(requireActivity());
+        }
     }
 
     @Override
@@ -172,19 +205,20 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_clear_all_history:
-                new AlertDialog.Builder(getContext())
+                new AlertDialog.Builder(requireContext())
                         .setTitle(R.string.dialog_title_clear_history)
                         .setMessage(R.string.dialog_message_clear_history)
                         .setPositiveButton(R.string.dialog_message_clear_history_yes, (dialog, which) -> {
                             // Clear history!
-                            new DeleteAllHistoryTask(app).execute();
+                            Completable.fromAction(() -> app.getDatabaseClient(HistoryEntry.class).deleteAll())
+                                    .subscribeOn(Schedulers.io()).subscribe();
                             onClearHistoryClick();
                         })
                         .setNegativeButton(R.string.dialog_message_clear_history_no, null).create().show();
                 return true;
             case R.id.menu_search_history:
                 if (actionMode == null) {
-                    actionMode = ((AppCompatActivity) getActivity())
+                    actionMode = ((AppCompatActivity) requireActivity())
                             .startSupportActionMode(searchActionModeCallback);
                 }
                 return true;
@@ -193,10 +227,10 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
         }
     }
 
-    private void onPageClick(PageTitle title, HistoryEntry entry) {
+    private void onPageClick(@NonNull HistoryEntry entry) {
         Callback callback = callback();
         if (callback != null) {
-            callback.onLoadPage(title, entry);
+            callback.onLoadPage(entry);
         }
     }
 
@@ -218,7 +252,7 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             finishActionMode();
         }
         if (!MultiSelectCallback.is(actionMode)) {
-            ((AppCompatActivity) getActivity()).startSupportActionMode(multiSelectCallback);
+            ((AppCompatActivity) requireActivity()).startSupportActionMode(multiSelectCallback);
         }
     }
 
@@ -238,6 +272,14 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             actionMode.setTitle(getString(R.string.multi_select_items_selected, selectedCount));
         }
         adapter.notifyDataSetChanged();
+    }
+
+    public void refresh() {
+        adapter.notifyDataSetChanged();
+        if (!app.isOnline() && Prefs.shouldShowHistoryOfflineArticlesToast()) {
+            Toast.makeText(requireContext(), R.string.history_offline_articles_toast, Toast.LENGTH_SHORT).show();
+            Prefs.shouldShowHistoryOfflineArticlesToast(false);
+        }
     }
 
     private void unselectAllPages() {
@@ -279,11 +321,11 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
     }
 
     private void restartLoader() {
-        getActivity().getSupportLoaderManager().restartLoader(HISTORY_FRAGMENT_LOADER_ID, null, loaderCallback);
+        requireActivity().getSupportLoaderManager().restartLoader(HISTORY_FRAGMENT_LOADER_ID, null, loaderCallback);
     }
 
     private class LoaderCallback implements LoaderManager.LoaderCallbacks<Cursor> {
-        @Override
+        @NonNull @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             String titleCol = PageHistoryContract.PageWithImage.TITLE.qualifiedName();
             String selection = null;
@@ -298,22 +340,22 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             Uri uri = PageHistoryContract.PageWithImage.URI;
             final String[] projection = null;
             String order = PageHistoryContract.PageWithImage.ORDER_MRU;
-            return new CursorLoader(getContext().getApplicationContext(),
+            return new CursorLoader(requireContext().getApplicationContext(),
                     uri, projection, selection, selectionArgs, order);
         }
 
         @Override
-        public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        public void onLoadFinished(@NonNull Loader<Cursor> cursorLoader, Cursor cursor) {
             adapter.setCursor(cursor);
             if (!isAdded()) {
                 return;
             }
             updateEmptyState(currentSearchQuery);
-            getActivity().invalidateOptionsMenu();
+            requireActivity().invalidateOptionsMenu();
         }
 
         @Override
-        public void onLoaderReset(Loader<Cursor> loader) {
+        public void onLoaderReset(@NonNull Loader<Cursor> loader) {
             adapter.setCursor(null);
         }
     }
@@ -353,6 +395,7 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             getView().setDescription(indexedEntry.getEntry().getTitle().getDescription());
             getView().setImageUrl(PageHistoryContract.PageWithImage.IMAGE_NAME.val(cursor));
             getView().setSelected(selectedIndices.contains(indexedEntry.getIndex()));
+            PageAvailableOfflineHandler.INSTANCE.check(indexedEntry.getEntry().getTitle(), available -> getView().setViewsGreyedOut(!available));
 
             // Check the previous item, see if the times differ enough
             // If they do, display the section header.
@@ -414,12 +457,12 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
         }
 
         @Override
-        public HistoryEntryItemHolder onCreateViewHolder(ViewGroup parent, int type) {
-            return new HistoryEntryItemHolder(new PageItemView<IndexedHistoryEntry>(getContext()));
+        public HistoryEntryItemHolder onCreateViewHolder(@NonNull ViewGroup parent, int type) {
+            return new HistoryEntryItemHolder(new PageItemView<>(requireContext()));
         }
 
         @Override
-        public void onBindViewHolder(HistoryEntryItemHolder holder, int pos) {
+        public void onBindViewHolder(@NonNull HistoryEntryItemHolder holder, int pos) {
             if (cursor == null) {
                 return;
             }
@@ -427,7 +470,7 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             holder.bindItem(cursor);
         }
 
-        @Override public void onViewAttachedToWindow(HistoryEntryItemHolder holder) {
+        @Override public void onViewAttachedToWindow(@NonNull HistoryEntryItemHolder holder) {
             super.onViewAttachedToWindow(holder);
             holder.getView().setCallback(itemCallback);
         }
@@ -444,8 +487,7 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
             if (MultiSelectCallback.is(actionMode)) {
                 toggleSelectPage(indexedEntry);
             } else if (indexedEntry != null) {
-                HistoryEntry newEntry = new HistoryEntry(indexedEntry.getEntry().getTitle(), HistoryEntry.SOURCE_HISTORY);
-                onPageClick(indexedEntry.getEntry().getTitle(), newEntry);
+                onPageClick(new HistoryEntry(indexedEntry.getEntry().getTitle(), HistoryEntry.SOURCE_HISTORY));
             }
         }
 
@@ -467,18 +509,26 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
         @Override
         public void onSecondaryActionClick(@Nullable IndexedHistoryEntry entry, @NonNull View view) {
         }
+
+        @Override
+        public void onListChipClick(@Nullable ReadingList readingList) {
+        }
     }
 
     private class HistorySearchCallback extends SearchActionModeCallback {
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             actionMode = mode;
+            ViewUtil.finishActionModeWhenTappingOnView(getView(), actionMode);
+            ViewUtil.finishActionModeWhenTappingOnView(historyList, actionMode);
             return super.onCreateActionMode(mode, menu);
         }
 
         @Override
         protected void onQueryChange(String s) {
             currentSearchQuery = s.trim();
+            ((MainFragment) getParentFragment())
+                    .setBottomNavVisible(currentSearchQuery.length() == 0);
             restartLoader();
         }
 
@@ -494,7 +544,17 @@ public class HistoryFragment extends Fragment implements BackPressedHandler {
 
         @Override
         protected String getSearchHintString() {
-            return getContext().getResources().getString(R.string.search_hint_search_history);
+            return requireContext().getResources().getString(R.string.search_hint_search_history);
+        }
+
+        @Override
+        protected boolean finishActionModeIfKeyboardHiding() {
+            return true;
+        }
+
+        @Override
+        protected Context getParentContext() {
+            return requireContext();
         }
     }
 

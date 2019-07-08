@@ -1,10 +1,6 @@
 package org.wikipedia.gallery;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -13,10 +9,17 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.facebook.drawee.view.SimpleDraweeView;
 
 import org.wikipedia.R;
 import org.wikipedia.views.ViewUtil;
+
+import java.util.List;
 
 public class GalleryThumbnailScrollView extends RecyclerView {
     @NonNull private final Animation mPressAnimation;
@@ -47,8 +50,8 @@ public class GalleryThumbnailScrollView extends RecyclerView {
         mListener = listener;
     }
 
-    public void setGalleryCollection(@NonNull GalleryCollection collection) {
-        setAdapter(new GalleryViewAdapter(collection));
+    public void setGalleryList(@NonNull List<GalleryItem> list) {
+        setAdapter(new GalleryViewAdapter(list));
     }
 
     private class GalleryItemHolder extends ViewHolder implements OnClickListener, OnTouchListener {
@@ -64,13 +67,13 @@ public class GalleryThumbnailScrollView extends RecyclerView {
             mGalleryItem = item;
             mImageView.setOnClickListener(this);
             mImageView.setOnTouchListener(this);
-            ViewUtil.loadImageUrlInto(mImageView, mGalleryItem.getThumbUrl());
+            ViewUtil.loadImageUrlInto(mImageView, mGalleryItem.getThumbnailUrl());
         }
 
         @Override
         public void onClick(View v) {
             if (mListener != null) {
-                mListener.onGalleryItemClicked(mGalleryItem.getName());
+                mListener.onGalleryItemClicked(mGalleryItem.getTitles().getCanonical());
             }
         }
 
@@ -92,15 +95,15 @@ public class GalleryThumbnailScrollView extends RecyclerView {
     }
 
     private final class GalleryViewAdapter extends RecyclerView.Adapter<GalleryItemHolder> {
-        @NonNull private final GalleryCollection mCollection;
+        @NonNull private final List<GalleryItem> list;
 
-        GalleryViewAdapter(@NonNull GalleryCollection collection) {
-            mCollection = collection;
+        GalleryViewAdapter(@NonNull List<GalleryItem> list) {
+            this.list = list;
         }
 
         @Override
         public int getItemCount() {
-            return mCollection.getItemList().size();
+            return  list.size();
         }
 
         @Override
@@ -112,7 +115,7 @@ public class GalleryThumbnailScrollView extends RecyclerView {
 
         @Override
         public void onBindViewHolder(GalleryItemHolder holder, int pos) {
-            holder.bindItem(mCollection.getItemList().get(pos));
+            holder.bindItem(list.get(pos));
         }
     }
 }

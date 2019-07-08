@@ -8,18 +8,21 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.support.annotation.AnyRes;
-import android.support.annotation.ArrayRes;
-import android.support.annotation.AttrRes;
-import android.support.annotation.ColorInt;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IdRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.graphics.drawable.VectorDrawableCompat;
 import android.util.TypedValue;
+import android.view.MenuItem;
 
-import org.wikipedia.R;
+import androidx.annotation.AnyRes;
+import androidx.annotation.ArrayRes;
+import androidx.annotation.AttrRes;
+import androidx.annotation.ColorInt;
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 public final class ResourceUtil {
     // See Resources.getIdentifier().
@@ -41,28 +44,15 @@ public final class ResourceUtil {
         return ids;
     }
 
-    @DrawableRes @SuppressWarnings("checkstyle:magicnumber") public static int getTabListIcon(int numTabs) {
-        switch (Math.max(0, numTabs)) {
-            case 0: return R.drawable.ic_tab_list_white_24dp;
-            case 1: return R.drawable.ic_tab_list_1;
-            case 2: return R.drawable.ic_tab_list_2;
-            case 3: return R.drawable.ic_tab_list_3;
-            case 4: return R.drawable.ic_tab_list_4;
-            case 5: return R.drawable.ic_tab_list_5;
-            case 6: return R.drawable.ic_tab_list_6;
-            case 7: return R.drawable.ic_tab_list_7;
-            case 8: return R.drawable.ic_tab_list_8;
-            case 9: return R.drawable.ic_tab_list_9;
-            default: return R.drawable.ic_tab_list_9_plus;
-        }
-    }
-
     @NonNull
-    public static Bitmap bitmapFromVectorDrawable(@NonNull Context context, @DrawableRes int id) {
-        Drawable vectorDrawable = VectorDrawableCompat.create(context.getResources(), id, null);
+    public static Bitmap bitmapFromVectorDrawable(@NonNull Context context, @DrawableRes int id, @ColorRes Integer tintColor) {
+        Drawable vectorDrawable = AppCompatResources.getDrawable(context, id);
         int width = vectorDrawable.getIntrinsicWidth();
         int height = vectorDrawable.getIntrinsicHeight();
         vectorDrawable.setBounds(0, 0, width, height);
+        if (tintColor != null) {
+            DrawableCompat.setTint(vectorDrawable, ContextCompat.getColor(context, tintColor));
+        }
         Bitmap bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bm);
         vectorDrawable.draw(canvas);
@@ -108,6 +98,14 @@ public final class ResourceUtil {
                 .appendPath(res.getResourceTypeName(id))
                 .appendPath(res.getResourceEntryName(id))
                 .build();
+    }
+
+    public static void setMenuItemTint(@NonNull MenuItem item, @ColorInt int color) {
+        Drawable icon = item.getIcon();
+        Drawable wrapped = DrawableCompat.wrap(icon);
+        icon.mutate();
+        DrawableCompat.setTint(wrapped, color);
+        item.setIcon(wrapped);
     }
 
     private static void checkId(@IdRes int id) {

@@ -1,36 +1,35 @@
 package org.wikipedia.csrf;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.auth.AccountUtil;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.SharedPreferenceCookieManager;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.dataclient.mwapi.MwException;
 import org.wikipedia.dataclient.mwapi.MwQueryResponse;
-import org.wikipedia.dataclient.retrofit.MwCachedService;
-import org.wikipedia.dataclient.retrofit.WikiCachedService;
+import org.wikipedia.events.LoggedOutInBackgroundEvent;
 import org.wikipedia.login.LoginClient;
 import org.wikipedia.login.LoginResult;
+import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.log.L;
 
 import java.io.IOException;
 
 import retrofit2.Call;
 import retrofit2.Response;
-import retrofit2.http.GET;
-import retrofit2.http.Headers;
 
 public class CsrfTokenClient {
-    static final String ANON_TOKEN = "+\\";
+    private static final String ANON_TOKEN = "+\\";
     private static final int MAX_RETRIES = 1;
     private static final int MAX_RETRIES_OF_LOGIN_BLOCKING = 2;
-    @NonNull private final WikiCachedService<Service> cachedService = new MwCachedService<>(Service.class);
     @NonNull private final WikiSite csrfWikiSite;
     @NonNull private final WikiSite loginWikiSite;
     private int retries = 0;
@@ -53,8 +52,7 @@ public class CsrfTokenClient {
             retryWithLogin(new RuntimeException("Forcing login..."), callback);
             return;
         }
-        Service service = cachedService.service(csrfWikiSite);
-        csrfTokenCall = request(service, callback);
+        csrfTokenCall = request(ServiceFactory.get(csrfWikiSite), callback);
     }
 
     public void cancel() {
@@ -101,6 +99,9 @@ public class CsrfTokenClient {
                 request(callback);
             }, callback);
         } else {
+            if (retries >= MAX_RETRIES) {
+                bailWithLogout();
+            }
             callback.failure(caught);
         }
     }
@@ -125,6 +126,11 @@ public class CsrfTokenClient {
                         callback.twoFactorPrompt();
                     }
 
+                    @Override public void passwordResetPrompt(@Nullable String token) {
+                        // Should not happen here, but call the callback just in case.
+                        callback.failure(new LoginClient.LoginFailedException("Logged in with temporary password."));
+                    }
+
                     @Override
                     public void error(@NonNull Throwable caught) {
                         callback.failure(caught);
@@ -132,9 +138,9 @@ public class CsrfTokenClient {
                 });
     }
 
-    @NonNull public String getTokenBlocking() throws Throwable {
+    @NonNull public String getTokenBlocking() throws Exception {
         String token = "";
-        Service service = cachedService.service(csrfWikiSite);
+        Service service = ServiceFactory.get(csrfWikiSite);
 
         for (int retry = 0; retry < MAX_RETRIES_OF_LOGIN_BLOCKING; retry++) {
             try {
@@ -144,8 +150,8 @@ public class CsrfTokenClient {
                             AccountUtil.getPassword(), "");
                 }
 
-                Response<MwQueryResponse> response = service.request().execute();
-                if (response.body() == null || !response.body().success()
+                Response<MwQueryResponse> response = service.getCsrfTokenCall().execute();
+                if (response.body() == null || response.body().query() == null
                         || TextUtils.isEmpty(response.body().query().csrfToken())) {
                     continue;
                 }
@@ -159,30 +165,38 @@ public class CsrfTokenClient {
             }
         }
         if (TextUtils.isEmpty(token) || token.equals(ANON_TOKEN)) {
+            if (!TextUtils.isEmpty(token) && token.equals(ANON_TOKEN)) {
+                bailWithLogout();
+            }
             throw new IOException("Invalid token, or login failure.");
         }
         return token;
     }
 
+    private void bailWithLogout() {
+        // Signal to the rest of the app that we're explicitly logging out in the background.
+        WikipediaApp.getInstance().logOut();
+        Prefs.setLoggedOutInBackground(true);
+        WikipediaApp.getInstance().getBus().post(new LoggedOutInBackgroundEvent());
+    }
+
     @VisibleForTesting @NonNull Call<MwQueryResponse> requestToken(@NonNull Service service,
                                                                    @NonNull final Callback cb) {
-        Call<MwQueryResponse> call = service.request();
+        Call<MwQueryResponse> call = service.getCsrfTokenCall();
         call.enqueue(new retrofit2.Callback<MwQueryResponse>() {
             @Override
-            public void onResponse(Call<MwQueryResponse> call, Response<MwQueryResponse> response) {
-                if (response.body().success()) {
-                    // noinspection ConstantConditions
-                    cb.success(response.body().query().csrfToken());
-                } else if (response.body().hasError()) {
-                    // noinspection ConstantConditions
-                    cb.failure(new MwException(response.body().getError()));
-                } else {
-                    cb.failure(new IOException("An unknown error occurred."));
+            public void onResponse(@NonNull Call<MwQueryResponse> call, @NonNull Response<MwQueryResponse> response) {
+                if (call.isCanceled()) {
+                    return;
                 }
+                cb.success(response.body().query().csrfToken());
             }
 
             @Override
-            public void onFailure(Call<MwQueryResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable t) {
+                if (call.isCanceled()) {
+                    return;
+                }
                 cb.failure(t);
             }
         });
@@ -214,11 +228,5 @@ public class CsrfTokenClient {
 
     private interface RetryCallback {
         void retry();
-    }
-
-    @VisibleForTesting interface Service {
-        @Headers("Cache-Control: no-cache")
-        @GET("w/api.php?action=query&format=json&formatversion=2&meta=tokens&type=csrf")
-        Call<MwQueryResponse> request();
     }
 }

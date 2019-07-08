@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-PREFIX="https://www.mediawiki.org/w"
+INPUT_PATH="https://meta.wikimedia.org/api/rest_v1/data/css/mobile/base"
+OUTPUT_PATH="`dirname $0`/../app/src/main/assets"
 
-#For use when importing styles from a local Vagrant instance
-#PREFIX="localhost:8080/w"
-
-BASE_PATH="`dirname $0`/.."
-
-wget "$PREFIX/load.php?debug=false&lang=en&modules=skins.minerva.base.reset|skins.minerva.content.styles|ext.cite.style|ext.pygments|ext.math.styles|ext.timeline.styles|mediawiki.page.gallery.styles|mobile.app.pagestyles.android&only=styles&version=&*" -O "$BASE_PATH/app/src/main/assets/styles.css"
-wget "$PREFIX/load.php?debug=false&lang=en&modules=skins.minerva.base.reset|skins.minerva.content.styles|ext.cite.style|ext.pygments|ext.math.styles|ext.timeline.styles|mediawiki.page.gallery.styles|mobile.app.preview.android|mobile.app.preview&only=styles&version=&*" -O "$BASE_PATH/app/src/main/assets/preview.css"
+curl $INPUT_PATH > "$OUTPUT_PATH/styles.css"
+curl $INPUT_PATH > "$OUTPUT_PATH/preview.css"

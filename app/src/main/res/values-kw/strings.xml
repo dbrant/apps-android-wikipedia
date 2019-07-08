@@ -20,8 +20,7 @@
   <string name="edit_save_action_license_logged_in">Dre witha, yth esowgh owth akordya dhe\'n &lt;a href=\"%1$s\"&gt;Termynyow Devnydh&lt;/a&gt;, ha dhe dhyllo agas kevrohow rag nevra yn-dann an leshyans &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt;.</string>
   <string name="edit_save_action_license_anon">Dre witha, yth esowgh owth akordya dhe\'n &lt;a href=\"%1$s\"&gt;Termynyow Devnydh&lt;/a&gt;, ha dhe dhyllo agas kevrohow rag nevra yn-dann an leshyans &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt;. Agas trigva IP a vydh rekordyes avel awtour agas chanjyow. Mar &lt;a href=\"https://#login\"&gt;omgelmewgh&lt;/a&gt;, hwi a gyv moy privetter.</string>
   <string name="preference_title_language">Yeth Wikipedya</string>
-  <string name="preference_languages_filter_hint">Hwilas</string>
-  <string name="langlinks_filter_hint">Hwilas</string>
+    <string name="langlinks_filter_hint">Hwilas</string>
   <string name="langlinks_empty">Nyns yw kavadow an folen ma yn yethow erel.</string>
   <string name="langlinks_no_match">Ny veu kevys yeth vyth.</string>
   <string name="langlinks_activity_title">Yethow erel</string>
@@ -63,18 +62,7 @@
   <string name="create_account_next">Nessa</string>
   <string name="create_account_button">Gwruthyl akont</string>
   <string name="preferences_general_heading">Ollgemmyn</string>
-  <string name="zero_charged_verbiage" fuzzy="true">Skwychys yn-mes yw Wikipedya Zero</string>
-  <string name="zero_warn_when_leaving">Gwarnya pan ow kwytya Wikipedya Zero</string>
-  <string name="zero_webpage_title">FAQ Wikipedya Zero</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedya Zero</string>
-  <string name="zero_interstitial_title">Ow kwytya Wikipedya Zero</string>
-  <string name="zero_interstitial_leave_app">Feow data a alsa holya. Pesya dhe\'n wiasva a-ves?</string>
-  <string name="zero_interstitial_continue">Kwytya</string>
-  <string name="zero_interstitial_cancel">Triga omma</string>
-  <string name="zero_learn_more" fuzzy="true">Nyns eus feow data rag an towlennik Wikipedya ma.</string>
-  <string name="zero_learn_more_learn_more" fuzzy="true">Redya moy</string>
-  <string name="zero_learn_more_dismiss">Kudha</string>
-  <string name="edit_preview_fetching_dialog_message">Ow kerghes ragwel…</string>
+    <string name="edit_preview_fetching_dialog_message">Ow kerghes ragwel…</string>
   <string name="send_feedback">Danvon dasliv a\'n towlennik</string>
   <string name="create_account_account_created_toast">Akont gwrys!</string>
   <string name="preference_title_eventlogging_opt_in">Danvon derivadow devnydh</string>
@@ -95,7 +83,7 @@
   <string name="about_contributors_heading" fuzzy="true">kevrohoyon</string>
   <string name="about_translators_heading" fuzzy="true">treylyoryon</string>
   <string name="about_translators_translatewiki">Treylyes veu an app ma gans an dreylyoryon orth &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt;.</string>
-  <string name="about_wmf">Askorras gans an &lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Fondyans Wikimedia&lt;/a&gt;</string>
+  <string name="about_wmf">Askorras gans an &lt;a href=\"https://wikimediafoundation.org/\"&gt;Fondyans Wikimedia&lt;/a&gt;</string>
   <string name="about_activity_title">A-dro</string>
   <string name="edit_abandon_confirm">Chanjyes re beu an folen. Owgh hwi sur bos hwans dhywgh kwytya heb gwitha agas chanjyow?</string>
   <string name="user_blocked_from_editing_title">Lettyes</string>

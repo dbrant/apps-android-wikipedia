@@ -2,28 +2,29 @@ package org.wikipedia.analytics;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.auth.AccountUtil;
+import org.wikipedia.util.StringUtil;
 
 import java.util.concurrent.TimeUnit;
 
 // https://meta.wikimedia.org/wiki/Schema:MobileWikiAppDailyStats
 public class DailyStatsFunnel extends Funnel {
     private static final String SCHEMA_NAME = "MobileWikiAppDailyStats";
-    private static final int SCHEMA_REVISION = 12637385;
+    private static final int SCHEMA_REVISION = 18115101;
 
     public DailyStatsFunnel(WikipediaApp app) {
-        super(app, SCHEMA_NAME, SCHEMA_REVISION, Funnel.SAMPLE_LOG_100);
+        super(app, SCHEMA_NAME, SCHEMA_REVISION, Funnel.SAMPLE_LOG_ALL);
     }
 
     public void log(Context context) {
-        log(getInstallAgeDays(context));
-    }
-
-    public void log(long appInstallAgeDays) {
-        log("appInstallAgeDays", appInstallAgeDays);
+        log("appInstallAgeDays", getInstallAgeDays(context),
+                "languages", StringUtil.listToJsonArrayString(getApp().language().getAppLanguageCodes()),
+                "is_anon", !AccountUtil.isLoggedIn());
     }
 
     @Override protected void preprocessSessionToken(@NonNull JSONObject eventData) { }

@@ -1,47 +1,23 @@
 package org.wikipedia.dataclient.mwapi;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.wikipedia.json.PostProcessingTypeAdapter;
 import org.wikipedia.model.BaseModel;
 
-import java.util.Map;
+import java.util.List;
 
-public abstract class MwResponse extends BaseModel {
-    @SuppressWarnings("unused") @Nullable private MwServiceError error;
+public abstract class MwResponse extends BaseModel implements PostProcessingTypeAdapter.PostProcessable {
+    @SuppressWarnings({"unused"}) @Nullable private List<MwServiceError> errors;
+    @SuppressWarnings("unused,NullableProblems") @SerializedName("servedby") @NonNull private String servedBy;
 
-    @SuppressWarnings("unused") @Nullable private Map<String, Warning> warnings;
-
-    @SuppressWarnings("unused,NullableProblems") @SerializedName("servedby") @NonNull
-    private String servedBy;
-
-    @Nullable public MwServiceError getError() {
-        return error;
-    }
-
-    public boolean hasError() {
-        return error != null;
-    }
-
-    public boolean success() {
-        return error == null;
-    }
-
-    @Nullable public String code() {
-        return error != null ? error.getTitle() : null;
-    }
-
-    @Nullable public String info() {
-        return error != null ? error.getDetails() : null;
-    }
-
-    public boolean badToken() {
-        return error != null && error.badToken();
-    }
-
-    private class Warning {
-        @SuppressWarnings("unused,NullableProblems") @NonNull private String warnings;
+    @Override
+    public void postProcess() {
+        if (errors != null && !errors.isEmpty()) {
+            throw new MwException(errors.get(0));
+        }
     }
 }

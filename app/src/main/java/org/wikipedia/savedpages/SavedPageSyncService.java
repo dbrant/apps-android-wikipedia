@@ -1,21 +1,24 @@
 package org.wikipedia.savedpages;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.JobIntentService;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.JobIntentService;
 
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.database.contract.PageImageHistoryContract;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.dataclient.okhttp.HttpStatusException;
+import org.wikipedia.dataclient.okhttp.OfflineCacheInterceptor;
 import org.wikipedia.dataclient.okhttp.OkHttpConnectionFactory;
-import org.wikipedia.dataclient.okhttp.cache.DiskLruCacheUtil;
-import org.wikipedia.dataclient.okhttp.cache.SaveHeader;
 import org.wikipedia.dataclient.page.PageClient;
 import org.wikipedia.dataclient.page.PageClientFactory;
 import org.wikipedia.dataclient.page.PageLead;
 import org.wikipedia.dataclient.page.PageRemaining;
+import org.wikipedia.events.PageDownloadEvent;
 import org.wikipedia.html.ImageTagParser;
 import org.wikipedia.html.PixelDensityDescriptorParser;
 import org.wikipedia.page.PageTitle;
@@ -25,8 +28,8 @@ import org.wikipedia.readinglist.database.ReadingListPage;
 import org.wikipedia.readinglist.sync.ReadingListSyncAdapter;
 import org.wikipedia.readinglist.sync.ReadingListSyncEvent;
 import org.wikipedia.settings.Prefs;
+import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.DimenUtil;
-import org.wikipedia.util.FileUtil;
 import org.wikipedia.util.ThrowableUtil;
 import org.wikipedia.util.UriUtil;
 import org.wikipedia.util.log.L;
@@ -36,30 +39,29 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.CacheControl;
-import okhttp3.CacheDelegate;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.internal.cache.DiskLruCache;
-import retrofit2.Call;
 
-import static org.wikipedia.dataclient.okhttp.OkHttpConnectionFactory.SAVE_CACHE;
+import static org.wikipedia.views.CircularProgressBar.MAX_PROGRESS;
 
 public class SavedPageSyncService extends JobIntentService {
     // Unique job ID for this service (do not duplicate).
     private static final int JOB_ID = 1000;
     private static final int ENQUEUE_DELAY_MILLIS = 2000;
+    public static final int LEAD_SECTION_PROGRESS = 25;
+    public static final int SECTIONS_PROGRESS = 50;
+
     private static Runnable ENQUEUE_RUNNABLE = () -> enqueueWork(WikipediaApp.getInstance(),
             SavedPageSyncService.class, JOB_ID, new Intent(WikipediaApp.getInstance(), SavedPageSyncService.class));
 
-    @NonNull private final CacheDelegate cacheDelegate = new CacheDelegate(SAVE_CACHE);
     @NonNull private final PageImageUrlParser pageImageUrlParser
             = new PageImageUrlParser(new ImageTagParser(), new PixelDensityDescriptorParser());
-    private long blockSize;
     private SavedPageSyncNotification savedPageSyncNotification;
 
     public SavedPageSyncService() {
-        blockSize = FileUtil.blockSize(cacheDelegate.diskLruCache().getDirectory());
         savedPageSyncNotification = SavedPageSyncNotification.getInstance();
     }
 
@@ -77,7 +79,11 @@ public class SavedPageSyncService extends JobIntentService {
             return;
         }
 
-        List<ReadingListPage> pagesToSave = ReadingListDbHelper.instance().getAllPagesToBeSaved();
+        List<ReadingListPage> pagesToSave = ReadingListDbHelper.instance().getAllPagesToBeForcedSave();
+        if ((!Prefs.isDownloadOnlyOverWiFiEnabled() || DeviceUtil.isOnWiFi())
+                && Prefs.isDownloadingReadingListArticlesEnabled()) {
+            pagesToSave.addAll(ReadingListDbHelper.instance().getAllPagesToBeSaved());
+        }
         List<ReadingListPage> pagesToUnsave = ReadingListDbHelper.instance().getAllPagesToBeUnsaved();
         List<ReadingListPage> pagesToDelete = ReadingListDbHelper.instance().getAllPagesToBeDeleted();
         boolean shouldSendSyncEvent = false;
@@ -128,33 +134,36 @@ public class SavedPageSyncService extends JobIntentService {
         WikipediaApp.getInstance().getBus().post(new ReadingListSyncEvent());
     }
 
+    @SuppressLint("CheckResult")
     private void deletePageContents(@NonNull ReadingListPage page) {
         PageTitle pageTitle = ReadingListPage.toPageTitle(page);
-        PageLead lead = null;
-        Call<PageLead> leadCall = reqPageLead(CacheControl.FORCE_CACHE, pageTitle);
-        try {
-            lead = leadCall.execute().body();
-        } catch (IOException ignore) { }
-
-        if (lead != null) {
-            for (String url : pageImageUrlParser.parse(lead)) {
-                cacheDelegate.remove(saveImageReq(pageTitle.getWikiSite(), url));
-            }
-            cacheDelegate.remove(leadCall.request());
-        }
-
-        Call<PageRemaining> sectionsCall = reqPageSections(CacheControl.FORCE_CACHE, pageTitle);
-        PageRemaining sections = null;
-        try {
-            sections = sectionsCall.execute().body();
-        } catch (IOException ignore) { }
-
-        if (sections != null) {
-            for (String url : pageImageUrlParser.parse(sections)) {
-                cacheDelegate.remove(saveImageReq(pageTitle.getWikiSite(), url));
-            }
-            cacheDelegate.remove(sectionsCall.request());
-        }
+        Observable.zip(reqPageLead(CacheControl.FORCE_CACHE, OfflineCacheInterceptor.SAVE_HEADER_DELETE, pageTitle),
+                reqPageSections(CacheControl.FORCE_CACHE, OfflineCacheInterceptor.SAVE_HEADER_DELETE, pageTitle), (leadRsp, sectionsRsp) -> {
+                    Set<String> imageUrls = new HashSet<>();
+                    if (leadRsp.body() != null) {
+                        imageUrls.addAll(pageImageUrlParser.parse(leadRsp.body()));
+                        if (!TextUtils.isEmpty(pageTitle.getThumbUrl())) {
+                            imageUrls.add(pageTitle.getThumbUrl());
+                        }
+                    }
+                    if (sectionsRsp.body() != null) {
+                        imageUrls.addAll(pageImageUrlParser.parse(sectionsRsp.body()));
+                    }
+                    return imageUrls;
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(imageUrls -> {
+                    for (String url : imageUrls) {
+                        Request request = makeImageRequest(pageTitle.getWikiSite(), url)
+                                .addHeader(OfflineCacheInterceptor.SAVE_HEADER, OfflineCacheInterceptor.SAVE_HEADER_DELETE)
+                                .build();
+                        try {
+                            OkHttpConnectionFactory.getClient().newCall(request).execute();
+                        } catch (Exception e) {
+                            // ignore exceptions while deleting cached items.
+                        }
+                    }
+                }, L::d);
     }
 
     private int savePages(List<ReadingListPage> queue) {
@@ -171,17 +180,17 @@ public class SavedPageSyncService extends JobIntentService {
             } else if (savedPageSyncNotification.isSyncCanceled()) {
                 // Mark remaining pages as online-only!
                 queue.add(page);
-                ReadingListDbHelper.instance().markPagesForOffline(queue, false);
+                ReadingListDbHelper.instance().markPagesForOffline(queue, false, false);
                 break;
             }
             savedPageSyncNotification.setNotificationProgress(getApplicationContext(), itemsTotal, itemsSaved);
 
             boolean success = false;
-            @Nullable AggregatedResponseSize size = null;
+            long totalSize = 0;
             try {
 
                 // Lengthy operation during which the db state may change...
-                size = savePageFor(page);
+                totalSize = savePageFor(page);
                 success = true;
 
             } catch (InterruptedException e) {
@@ -190,10 +199,18 @@ public class SavedPageSyncService extends JobIntentService {
                 // This can be an IOException from the storage media, or several types
                 // of network exceptions from malformed URLs, timeouts, etc.
                 e.printStackTrace();
-                if (!ThrowableUtil.isOffline(e) && !ThrowableUtil.is404(e)) {
-                    // If it's anything but a transient network error, let's log it aggressively,
-                    // to make sure we've fixed any other errors with saving pages.
-                    L.logRemoteError(e);
+
+                // If we're offline, or if there's a transient network error, then don't do
+                // anything.  Otherwise...
+                if (!ThrowableUtil.isOffline(e) && !ThrowableUtil.isNetworkError(e)) {
+                    // If it's not a transient network error (e.g. a 404 status response), it implies
+                    // that there's no way to fetch the page next time, or ever, therefore let's mark
+                    // it as "successful" so that it won't be retried again.
+                    success = true;
+                    if (!(e instanceof HttpStatusException)) {
+                        // And if it's something other than an HTTP status, let's log it and see what it is.
+                        L.logRemoteError(e);
+                    }
                 }
             }
 
@@ -204,7 +221,7 @@ public class SavedPageSyncService extends JobIntentService {
 
             if (success) {
                 page.status(ReadingListPage.STATUS_SAVED);
-                page.sizeBytes(size.logicalSize());
+                page.sizeBytes(totalSize);
                 ReadingListDbHelper.instance().updatePage(page);
                 itemsSaved++;
                 sendSyncEvent();
@@ -213,78 +230,98 @@ public class SavedPageSyncService extends JobIntentService {
         return itemsSaved;
     }
 
-    @NonNull private AggregatedResponseSize savePageFor(@NonNull ReadingListPage page) throws IOException, InterruptedException {
+    private long savePageFor(@NonNull ReadingListPage page) throws Exception {
         PageTitle pageTitle = ReadingListPage.toPageTitle(page);
-        AggregatedResponseSize size = new AggregatedResponseSize(0, 0, 0);
 
-        Call<PageLead> leadCall = reqPageLead(null, pageTitle);
-        Call<PageRemaining> sectionsCall = reqPageSections(null, pageTitle);
+        Observable<retrofit2.Response<PageLead>> leadCall = reqPageLead(CacheControl.FORCE_NETWORK, OfflineCacheInterceptor.SAVE_HEADER_SAVE, pageTitle);
+        Observable<retrofit2.Response<PageRemaining>> sectionsCall = reqPageSections(CacheControl.FORCE_NETWORK, OfflineCacheInterceptor.SAVE_HEADER_SAVE, pageTitle);
+        final Long[] pageSize = new Long[1];
+        final Exception[] exception = new Exception[1];
 
-        retrofit2.Response<PageLead> leadRsp = leadCall.execute();
-        size = size.add(responseSize(leadRsp));
-        retrofit2.Response<PageRemaining> sectionsRsp = sectionsCall.execute();
-        size = size.add(responseSize(sectionsRsp));
+        Observable.zip(leadCall, sectionsCall, (leadRsp, sectionsRsp) -> {
+            long totalSize = 0;
+            totalSize += responseSize(leadRsp);
+            page.downloadProgress(LEAD_SECTION_PROGRESS);
+            WikipediaApp.getInstance().getBus().post(new PageDownloadEvent(page));
+            page.downloadProgress(SECTIONS_PROGRESS);
+            WikipediaApp.getInstance().getBus().post(new PageDownloadEvent(page));
+            totalSize += responseSize(sectionsRsp);
+            Set<String> imageUrls = new HashSet<>(pageImageUrlParser.parse(leadRsp.body()));
+            imageUrls.addAll(pageImageUrlParser.parse(sectionsRsp.body()));
 
-        if (!TextUtils.isEmpty(leadRsp.body().getThumbUrl())) {
-            persistPageThumbnail(pageTitle, leadRsp.body().getThumbUrl());
-            page.thumbUrl(UriUtil.resolveProtocolRelativeUrl(pageTitle.getWikiSite(),
-                    leadRsp.body().getThumbUrl()));
+            if (!TextUtils.isEmpty(leadRsp.body().getThumbUrl())) {
+                page.thumbUrl(UriUtil.resolveProtocolRelativeUrl(pageTitle.getWikiSite(),
+                        leadRsp.body().getThumbUrl()));
+                persistPageThumbnail(pageTitle, page.thumbUrl());
+                imageUrls.add(page.thumbUrl());
+            }
+            page.description(leadRsp.body().getDescription());
+
+            if (Prefs.isImageDownloadEnabled()) {
+                totalSize += reqSaveImages(page, imageUrls);
+            }
+
+            String title = pageTitle.getPrefixedText();
+            L.i("Saved page " + title + " (" + totalSize + ")");
+
+            return totalSize;
+        }).subscribeOn(Schedulers.io())
+                .blockingSubscribe(size -> pageSize[0] = size,
+                        t -> exception[0] = (Exception) t);
+        if (exception[0] != null) {
+            throw exception[0];
         }
-        page.description(leadRsp.body().getDescription());
-
-        Set<String> imageUrls = new HashSet<>(pageImageUrlParser.parse(leadRsp.body()));
-        imageUrls.addAll(pageImageUrlParser.parse(sectionsRsp.body()));
-
-        if (Prefs.isImageDownloadEnabled()) {
-            size = size.add(reqSaveImage(pageTitle.getWikiSite(), imageUrls));
-        }
-
-        String title = pageTitle.getPrefixedText();
-        L.i("Saved page " + title + " (" + size + ")");
-
-        return size;
+        return pageSize[0];
     }
 
-    @NonNull private Call<PageLead> reqPageLead(@Nullable CacheControl cacheControl,
-                                                @NonNull PageTitle pageTitle) {
+    @NonNull private Observable<retrofit2.Response<PageLead>> reqPageLead(@Nullable CacheControl cacheControl,
+                                                                          @Nullable String saveOfflineHeader,
+                                                                          @NonNull PageTitle pageTitle) {
         PageClient client = newPageClient(pageTitle);
-
         String title = pageTitle.getPrefixedText();
         int thumbnailWidth = DimenUtil.calculateLeadImageWidth();
-        PageClient.CacheOption cacheOption = PageClient.CacheOption.SAVE;
-
-        return client.lead(cacheControl, cacheOption, title, thumbnailWidth);
+        return client.lead(pageTitle.getWikiSite(), cacheControl, saveOfflineHeader, null, title, thumbnailWidth);
     }
 
-    @NonNull private Call<PageRemaining> reqPageSections(@Nullable CacheControl cacheControl,
+    @NonNull private Observable<retrofit2.Response<PageRemaining>> reqPageSections(@Nullable CacheControl cacheControl,
+                                                         @Nullable String saveOfflineHeader,
                                                          @NonNull PageTitle pageTitle) {
         PageClient client = newPageClient(pageTitle);
-
         String title = pageTitle.getPrefixedText();
-        PageClient.CacheOption cacheOption = PageClient.CacheOption.SAVE;
-
-        return client.sections(cacheControl, cacheOption, title);
+        return client.sections(pageTitle.getWikiSite(), cacheControl, saveOfflineHeader, title);
     }
 
-    private AggregatedResponseSize reqSaveImage(@NonNull WikiSite wiki, @NonNull Iterable<String> urls) throws IOException, InterruptedException {
-        AggregatedResponseSize size = new AggregatedResponseSize(0, 0, 0);
+    private long reqSaveImages(@NonNull ReadingListPage page, @NonNull Set<String> urls) throws IOException, InterruptedException {
+        int numOfImages = urls.size();
+        long totalSize = 0;
+        float percentage = SECTIONS_PROGRESS;
+        float updateRate = (MAX_PROGRESS - percentage) / numOfImages;
         for (String url : urls) {
             if (savedPageSyncNotification.isSyncPaused() || savedPageSyncNotification.isSyncCanceled()) {
                 throw new InterruptedException("Sync paused or cancelled.");
             }
             try {
-                size = size.add(reqSaveImage(wiki, url));
+                totalSize += reqSaveImage(page.wiki(), url);
+                percentage += updateRate;
+                page.downloadProgress((int) percentage);
+                WikipediaApp.getInstance().getBus().post(new PageDownloadEvent(page));
+
             } catch (Exception e) {
                 if (isRetryable(e)) {
                     throw e;
                 }
             }
         }
-        return size;
+        page.downloadProgress(MAX_PROGRESS);
+        WikipediaApp.getInstance().getBus().post(new PageDownloadEvent(page));
+
+        return totalSize;
     }
 
-    @NonNull private ResponseSize reqSaveImage(@NonNull WikiSite wiki, @NonNull String url) throws IOException {
-        Request request = saveImageReq(wiki, url);
+    private long reqSaveImage(@NonNull WikiSite wiki, @NonNull String url) throws IOException {
+        Request request = makeImageRequest(wiki, url)
+                .addHeader(OfflineCacheInterceptor.SAVE_HEADER, OfflineCacheInterceptor.SAVE_HEADER_SAVE)
+                .build();
 
         Response rsp = OkHttpConnectionFactory.getClient().newCall(request).execute();
 
@@ -296,18 +333,15 @@ public class SavedPageSyncService extends JobIntentService {
         return responseSize(rsp);
     }
 
-    @NonNull private Request saveImageReq(@NonNull WikiSite wiki, @NonNull String url) {
-        return new Request
-                .Builder()
-                .addHeader(SaveHeader.FIELD, SaveHeader.VAL_ENABLED)
-                .url(UriUtil.resolveProtocolRelativeUrl(wiki, url))
-                .build();
+    @NonNull private Request.Builder makeImageRequest(@NonNull WikiSite wiki, @NonNull String url) {
+        return new Request.Builder()
+                .cacheControl(CacheControl.FORCE_NETWORK)
+                .url(UriUtil.resolveProtocolRelativeUrl(wiki, url));
     }
 
     private void persistPageThumbnail(@NonNull PageTitle title, @NonNull String url) {
         WikipediaApp.getInstance().getDatabaseClient(PageImage.class).upsert(
-                new PageImage(title, UriUtil.resolveProtocolRelativeUrl(title.getWikiSite(), url)),
-                PageImageHistoryContract.Image.SELECTION);
+                new PageImage(title, url), PageImageHistoryContract.Image.SELECTION);
     }
 
     private boolean isRetryable(@NonNull Throwable t) {
@@ -321,88 +355,15 @@ public class SavedPageSyncService extends JobIntentService {
                 || ThrowableUtil.is404(t));
     }
 
-    @NonNull private ResponseSize responseSize(@NonNull Response rsp) {
-        return responseSize(rsp.request());
+    private long responseSize(@NonNull Response rsp) {
+        return OkHttpConnectionFactory.SAVE_CACHE.getSizeOnDisk(rsp.request());
     }
 
-    @NonNull private ResponseSize responseSize(@NonNull retrofit2.Response rsp) {
-        return responseSize(rsp.raw().request());
-    }
-
-    @NonNull private ResponseSize responseSize(@NonNull Request req) {
-        return responseSize(cacheDelegate.entry(req));
-    }
-
-    @NonNull private ResponseSize responseSize(@Nullable DiskLruCache.Snapshot snapshot) {
-        long metadataSize = DiskLruCacheUtil.okHttpResponseMetadataSize(snapshot);
-        long bodySize = DiskLruCacheUtil.okHttpResponseBodySize(snapshot);
-        return new ResponseSize(metadataSize, bodySize);
+    private long responseSize(@NonNull retrofit2.Response rsp) {
+        return OkHttpConnectionFactory.SAVE_CACHE.getSizeOnDisk(rsp.raw().request());
     }
 
     @NonNull private PageClient newPageClient(@NonNull PageTitle title) {
         return PageClientFactory.create(title.getWikiSite(), title.namespace());
     }
-
-    private static class AggregatedResponseSize {
-        private final long physicalSize;
-        private final long logicalSize;
-        private final int responsesAggregated;
-
-        AggregatedResponseSize(long physicalSize, long logicalSize, int responsesAggregated) {
-            this.physicalSize = physicalSize;
-            this.logicalSize = logicalSize;
-            this.responsesAggregated = responsesAggregated;
-        }
-
-        @Override public String toString() {
-            return "responses=" + responsesAggregated() + " physical=" + physicalSize() + "B logical=" + logicalSize() + "B";
-        }
-
-        long physicalSize() {
-            return physicalSize;
-        }
-
-        // The size on disk.
-        long logicalSize() {
-            return logicalSize;
-        }
-
-        int responsesAggregated() {
-            return responsesAggregated;
-        }
-
-        @NonNull AggregatedResponseSize add(@NonNull ResponseSize size) {
-            return new AggregatedResponseSize(physicalSize + size.physicalSize(),
-                    logicalSize + size.logicalSize(), responsesAggregated() + 1);
-        }
-
-        @NonNull AggregatedResponseSize add(@NonNull AggregatedResponseSize size) {
-            return new AggregatedResponseSize(physicalSize + size.physicalSize(),
-                    logicalSize + size.logicalSize(), responsesAggregated() + size.responsesAggregated());
-        }
-    }
-
-    private class ResponseSize {
-        private final long metadataSize;
-        private final long bodySize;
-
-        ResponseSize(long metadataSize, long bodySize) {
-            this.metadataSize = metadataSize;
-            this.bodySize = bodySize;
-        }
-
-        @Override public String toString() {
-            return "physical metadata=" + metadataSize + "B physical body=" + bodySize
-                    + "B physical=" + physicalSize() + "B logical=" + logicalSize() + "B";
-        }
-
-        long physicalSize() {
-            return metadataSize + bodySize;
-        }
-
-        long logicalSize() {
-            return FileUtil.physicalToLogicalSize(metadataSize, blockSize)
-                    + FileUtil.physicalToLogicalSize(bodySize, blockSize);
-        }
-     }
 }

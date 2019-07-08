@@ -113,7 +113,17 @@ import static org.hamcrest.Matchers.not;
         assertThat(subject.authority(), is("zh.wikipedia.org"));
         assertThat(subject.mobileAuthority(), is("zh.m.wikipedia.org"));
         assertThat(subject.subdomain(), is("zh"));
-        assertThat(subject.languageCode(), is("zh"));
+        assertThat(subject.languageCode(), is("zh-hant"));
+        assertThat(subject.scheme(), is("http"));
+        assertThat(subject.url(), is("http://zh.wikipedia.org"));
+    }
+
+    @Test public void testCtorUriGeneralLangVariant() {
+        WikiSite subject = new WikiSite("http://zh.wikipedia.org/wiki/Foo");
+        assertThat(subject.authority(), is("zh.wikipedia.org"));
+        assertThat(subject.mobileAuthority(), is("zh.m.wikipedia.org"));
+        assertThat(subject.subdomain(), is("zh"));
+        assertThat(subject.languageCode(), is("zh-hant"));
         assertThat(subject.scheme(), is("http"));
         assertThat(subject.url(), is("http://zh.wikipedia.org"));
     }
@@ -161,6 +171,16 @@ import static org.hamcrest.Matchers.not;
     @Test public void testDbNameSpecialLanguage() {
         WikiSite subject = new WikiSite("no.wikipedia.org", "nb");
         assertThat(subject.dbName(), is("nowiki"));
+    }
+
+    @Test public void testDbNameWithOneUnderscore() {
+        WikiSite subject = new WikiSite("zh-yue.wikipedia.org");
+        assertThat(subject.dbName(), is("zh_yuewiki"));
+    }
+
+    @Test public void testDbNameWithTwoUnderscore() {
+        WikiSite subject = new WikiSite("zh-min-nan.wikipedia.org");
+        assertThat(subject.dbName(), is("zh_min_nanwiki"));
     }
 
     @Test public void testPath() {

@@ -1,12 +1,12 @@
 package org.wikipedia.csrf;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.google.gson.stream.MalformedJsonException;
 
 import org.junit.Test;
 import org.wikipedia.csrf.CsrfTokenClient.Callback;
-import org.wikipedia.csrf.CsrfTokenClient.Service;
+import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.mwapi.MwException;
 import org.wikipedia.dataclient.mwapi.MwQueryResponse;
@@ -58,7 +58,7 @@ public class CsrfTokenClientTest extends MockWebServerTest {
     }
 
     @Test public void testRequestResponseMalformed() throws Throwable {
-        server().enqueue("'");
+        enqueueMalformed();
 
         Callback cb = mock(Callback.class);
         request(cb);

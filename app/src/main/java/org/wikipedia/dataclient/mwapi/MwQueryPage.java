@@ -1,14 +1,15 @@
 package org.wikipedia.dataclient.mwapi;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.gallery.ImageInfo;
 import org.wikipedia.gallery.VideoInfo;
-import org.wikipedia.json.annotations.Required;
 import org.wikipedia.model.BaseModel;
+import org.wikipedia.page.Namespace;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,12 +25,17 @@ public class MwQueryPage extends BaseModel {
     @SuppressWarnings("unused") @Nullable private List<LangLink> langlinks;
     @SuppressWarnings("unused") @Nullable private List<Revision> revisions;
     @SuppressWarnings("unused") @Nullable private List<Coordinates> coordinates;
+    @SuppressWarnings("unused") @Nullable private List<Category> categories;
+    @SuppressWarnings("unused") @Nullable private PageProps pageprops;
+    @SuppressWarnings("unused") @Nullable private String extract;
     @SuppressWarnings("unused") @Nullable private Thumbnail thumbnail;
-    @SuppressWarnings("unused") @Nullable private Terms terms;
+    @SuppressWarnings("unused") @Nullable private String description;
+    @SuppressWarnings("unused") @SerializedName("descriptionsource") @Nullable private String descriptionSource;
     @SuppressWarnings("unused") @SerializedName("imageinfo") @Nullable private List<ImageInfo> imageInfo;
     @SuppressWarnings("unused") @SerializedName("videoinfo") @Nullable private List<VideoInfo> videoInfo;
     @Nullable private String redirectFrom;
     @Nullable private String convertedFrom;
+    @Nullable private String convertedTo;
 
     @NonNull public String title() {
         return title;
@@ -39,12 +45,20 @@ public class MwQueryPage extends BaseModel {
         return index;
     }
 
+    @NonNull public Namespace namespace() {
+        return Namespace.of(ns);
+    }
+
     @Nullable public List<LangLink> langLinks() {
         return langlinks;
     }
 
     @Nullable public List<Revision> revisions() {
         return revisions;
+    }
+
+    @Nullable public List<Category> categories() {
+        return categories;
     }
 
     @Nullable public List<Coordinates> coordinates() {
@@ -56,12 +70,29 @@ public class MwQueryPage extends BaseModel {
         return coordinates;
     }
 
+    public int pageId() {
+        return pageid;
+    }
+
+    @Nullable public PageProps pageProps() {
+        return pageprops;
+    }
+
+    @Nullable public String extract() {
+        return extract;
+    }
+
     @Nullable public String thumbUrl() {
         return thumbnail != null ? thumbnail.source() : null;
     }
 
     @Nullable public String description() {
-        return terms != null && terms.description() != null ? terms.description().get(0) : null;
+        return description;
+    }
+
+    @Nullable
+    public String descriptionSource() {
+        return descriptionSource;
     }
 
     @Nullable public ImageInfo imageInfo() {
@@ -88,6 +119,14 @@ public class MwQueryPage extends BaseModel {
         convertedFrom = from;
     }
 
+    @Nullable public String convertedTo() {
+        return convertedTo;
+    }
+
+    public void convertedTo(@Nullable String to) {
+        convertedTo = to;
+    }
+
     public void appendTitleFragment(@Nullable String fragment) {
         title += "#" + fragment;
     }
@@ -95,9 +134,15 @@ public class MwQueryPage extends BaseModel {
     public static class Revision {
         @SuppressWarnings("unused,NullableProblems") @SerializedName("contentformat") @NonNull private String contentFormat;
         @SuppressWarnings("unused,NullableProblems") @SerializedName("contentmodel") @NonNull private String contentModel;
+        @SuppressWarnings("unused,NullableProblems") @SerializedName("timestamp") @NonNull private String timeStamp;
         @SuppressWarnings("unused,NullableProblems") @NonNull private String content;
+
         @NonNull public String content() {
             return content;
+        }
+
+        @NonNull public String timeStamp() {
+            return StringUtils.defaultString(timeStamp);
         }
     }
 
@@ -113,28 +158,14 @@ public class MwQueryPage extends BaseModel {
     }
 
     public static class Coordinates {
-        // Use Double object type rather than primitive type so that the presence of the fields can
-        // be checked correctly by the RequiredFieldsCheckOnReadTypeAdapter.
-        @SuppressWarnings("unused") @Required @NonNull private Double lat;
-        @SuppressWarnings("unused") @Required @NonNull private Double lon;
+        @SuppressWarnings("unused") @Nullable private Double lat;
+        @SuppressWarnings("unused") @Nullable private Double lon;
 
-        public Coordinates(double lat, double lon) {
-            this.lat = lat;
-            this.lon = lon;
-        }
-
-        public double lat() {
+        @Nullable public Double lat() {
             return lat;
         }
-        public double lon() {
+        @Nullable public Double lon() {
             return lon;
-        }
-    }
-
-    static class Terms {
-        @SuppressWarnings("unused") private List<String> description;
-        List<String> description() {
-            return description;
         }
     }
 
@@ -144,6 +175,42 @@ public class MwQueryPage extends BaseModel {
         @SuppressWarnings("unused") private int height;
         String source() {
             return source;
+        }
+    }
+
+    public static class PageProps {
+        @SuppressWarnings("unused") @SerializedName("wikibase_item") @Nullable private String wikiBaseItem;
+        @SuppressWarnings("unused") @Nullable private String displaytitle;
+        @SuppressWarnings("unused") @Nullable private String disambiguation;
+
+        @Nullable public String getDisplayTitle() {
+            return displaytitle;
+        }
+
+        @NonNull public String getWikiBaseItem() {
+            return StringUtils.defaultString(wikiBaseItem);
+        }
+
+        public boolean isDisambiguation() {
+            return disambiguation != null;
+        }
+    }
+
+    public static class Category {
+        @SuppressWarnings("unused") private int ns;
+        @SuppressWarnings("unused,NullableProblems") @Nullable private String title;
+        @SuppressWarnings("unused") private boolean hidden;
+
+        public int ns() {
+            return ns;
+        }
+
+        @NonNull public String title() {
+            return StringUtils.defaultString(title);
+        }
+
+        public boolean hidden() {
+            return hidden;
         }
     }
 }

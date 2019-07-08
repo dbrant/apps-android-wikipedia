@@ -16,11 +16,10 @@
   <string name="menu_text_select_copy">Копиян</string>
   <string name="menu_text_select_define">Къастам</string>
   <string name="nav_item_nearby">Уллехь</string>
-  <string name="last_updated_text">ТӀаьххьарлера карлаяккхар: %1$s</string>
+  <string name="last_updated_text">ТӀаьххьарлера карлаяккхар: %s</string>
   <string name="content_license_html">Чулацам тӀекхочуш бу &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; (кхиниг билгалйина яцахь)</string>
   <string name="preference_title_language" fuzzy="true">Мотт</string>
-  <string name="preference_languages_filter_hint">Лахар</string>
-  <string name="langlinks_filter_hint">Лахар</string>
+    <string name="langlinks_filter_hint">Лахар</string>
   <string name="langlinks_no_match">Хьан дехарца меттанаш цакарий</string>
   <string name="langlinks_activity_title">Кхин меттанаш</string>
   <string name="dialog_saving_in_progress">Ӏалашъеш ю…</string>
@@ -51,30 +50,20 @@
   <string name="create_account_generic_error">Декъашхочун дӀаяздар кхолла йиш яц</string>
   <string name="create_account_next">Кхин дӀа</string>
   <string name="preferences_general_heading">Юкъара</string>
-  <string name="zero_warn_when_leaving">Wikipedia Zero чура ара долуш хаам бе</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Wikipedia Zero чура арадолу</string>
-  <string name="zero_interstitial_continue">Кхин дӀа</string>
-  <string name="zero_interstitial_cancel">Цаоьшу</string>
-  <string name="zero_learn_more">Лаьий хьуна Wikipedia Zero лаьцна хаа?</string>
-  <string name="zero_learn_more_learn_more">Цул совнаха хаа</string>
-  <string name="zero_learn_more_dismiss">ДӀачӀагӀа</string>
   <string name="edit_preview_fetching_dialog_message">Хьалха хьажар гучудолуш ду…</string>
   <string name="history_search_list_hint" fuzzy="true">Лахар</string>
   <string name="settings_activity_title" fuzzy="true">Параметраш</string>
   <string name="privacy_policy_description">Къайлаха политика</string>
   <string name="terms_of_use_description">Лелоран хьал</string>
   <string name="privacy_policy_url">https://meta.wikimedia.org/wiki/Къайлаха_политика</string>
-  <string name="terms_of_use_url">https://wikimediafoundation.org/wiki/Лелоран_хьал</string>
+  <string name="terms_of_use_url">https://foundation.m.wikimedia.org/wiki/Terms_of_Use</string>
   <string name="about_translators_heading">гочдархой</string>
   <string name="about_translators_translatewiki">ХӀара тӀетохар гочйина &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt; чура шен лаамернигаш.</string>
   <string name="edit_next">Кхин дӀа</string>
   <string name="edit_done">Ӏалашдан</string>
   <string name="edit_preview">Хьалха хьажар</string>
   <string name="edit_summary_tag_other">Кхин</string>
-  <string name="dialog_page_issues">АгӀонгахь хаатарш</string>
-  <string name="button_page_issues">АгӀонгахь хаатарш</string>
-  <string name="text_size_select">Шрифтан барам</string>
+    <string name="text_size_select">Шрифтан барам</string>
   <string name="color_theme_select">Кечяр</string>
   <string name="color_theme_light">Сирла</string>
   <string name="color_theme_dark">Бодане</string>

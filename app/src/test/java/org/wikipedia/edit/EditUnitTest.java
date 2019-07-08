@@ -1,13 +1,13 @@
 package org.wikipedia.edit;
 
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.edit.EditClient.Callback;
-import org.wikipedia.edit.EditClient.Service;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.test.MockWebServerTest;
 
@@ -52,12 +52,12 @@ public class EditUnitTest extends MockWebServerTest {
         Call<Edit> call = request(cb);
 
         server().takeRequest();
-        assertExpectedEditError(call, cb, "User not logged in.");
+        assertExpectedEditError(call, cb, "Assertion that the user is logged in failed");
     }
 
     @NonNull private Call<Edit> request(@NonNull Callback cb) {
         return client.request(service(Service.class), new PageTitle("FAKE TITLE",
-                WikiSite.forLanguageCode("test")), 0, "FAKE EDIT TEXT", "+/", "FAKE SUMMARY", false,
+                WikiSite.forLanguageCode("test")), 0, "FAKE EDIT TEXT", "+/", "FAKE SUMMARY", null, false,
                 null, null, cb);
     }
 

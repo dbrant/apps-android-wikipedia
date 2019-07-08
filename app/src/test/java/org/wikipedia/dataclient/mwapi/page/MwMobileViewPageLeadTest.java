@@ -1,22 +1,17 @@
 package org.wikipedia.dataclient.mwapi.page;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.wikipedia.dataclient.mwapi.MwException;
 import org.wikipedia.dataclient.page.BasePageLeadTest;
 import org.wikipedia.dataclient.page.PageClient;
-import org.wikipedia.dataclient.page.PageLead;
-import org.wikipedia.testlib.TestLatch;
 
+import io.reactivex.observers.TestObserver;
 import okhttp3.CacheControl;
-import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 import static org.wikipedia.json.GsonUnmarshaller.unmarshal;
 
 public class MwMobileViewPageLeadTest extends BasePageLeadTest {
@@ -24,17 +19,17 @@ public class MwMobileViewPageLeadTest extends BasePageLeadTest {
 
     @Before public void setUp() throws Throwable {
         super.setUp();
-        subject = new MwPageClient(service(MwPageService.class));
+        subject = new MwPageClient();
     }
 
-    @Test public void testEnglishMainPage() throws Exception {
+    @Test public void testEnglishMainPage() {
         MwMobileViewPageLead pageLead = unmarshal(MwMobileViewPageLead.class, wrapInMobileview(getEnglishMainPageJson()));
         MwMobileViewPageLead.Mobileview props = pageLead.getMobileview();
         verifyEnglishMainPage(props);
     }
 
 
-    @Test public void testUnprotectedDisambiguationPage() throws Exception {
+    @Test public void testUnprotectedDisambiguationPage() {
         MwMobileViewPageLead pageLead = unmarshal(MwMobileViewPageLead.class,
                 wrapInMobileview(getUnprotectedDisambiguationPageJson()));
         MwMobileViewPageLead.Mobileview props = pageLead.getMobileview();
@@ -45,7 +40,7 @@ public class MwMobileViewPageLeadTest extends BasePageLeadTest {
      * Custom deserializer; um, yeah /o\.
      * An earlier version had issues with protection settings that don't include "edit" protection.
      */
-    @Test public void testProtectedButNoEditProtectionPage() throws Exception {
+    @Test public void testProtectedButNoEditProtectionPage() {
         MwMobileViewPageLead pageLead = unmarshal(MwMobileViewPageLead.class,
                 wrapInMobileview(getProtectedButNoEditProtectionPageJson()));
         MwMobileViewPageLead.Mobileview props = pageLead.getMobileview();
@@ -54,30 +49,20 @@ public class MwMobileViewPageLeadTest extends BasePageLeadTest {
 
     @Test @SuppressWarnings("checkstyle:magicnumber") public void testThumbUrls() throws Throwable {
         enqueueFromFile("page_lead_mw.json");
-        final TestLatch latch = new TestLatch();
-        subject.lead(CacheControl.FORCE_NETWORK, PageClient.CacheOption.CACHE, "foo", 640)
-                .enqueue(new Callback<PageLead>() {
-                    @Override
-                    public void onResponse(@NonNull Call<PageLead> call, @NonNull Response<PageLead> response) {
-                        assertThat(response.body().getLeadImageUrl(640).contains("640px"), is(true));
-                        assertThat(response.body().getThumbUrl().contains(preferredThumbSizeString()), is(true));
-                        assertThat(response.body().getDescription(), is("Mexican boxer"));
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onFailure(@NonNull Call<PageLead> call, @NonNull Throwable t) {
-                        fail();
-                        latch.countDown();
-                    }
-                });
-        latch.await();
+        TestObserver<Response<MwMobileViewPageLead>> observer = new TestObserver<>();
+        getApiService().getLeadSection(CacheControl.FORCE_NETWORK.toString(), null, null, "foo", 640, "en").subscribe(observer);
+        observer.assertComplete().assertNoErrors()
+                .assertValue(result -> result.body().getLeadImageUrl(640).contains("640px")
+                    && result.body().getThumbUrl().contains(preferredThumbSizeString())
+                    && result.body().getDescription().contains("Mexican boxer"));
     }
 
-    @Test public void testError() throws Exception {
-        MwMobileViewPageLead pageLead = unmarshal(MwMobileViewPageLead.class, getErrorJson());
-        MwMobileViewPageLead.Mobileview props = pageLead.getMobileview();
-        verifyError(pageLead, props);
+    @Test public void testError() {
+        try {
+            unmarshal(MwMobileViewPageLead.class, getErrorJson());
+        } catch (MwException e) {
+            verifyError(e);
+        }
     }
 
     @NonNull @Override protected PageClient subject() {

@@ -1,12 +1,11 @@
 package org.wikipedia.test;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.wikipedia.dataclient.okhttp.CacheControlRequestInterceptor;
 import org.wikipedia.dataclient.okhttp.OkHttpConnectionFactory;
 import org.wikipedia.json.GsonUtil;
 
@@ -23,11 +22,6 @@ public abstract class MockWebServerTest {
 
     @Before public void setUp() throws Throwable {
         OkHttpClient.Builder builder = OkHttpConnectionFactory.getClient().newBuilder();
-
-        // Most tests do not expect cached responses.
-        //noinspection Since15
-        builder.interceptors().removeIf((interceptor) -> interceptor instanceof CacheControlRequestInterceptor);
-
         okHttpClient = builder.dispatcher(new Dispatcher(new ImmediateExecutorService())).build();
         server.setUp();
     }
@@ -48,6 +42,10 @@ public abstract class MockWebServerTest {
     protected void enqueue404() {
         final int code = 404;
         server.enqueue(new MockResponse().setResponseCode(code).setBody("Not Found"));
+    }
+
+    protected void enqueueMalformed() {
+        server.enqueue("(╯°□°）╯︵ ┻━┻");
     }
 
     protected void enqueueEmptyJson() {

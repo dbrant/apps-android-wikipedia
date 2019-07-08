@@ -17,8 +17,7 @@
   <string name="last_updated_text">%s એ છેલ્લું અદ્યતન કરાયું</string>
   <string name="content_license_html">અન્ય કશું સૂચવાયું ન હોય ત્યાં સુધી વિગતો &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; હેઠળ ઉપલબ્ધ છે</string>
   <string name="preference_title_language">વિકિપીડિયા ભાષા</string>
-  <string name="preference_languages_filter_hint">શોધ</string>
-  <string name="langlinks_filter_hint">શોધ</string>
+    <string name="langlinks_filter_hint">શોધ</string>
   <string name="langlinks_empty">આ પાનું અન્ય ભાષાઓમાં ઉપલબ્ધ નથી.</string>
   <string name="langlinks_no_match">તમારી પૃચ્છાને અનુકૂળ કોઈ ભાષા મળી નથી.</string>
   <string name="langlinks_activity_title">અન્ય ભાષાઓ</string>
@@ -57,13 +56,7 @@
   <string name="create_account_next">આગળ</string>
   <string name="create_account_button">ખાતું બનાવો</string>
   <string name="preferences_general_heading">સામાન્ય</string>
-  <string name="zero_wikipedia_zero_heading">વિકિપીડિયા ઝીરો</string>
-  <string name="zero_interstitial_title">વિકિપીડિયા ઝીરોમાંથી બહાર નીકળી રહ્યા છો</string>
-  <string name="zero_interstitial_continue">પ્રસ્થાન</string>
-  <string name="zero_interstitial_cancel">અહીં રહો</string>
-  <string name="zero_learn_more_learn_more">વધુ વાંચો</string>
-  <string name="zero_learn_more_dismiss">વિસર્જન</string>
-  <string name="create_account_account_created_toast">ખાતું ખોલવામાં આવ્યું!</string>
+    <string name="create_account_account_created_toast">ખાતું ખોલવામાં આવ્યું!</string>
   <string name="history_search_list_hint">ઇતિહાસ શોધો</string>
   <string name="settings_activity_title" fuzzy="true">ગોઠવણીઓ</string>
   <string name="privacy_policy_description">ગોપનિયતા નીતિ</string>
@@ -80,9 +73,7 @@
   <string name="edit_summary_tag_links">કડીઓ ઉમેરી</string>
   <string name="edit_summary_tag_other">અન્ય</string>
   <string name="find_next">આગળ શોધો</string>
-  <string name="dialog_page_issues">પૃષ્ઠમાં ખરાબી</string>
-  <string name="button_page_issues">પૃષ્ઠમાં ખરાબી</string>
-  <string name="text_size_select">ફોન્ટનો આકાર</string>
+    <string name="text_size_select">ફોન્ટનો આકાર</string>
   <string name="color_theme_select">થીમ</string>
   <string name="color_theme_light">આછુ</string>
   <string name="color_theme_dark">કાળું</string>

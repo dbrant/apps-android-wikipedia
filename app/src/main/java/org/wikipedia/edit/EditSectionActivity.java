@@ -2,28 +2,26 @@ package org.wikipedia.edit;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import org.wikipedia.Constants;
 import org.wikipedia.R;
@@ -35,26 +33,38 @@ import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.captcha.CaptchaHandler;
 import org.wikipedia.captcha.CaptchaResult;
 import org.wikipedia.csrf.CsrfTokenClient;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.mwapi.MwException;
-import org.wikipedia.dataclient.mwapi.MwQueryResponse;
+import org.wikipedia.dataclient.mwapi.MwQueryPage;
 import org.wikipedia.edit.preview.EditPreviewFragment;
 import org.wikipedia.edit.richtext.SyntaxHighlighter;
 import org.wikipedia.edit.summaries.EditSummaryFragment;
-import org.wikipedia.edit.wikitext.WikitextClient;
+import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.login.LoginActivity;
 import org.wikipedia.login.LoginClient;
+import org.wikipedia.page.ExclusiveBottomSheetPresenter;
 import org.wikipedia.page.LinkMovementMethodExt;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.page.linkpreview.LinkPreviewDialog;
+import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
+import org.wikipedia.views.PlainPasteEditText;
 import org.wikipedia.views.ViewAnimations;
+import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
+import org.wikipedia.views.WikiTextKeyboardView;
 
 import java.util.concurrent.TimeUnit;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Call;
 
 import static org.wikipedia.util.DeviceUtil.hideSoftKeyboard;
@@ -69,6 +79,17 @@ public class EditSectionActivity extends BaseActivity {
     public static final String EXTRA_PAGE_PROPS = "org.wikipedia.edit_section.pageprops";
     public static final String EXTRA_HIGHLIGHT_TEXT = "org.wikipedia.edit_section.highlight";
 
+    @BindView(R.id.edit_section_text) PlainPasteEditText sectionText;
+    @BindView(R.id.edit_section_load_progress) View sectionProgress;
+    @BindView(R.id.edit_section_container) View sectionContainer;
+    @BindView(R.id.edit_section_scroll) ScrollView sectionScrollView;
+    @BindView(R.id.edit_keyboard_overlay) WikiTextKeyboardView wikiTextKeyboardView;
+    @BindView(R.id.view_edit_section_error) WikiErrorView errorView;
+    @BindView(R.id.edit_section_abusefilter_container) View abusefilterContainer;
+    @BindView(R.id.edit_section_abusefilter_image) ImageView abuseFilterImage;
+    @BindView(R.id.edit_section_abusefilter_title) TextView abusefilterTitle;
+    @BindView(R.id.edit_section_abusefilter_text) TextView abusefilterText;
+
     private CsrfTokenClient csrfClient;
 
     private PageTitle title;
@@ -79,31 +100,27 @@ public class EditSectionActivity extends BaseActivity {
 
     private String sectionWikitext;
     private SyntaxHighlighter syntaxHighlighter;
+    private SectionTextWatcher textWatcher = new SectionTextWatcher();
 
-    private EditText sectionText;
     private boolean sectionTextModified = false;
     private boolean sectionTextFirstLoad = true;
 
-    private View sectionProgress;
-    private ScrollView sectionContainer;
-    private WikiErrorView errorView;
-
-    private View abusefilterContainer;
-    private ImageView abuseFilterImage;
-    private TextView abusefilterTitle;
-    private TextView abusefilterText;
+    // Timestamp received from server to track the time of the last revision, then passed
+    // back to the server to detect possible edit conflicts.
+    private String baseTimeStamp;
 
     private EditAbuseFilterResult abusefilterEditResult;
-
     private CaptchaHandler captchaHandler;
 
     private EditPreviewFragment editPreviewFragment;
-
     private EditSummaryFragment editSummaryFragment;
 
     private EditFunnel funnel;
 
     private ProgressDialog progressDialog;
+    private ExclusiveBottomSheetPresenter bottomSheetPresenter = new ExclusiveBottomSheetPresenter();
+    private ActionMode actionMode;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
     private Runnable successRunnable = new Runnable() {
         @Override public void run() {
@@ -126,7 +143,7 @@ public class EditSectionActivity extends BaseActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_section);
-        setStatusBarColor(ResourceUtil.getThemedAttributeId(this, R.attr.page_status_bar_color));
+        ButterKnife.bind(this);
 
         if (!getIntent().getAction().equals(ACTION_EDIT_SECTION)) {
             throw new RuntimeException("Much wrong action. Such exception. Wow");
@@ -148,21 +165,10 @@ public class EditSectionActivity extends BaseActivity {
             supportActionBar.setTitle("");
         }
 
-        sectionText = findViewById(R.id.edit_section_text);
-
         syntaxHighlighter = new SyntaxHighlighter(this, sectionText);
+        sectionScrollView.setSmoothScrollingEnabled(false);
 
-        sectionProgress = findViewById(R.id.edit_section_load_progress);
-        sectionContainer = findViewById(R.id.edit_section_container);
-        sectionContainer.setSmoothScrollingEnabled(false);
-        errorView = findViewById(R.id.view_edit_section_error);
-
-        abusefilterContainer = findViewById(R.id.edit_section_abusefilter_container);
-        abuseFilterImage = findViewById(R.id.edit_section_abusefilter_image);
-        abusefilterTitle = findViewById(R.id.edit_section_abusefilter_title);
-        abusefilterText = findViewById(R.id.edit_section_abusefilter_text);
-
-        captchaHandler = new CaptchaHandler(this, title.getWikiSite(), progressDialog, sectionContainer, "", null);
+        captchaHandler = new CaptchaHandler(this, title.getWikiSite(), progressDialog, sectionText, "", null);
 
         editPreviewFragment = (EditPreviewFragment) getSupportFragmentManager().findFragmentById(R.id.edit_section_preview_fragment);
         editSummaryFragment = (EditSummaryFragment) getSupportFragmentManager().findFragmentById(R.id.edit_section_summary_fragment);
@@ -203,28 +209,13 @@ public class EditSectionActivity extends BaseActivity {
             sectionTextModified = savedInstanceState.getBoolean("sectionTextModified");
         }
 
-        sectionText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
-            }
+        sectionText.addTextChangedListener(textWatcher);
+        wikiTextKeyboardView.setEditText(sectionText);
+        wikiTextKeyboardView.setCallback(titleStr -> bottomSheetPresenter.show(getSupportFragmentManager(),
+                LinkPreviewDialog.newInstance(new HistoryEntry(new PageTitle(titleStr, title.getWikiSite()), HistoryEntry.SOURCE_INTERNAL_LINK), null)));
+        sectionText.setOnClickListener(v -> finishActionMode());
 
-            @Override
-            public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
-                if (sectionTextFirstLoad) {
-                    sectionTextFirstLoad = false;
-                    return;
-                }
-                if (!sectionTextModified) {
-                    sectionTextModified = true;
-                    // update the actionbar menu, which will enable the Next button.
-                    supportInvalidateOptionsMenu();
-                }
-            }
-        });
+        updateTextSize();
 
         // set focus to the EditText, but keep the keyboard hidden until the user changes the cursor location:
         sectionText.requestFocus();
@@ -233,10 +224,13 @@ public class EditSectionActivity extends BaseActivity {
 
     @Override
     public void onDestroy() {
+        disposables.clear();
+        captchaHandler.dispose();
         cancelCalls();
         if (progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
+        sectionText.removeTextChangedListener(textWatcher);
         syntaxHighlighter.cleanup();
         super.onDestroy();
     }
@@ -249,7 +243,7 @@ public class EditSectionActivity extends BaseActivity {
                 getString(R.string.terms_of_use_url),
                 getString(R.string.cc_by_sa_3_url))));
 
-        editLicenseText.setMovementMethod(new LinkMovementMethodExt((@NonNull String url, @Nullable String notUsed) -> {
+        editLicenseText.setMovementMethod(new LinkMovementMethodExt((@NonNull String url) -> {
             if (url.equals("https://#login")) {
                 funnel.logLoginAttempt();
                 Intent loginIntent = LoginActivity.newIntent(EditSectionActivity.this,
@@ -317,7 +311,7 @@ public class EditSectionActivity extends BaseActivity {
         }
 
         new EditClient().request(title.getWikiSite(), title, sectionID,
-                sectionText.getText().toString(), token, summaryText, AccountUtil.isLoggedIn(),
+                sectionText.getText().toString(), token, summaryText, baseTimeStamp, AccountUtil.isLoggedIn(),
                 captchaHandler.isActive() ? captchaHandler.captchaId() : "null",
                 captchaHandler.isActive() ? captchaHandler.captchaWord() : "null",
                 new EditClient.Callback() {
@@ -400,17 +394,20 @@ public class EditSectionActivity extends BaseActivity {
         String code = caught.getTitle();
         if (AccountUtil.isLoggedIn() && ("badtoken".equals(code) || "assertuserfailed".equals(code))) {
             getEditTokenThenSave(true);
-        } else if ("blocked".equals(code) || "wikimedia-globalblocking-ipblocked".equals(code)) {
+            return;
+        }
+
+        progressDialog.dismiss();
+        if ("blocked".equals(code) || "wikimedia-globalblocking-ipblocked".equals(code)) {
             // User is blocked, locally or globally
             // If they were anon, canedit does not catch this, so we can't show them the locked pencil
             // If they not anon, this means they were blocked in the interim between opening the edit
             // window and clicking save. Less common, but might as well handle it
-            progressDialog.dismiss();
             AlertDialog.Builder builder = new AlertDialog.Builder(EditSectionActivity.this);
             builder.setTitle(R.string.user_blocked_from_editing_title);
             if (AccountUtil.isLoggedIn()) {
                 builder.setMessage(R.string.user_logged_in_blocked_from_editing);
-                builder.setPositiveButton(android.R.string.ok, (dialog, i) -> dialog.dismiss());
+                builder.setPositiveButton(R.string.account_editing_blocked_dialog_ok_button_text, (dialog, i) -> dialog.dismiss());
             } else {
                 builder.setMessage(R.string.user_anon_blocked_from_editing);
                 builder.setPositiveButton(R.string.nav_item_login, (dialog, i) -> {
@@ -419,11 +416,17 @@ public class EditSectionActivity extends BaseActivity {
                             LoginFunnel.SOURCE_BLOCKED);
                     startActivity(loginIntent);
                 });
-                builder.setNegativeButton(android.R.string.cancel, (dialog, i) -> dialog.dismiss());
+                builder.setNegativeButton(R.string.account_editing_blocked_dialog_cancel_button_text, (dialog, i) -> dialog.dismiss());
             }
             builder.show();
+        } else if ("editconflict".equals(code)) {
+            new AlertDialog.Builder(EditSectionActivity.this)
+                    .setTitle(R.string.edit_conflict_title)
+                    .setMessage(R.string.edit_conflict_message)
+                    .setPositiveButton(R.string.edit_conflict_dialog_ok_button_text, null)
+                    .show();
+            resetToStart();
         } else {
-            progressDialog.dismiss();
             showError(caught);
         }
     }
@@ -434,12 +437,12 @@ public class EditSectionActivity extends BaseActivity {
         }
         if (abusefilterEditResult.getType() == EditAbuseFilterResult.TYPE_ERROR) {
             funnel.logAbuseFilterError(abusefilterEditResult.getCode());
-            abuseFilterImage.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_abusefilter_disallow));
+            abuseFilterImage.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_abusefilter_disallow));
             abusefilterTitle.setText(getString(R.string.abusefilter_title_disallow));
             abusefilterText.setText(StringUtil.fromHtml(getString(R.string.abusefilter_text_disallow)));
         } else {
             funnel.logAbuseFilterWarning(abusefilterEditResult.getCode());
-            abuseFilterImage.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_abusefilter_warn));
+            abuseFilterImage.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_abusefilter_warn));
             abusefilterTitle.setText(getString(R.string.abusefilter_title_warn));
             abusefilterText.setText(StringUtil.fromHtml(getString(R.string.abusefilter_text_warn)));
         }
@@ -490,6 +493,17 @@ public class EditSectionActivity extends BaseActivity {
             case R.id.menu_save_section:
                 clickNextButton();
                 return true;
+            case R.id.menu_edit_zoom_in:
+                Prefs.setEditingTextSizeExtra(Prefs.getEditingTextSizeExtra() + 1);
+                updateTextSize();
+                return true;
+            case R.id.menu_edit_zoom_out:
+                Prefs.setEditingTextSizeExtra(Prefs.getEditingTextSizeExtra() - 1);
+                updateTextSize();
+                return true;
+            case R.id.menu_find_in_editor:
+                showFindInEditor();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -499,48 +513,80 @@ public class EditSectionActivity extends BaseActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_edit_section, menu);
         MenuItem item = menu.findItem(R.id.menu_save_section);
-
-        if (editSummaryFragment.isActive()) {
-            item.setTitle(getString(R.string.edit_next));
-        } else if (editPreviewFragment.isActive()) {
-            item.setTitle(getString(R.string.edit_done));
-        } else {
-            item.setTitle(getString(R.string.edit_next));
-        }
+        item.setTitle(getString(editPreviewFragment.isActive() ? R.string.edit_done : R.string.edit_next));
+        menu.findItem(R.id.menu_edit_zoom_in).setVisible(!editPreviewFragment.isActive());
+        menu.findItem(R.id.menu_edit_zoom_out).setVisible(!editPreviewFragment.isActive());
+        menu.findItem(R.id.menu_find_in_editor).setVisible(!editPreviewFragment.isActive());
 
         if (abusefilterEditResult != null) {
-            if (abusefilterEditResult.getType() == EditAbuseFilterResult.TYPE_ERROR) {
-                item.setEnabled(false);
-            } else {
-                item.setEnabled(true);
-            }
+            item.setEnabled(abusefilterEditResult.getType() != EditAbuseFilterResult.TYPE_ERROR);
         } else {
             item.setEnabled(sectionTextModified);
         }
 
         View v = getLayoutInflater().inflate(R.layout.item_edit_actionbar_button, null);
         item.setActionView(v);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.MATCH_PARENT);
-        v.setLayoutParams(params);
-        TextView txtView = v.findViewById(R.id.edit_actionbar_button_text);
-        txtView.setText(item.getTitle());
-        txtView.setTypeface(null, item.isEnabled() ? Typeface.BOLD : Typeface.NORMAL);
+        TextView textView = v.findViewById(R.id.edit_actionbar_button_text);
+        textView.setText(item.getTitle());
+        textView.setTextColor(ResourceUtil.getThemedColor(this,
+                item.isEnabled() ? R.attr.colorAccent : R.attr.material_theme_de_emphasised_color));
         v.setTag(item);
-        v.setClickable(true);
         v.setEnabled(item.isEnabled());
         v.setOnClickListener((view) -> onOptionsItemSelected((MenuItem) view.getTag()));
-
-        v.setBackgroundColor(ContextCompat.getColor(this, item.isEnabled()
-                ? (editPreviewFragment.isActive() ? R.color.accent50
-                : ResourceUtil.getThemedAttributeId(this, R.attr.colorAccent)) : R.color.base50));
-
         return true;
+    }
+
+    @Override
+    public void onActionModeStarted(ActionMode mode) {
+        super.onActionModeStarted(mode);
+        if (mode.getTag() == null) {
+            // since we disabled the close button in the AndroidManifest.xml, we need to manually setup a close button when in an action mode if long pressed on texts.
+            ViewUtil.setCloseButtonInActionMode(EditSectionActivity.this, mode);
+        }
     }
 
     public void showError(@Nullable Throwable caught) {
         errorView.setError(caught);
         errorView.setVisibility(View.VISIBLE);
+    }
+
+    public void showFindInEditor() {
+        startActionMode(new ActionMode.Callback() {
+            private final String actionModeTag = "actionModeFindInEditor";
+
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                actionMode = mode;
+                MenuItem menuItem = menu.add(R.string.edit_section_find_in_page);
+                menuItem.setActionProvider(new FindInEditorActionProvider(sectionScrollView, sectionText, syntaxHighlighter, actionMode));
+                menuItem.expandActionView();
+                return true;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                mode.setTag(actionModeTag);
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+                sectionText.clearMatches(syntaxHighlighter);
+                sectionText.setSelection(sectionText.getSelectionStart(), sectionText.getSelectionStart());
+            }
+        });
+    }
+
+    public void finishActionMode() {
+        if (actionMode != null) {
+            actionMode.finish();
+            actionMode = null;
+        }
     }
 
     @Override
@@ -552,23 +598,39 @@ public class EditSectionActivity extends BaseActivity {
         captchaHandler.saveState(outState);
     }
 
+    private void updateTextSize() {
+        int extra = Prefs.getEditingTextSizeExtra();
+        sectionText.setTextSize(WikipediaApp.getInstance().getFontSize(getWindow()) + ((float)extra));
+    }
+
+    private void resetToStart() {
+        if (captchaHandler.isActive()) {
+            captchaHandler.cancelCaptcha();
+        }
+        if (editSummaryFragment.isActive()) {
+            editSummaryFragment.hide();
+        }
+        if (editPreviewFragment.isActive()) {
+            editPreviewFragment.hide();
+        }
+    }
+
     private void fetchSectionText() {
         if (sectionWikitext == null) {
-            new WikitextClient().request(title.getWikiSite(), title, sectionID, new WikitextClient.Callback() {
-                @Override
-                public void success(@NonNull Call<MwQueryResponse> call, @NonNull String normalizedTitle, @NonNull String wikitext) {
-                    title = new PageTitle(normalizedTitle, title.getWikiSite());
-                    sectionWikitext = wikitext;
-                    displaySectionText();
-                }
-
-                @Override
-                public void failure(@NonNull Call<MwQueryResponse> call, @NonNull Throwable caught) {
-                    sectionProgress.setVisibility(View.GONE);
-                    showError(caught);
-                    L.e(caught);
-                }
-            });
+            disposables.add(ServiceFactory.get(title.getWikiSite()).getWikiTextForSection(title.getConvertedText(), sectionID)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(response -> {
+                        MwQueryPage.Revision rev = response.query().firstPage().revisions().get(0);
+                        title = new PageTitle(response.query().firstPage().title(), title.getWikiSite());
+                        sectionWikitext = rev.content();
+                        baseTimeStamp = rev.timeStamp();
+                        displaySectionText();
+                    }, throwable -> {
+                        sectionProgress.setVisibility(View.GONE);
+                        showError(throwable);
+                        L.e(throwable);
+                    }));
         } else {
             displaySectionText();
         }
@@ -602,29 +664,10 @@ public class EditSectionActivity extends BaseActivity {
             return;
         }
         sectionText.post(() -> {
-            sectionContainer.fullScroll(View.FOCUS_DOWN);
+            sectionScrollView.fullScroll(View.FOCUS_DOWN);
             final int scrollDelayMs = 500;
-            sectionText.postDelayed(() -> setHighlight(highlightText), scrollDelayMs);
+            sectionText.postDelayed(() -> StringUtil.highlightEditText(sectionText, sectionWikitext, highlightText), scrollDelayMs);
         });
-    }
-
-    private void setHighlight(@NonNull String highlightText) {
-        String[] words = highlightText.split("\\s+");
-        int pos = 0;
-        for (String word : words) {
-            pos = sectionWikitext.indexOf(word, pos);
-            if (pos == -1) {
-                break;
-            }
-        }
-        if (pos == -1) {
-            pos = sectionWikitext.indexOf(words[words.length - 1]);
-        }
-        if (pos > 0) {
-            // TODO: Programmatic selection doesn't seem to work with RTL content...
-            sectionText.setSelection(pos, pos + words[words.length - 1].length());
-            sectionText.performLongClick();
-        }
     }
 
     /**
@@ -653,6 +696,9 @@ public class EditSectionActivity extends BaseActivity {
         if (editPreviewFragment.handleBackPressed()) {
             return;
         }
+        if (errorView.getVisibility() == View.VISIBLE) {
+            errorView.setVisibility(View.GONE);
+        }
 
         hideSoftKeyboard(this);
 
@@ -667,6 +713,29 @@ public class EditSectionActivity extends BaseActivity {
             alert.create().show();
         } else {
             finish();
+        }
+    }
+
+    private class SectionTextWatcher implements TextWatcher {
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable editable) {
+            if (sectionTextFirstLoad) {
+                sectionTextFirstLoad = false;
+                return;
+            }
+            if (!sectionTextModified) {
+                sectionTextModified = true;
+                // update the actionbar menu, which will enable the Next button.
+                supportInvalidateOptionsMenu();
+            }
         }
     }
 }

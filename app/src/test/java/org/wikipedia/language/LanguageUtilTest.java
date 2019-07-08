@@ -1,9 +1,7 @@
 package org.wikipedia.language;
 
-import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -29,8 +27,6 @@ public class LanguageUtilTest {
                     {CHINESE_LANG, SIMPLIFIED_WIKI_LANG},
                     {"zh-Hans", SIMPLIFIED_WIKI_LANG},
                     {"zh-Hant", TRADITIONAL_WIKI_LANG},
-                    {"zh-cmn-Hans", SIMPLIFIED_WIKI_LANG},
-                    {"zh-cmn-Hant", TRADITIONAL_WIKI_LANG},
                     {"zh-Hans-HK", SIMPLIFIED_WIKI_LANG},
                     {"zh-Hant-HK", TRADITIONAL_WIKI_LANG}
             });
@@ -41,7 +37,7 @@ public class LanguageUtilTest {
             super(input, expected);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP) @Test public void test() {
+        @Test public void test() {
             Locale locale = Locale.forLanguageTag(input());
             test(locale, expected());
         }
@@ -61,7 +57,7 @@ public class LanguageUtilTest {
             super(input, expected);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP) @Test public void test() {
+        @Test public void test() {
             test(input(), expected());
         }
     }
@@ -98,7 +94,7 @@ public class LanguageUtilTest {
 
         void test(@NonNull Locale defaultLocale, @Nullable String expected) {
             Locale.setDefault(defaultLocale);
-            String wikiLang = LanguageUtil.languageCodeToWikiLanguageCode(CHINESE_LANG);
+            String wikiLang = LanguageUtil.localeToWikiLanguageCode(defaultLocale);
             assertThat(wikiLang, is(expected));
         }
     }

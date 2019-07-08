@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/page_list_item_container"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="?attr/paper_color"
-    android:foreground="?attr/selectableItemBackground"
-    android:gravity="top">
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:layout_height="wrap_content"
+    tools:layout_width="match_parent"
+    tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
 
     <!-- TODO: this probably shouldn't be part of an item cell since it has to do with a collection
                of cells and nothing to do with an individual. This manifests visually when the cell
@@ -19,105 +13,134 @@
         android:id="@+id/page_list_header_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="@dimen/list_item_vertical_padding"
-        android:paddingLeft="@dimen/list_item_horizontal_padding"
-        android:paddingRight="@dimen/list_item_horizontal_padding"
-        android:paddingBottom="2dp"
-        android:gravity="center_vertical"
-        android:background="?attr/paper_color"
+        android:paddingStart="@dimen/list_item_horizontal_padding"
+        android:paddingEnd="@dimen/list_item_horizontal_padding"
+        android:paddingBottom="16dp"
         android:textColor="?attr/section_title_color"
         android:visibility="gone"
-        tools:visibility="visible"
-        tools:text="Header text" />
+        app:layout_constraintBottom_toTopOf="@id/page_list_item_title"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="Header text"
+        tools:visibility="visible" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/page_list_item_title"
+        style="@style/MaterialListTitle"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/list_item_horizontal_padding"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="@dimen/list_item_vertical_padding">
+        android:layout_marginStart="16dp"
+        android:paddingEnd="8dp"
+        app:layout_constraintBottom_toTopOf="@id/page_list_item_description"
+        app:layout_constraintEnd_toStartOf="@+id/page_list_item_secondary_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/page_list_header_text"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="Lorem ipsum" />
 
-        <FrameLayout
-            android:id="@+id/page_list_item_image_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+    <org.wikipedia.views.GoneIfEmptyTextView
+        android:id="@+id/page_list_item_description"
+        style="@style/MaterialListSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:paddingEnd="8dp"
+        app:layout_constraintEnd_toEndOf="@id/page_list_item_title"
+        app:layout_constraintStart_toStartOf="@id/page_list_item_title"
+        app:layout_constraintTop_toBottomOf="@id/page_list_item_title"
+        app:layout_constraintBottom_toTopOf="@id/chips_scrollview"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="Lorem ipsum" />
 
-            <com.facebook.drawee.view.SimpleDraweeView
-                style="@style/SimpleDraweeViewPlaceholder.Article"
-                android:id="@+id/page_list_item_image"
-                android:layout_width="@dimen/view_list_card_item_image"
-                android:layout_height="@dimen/view_list_card_item_image"
-                app:roundedCornerRadius="2dp"
-                app:backgroundImage="@color/base100" />
+    <FrameLayout
+        android:id="@+id/page_list_item_secondary_container"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="16dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/page_list_item_image_container"
+        app:layout_constraintTop_toTopOf="@id/page_list_item_title"
+        tools:visibility="visible">
 
-            <android.support.v7.widget.AppCompatImageView
-                android:id="@+id/page_list_item_selected_image"
-                android:layout_width="@dimen/view_list_card_item_image"
-                android:layout_height="@dimen/view_list_card_item_image"
-                android:visibility="gone"
-                android:padding="8dp"
-                app:srcCompat="@drawable/ic_check_black_24dp"
-                android:tint="@android:color/white"
-                android:background="@drawable/button_shape_gray"
-                app:backgroundTint="@color/accent50"
-                android:contentDescription="@null"/>
-
-        </FrameLayout>
-
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginTop="-2dp"
-            android:layout_gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/page_list_item_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                style="@style/MaterialListTitle"
-                tools:text="Lorem ipsum"/>
-
-            <org.wikipedia.views.GoneIfEmptyTextView
-                android:id="@+id/page_list_item_description"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                style="@style/MaterialListSubtitle"
-                tools:text="Lorem ipsum"/>
-        </LinearLayout>
+        <org.wikipedia.views.CircularProgressBar
+            android:id="@+id/page_list_item_circular_progress_bar"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            app:progressBackgroundColor="?attr/chart_shade5"
+            app:progressColor="?attr/colorAccent" />
 
         <ImageView
             android:id="@+id/page_list_item_action_secondary"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="8dp"
-            android:clickable="true"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@null"
+            android:visibility="gone"
             app:srcCompat="@drawable/ic_download_circle_gray_24dp"
-            android:contentDescription="@null"
-            android:visibility="gone"
-            tools:visibility="visible"/>
+            tools:visibility="visible" />
 
-        <android.support.v7.widget.AppCompatImageView
-            android:id="@+id/page_list_item_action_primary"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+    </FrameLayout>
+
+
+    <FrameLayout
+        android:id="@+id/page_list_item_image_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/view_list_card_item_image"
+        android:layout_gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/page_list_header_text">
+
+        <com.facebook.drawee.view.SimpleDraweeView
+            android:id="@+id/page_list_item_image"
+            style="@style/SimpleDraweeViewPlaceholder"
+            android:layout_width="@dimen/view_list_card_item_image"
+            android:layout_height="@dimen/view_list_card_item_image"
+            android:layout_marginEnd="@dimen/list_item_horizontal_padding"
+            app:roundedCornerRadius="2dp" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/page_list_item_selected_image"
+            android:layout_width="@dimen/view_list_card_item_image"
+            android:layout_height="@dimen/view_list_card_item_image"
+            android:layout_marginEnd="@dimen/list_item_horizontal_padding"
+            android:background="@drawable/button_shape_gray"
+            android:contentDescription="@null"
             android:padding="8dp"
-            android:clickable="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            app:srcCompat="@drawable/ic_favorite_white_24dp"
-            app:tint="?attr/material_theme_de_emphasised_color"
-            app:tintMode="src_in"
-            android:contentDescription="@null"
+            android:tint="@android:color/white"
             android:visibility="gone"
-            tools:visibility="visible"/>
+            app:backgroundTint="@color/accent50"
+            app:srcCompat="@drawable/ic_check_black_24dp"
+            tools:visibility="visible" />
 
-    </LinearLayout>
+    </FrameLayout>
 
-</LinearLayout>
+    <HorizontalScrollView
+        android:id="@+id/chips_scrollview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@id/page_list_item_title"
+        app:layout_constraintTop_toBottomOf="@id/page_list_item_description"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:visibility="visible">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/reading_lists_chip_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleLine="true"
+            app:singleSelection="true" />
+    </HorizontalScrollView>
+</merge>

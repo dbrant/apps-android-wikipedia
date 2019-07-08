@@ -1,8 +1,8 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -10,9 +10,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.util.DateUtil;
 import org.wikipedia.util.ReleaseUtil;
 import org.wikipedia.util.log.L;
 
+import java.util.Date;
 import java.util.UUID;
 
 /** Schemas for this abstract funnel are expected to have appInstallID and sessionToken fields. When
@@ -23,8 +25,9 @@ abstract class Funnel {
     protected static final int SAMPLE_LOG_10 = 10;
     protected static final int SAMPLE_LOG_ALL = 1;
 
-    private static final String DEFAULT_APP_INSTALL_ID_KEY = "appInstallID";
-    private static final String DEFAULT_SESSION_TOKEN_KEY = "sessionToken";
+    private static final String DEFAULT_TIMESTAMP_KEY = "client_dt";
+    private static final String DEFAULT_APP_INSTALL_ID_KEY = "app_install_id";
+    private static final String DEFAULT_SESSION_TOKEN_KEY = "session_token";
 
     private final String schemaName;
     private final int revision;
@@ -68,7 +71,8 @@ abstract class Funnel {
      * @return Event Data to be sent to server
      */
     protected JSONObject preprocessData(@NonNull JSONObject eventData) {
-        preprocessAppInstallID(eventData);
+        preprocessData(eventData, DEFAULT_TIMESTAMP_KEY, DateUtil.iso8601LocalDateFormat(new Date()));
+        preprocessData(eventData, DEFAULT_APP_INSTALL_ID_KEY, app.getAppInstallID());
         preprocessSessionToken(eventData);
         return eventData;
     }
@@ -84,13 +88,8 @@ abstract class Funnel {
     }
 
     /** Invoked by {@link #preprocessData(JSONObject)}. */
-    protected void preprocessAppInstallID(@NonNull JSONObject eventData) {
-        preprocessData(eventData, getAppInstallIDField(), app.getAppInstallID());
-    }
-
-    /** Invoked by {@link #preprocessData(JSONObject)}. */
     protected void preprocessSessionToken(@NonNull JSONObject eventData) {
-        preprocessData(eventData, getSessionTokenField(), getSessionToken());
+        preprocessData(eventData, DEFAULT_SESSION_TOKEN_KEY, getSessionToken());
     }
 
     protected void log(Object... params) {
@@ -127,14 +126,9 @@ abstract class Funnel {
         if (ReleaseUtil.isDevRelease()
                 || isUserInSamplingGroup(app.getAppInstallID(), getSampleRate())) {
             JSONObject eventData = new JSONObject();
-
-            //Build the string which is logged to debug EventLogging code
-            String logString = this.getClass().getSimpleName() + ": Sending event";
             for (int i = 0; i < params.length; i += 2) {
                 preprocessData(eventData, params[i].toString(), params[i + 1]);
-                logString += ", event_" + params[i] + " = " + params[i + 1];
             }
-            L.d(logString);
 
             EventLoggingEvent event = new EventLoggingEvent(
                     schemaName,
@@ -178,18 +172,8 @@ abstract class Funnel {
         }
     }
 
-    /** @return The application installation identifier field used by {@link #preprocessAppInstallID}. */
-    @NonNull protected String getAppInstallIDField() {
-        return DEFAULT_APP_INSTALL_ID_KEY;
-    }
-
-    /** @return The session identifier field used by {@link #preprocessSessionToken}. */
-    @NonNull protected String getSessionTokenField() {
-        return DEFAULT_SESSION_TOKEN_KEY;
-    }
-
     /** @return The session identifier used by {@link #preprocessSessionToken}. */
-    @Nullable protected String getSessionToken() {
+    @Nullable public String getSessionToken() {
         return sessionToken;
     }
 }

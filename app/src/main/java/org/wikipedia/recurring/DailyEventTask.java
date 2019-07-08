@@ -1,7 +1,8 @@
 package org.wikipedia.recurring;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
@@ -14,11 +15,7 @@ public class DailyEventTask extends RecurringTask {
     @NonNull private final String name;
 
     public DailyEventTask(Context context) {
-        this(context.getString(R.string.preference_key_daily_event_time_task_name));
-    }
-
-    public DailyEventTask(@NonNull String name) {
-        this.name = name;
+        name = context.getString(R.string.preference_key_daily_event_time_task_name);
     }
 
     @Override

@@ -1,8 +1,9 @@
 package org.wikipedia.feed.mostread;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.wikipedia.R;
 import org.wikipedia.feed.view.ListCardItemView;
@@ -29,6 +30,7 @@ public class MostReadCardView extends ListCardView<MostReadListCard>
         this.card = card;
         set(new RecyclerAdapter(card.items().subList(0, Math.min(card.items().size(), EVENTS_SHOWN))));
         setMoreContentTextView(getContext().getString(R.string.more_trending_text));
+        setLayoutDirectionByWikiSite(card.wikiSite(), getLayoutDirectionView());
     }
 
     private void header(@NonNull MostReadListCard card) {
@@ -36,6 +38,7 @@ public class MostReadCardView extends ListCardView<MostReadListCard>
                 .setSubtitle(card.subtitle())
                 .setImage(R.drawable.ic_most_read)
                 .setImageCircleColor(ResourceUtil.getThemedAttributeId(getContext(), R.attr.colorAccent))
+                .setLangCode(card.wikiSite().languageCode())
                 .setCard(card)
                 .setCallback(getCallback());
     }
@@ -50,7 +53,7 @@ public class MostReadCardView extends ListCardView<MostReadListCard>
         }
 
         @Override
-        public void onBindViewHolder(DefaultViewHolder<ListCardItemView> holder, int position) {
+        public void onBindViewHolder(@NonNull DefaultViewHolder<ListCardItemView> holder, int position) {
             MostReadItemCard item = item(position);
             holder.getView().setCard(card)
                     .setHistoryEntry(new HistoryEntry(item.pageTitle(),

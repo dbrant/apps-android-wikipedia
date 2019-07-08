@@ -1,15 +1,16 @@
 package org.wikipedia.feed.mostread;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import org.wikipedia.R;
 import org.wikipedia.feed.model.Card;
@@ -20,6 +21,7 @@ import org.wikipedia.json.GsonUnmarshaller;
 import org.wikipedia.page.ExclusiveBottomSheetPresenter;
 import org.wikipedia.page.PageActivity;
 import org.wikipedia.readinglist.AddToReadingListDialog;
+import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.ShareUtil;
 import org.wikipedia.views.DefaultRecyclerAdapter;
 import org.wikipedia.views.DefaultViewHolder;
@@ -31,7 +33,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+import static org.wikipedia.Constants.InvokeSource.MOST_READ_ACTIVITY;
 import static org.wikipedia.feed.mostread.MostReadArticlesActivity.MOST_READ_CARD;
+import static org.wikipedia.util.L10nUtil.setConditionalLayoutDirection;
 
 public class MostReadFragment extends Fragment {
 
@@ -50,13 +54,14 @@ public class MostReadFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_most_read, container, false);
         unbinder = ButterKnife.bind(this, view);
-        MostReadListCard card = GsonUnmarshaller.unmarshal(MostReadListCard.class, getActivity().getIntent().getStringExtra(MOST_READ_CARD));
+        MostReadListCard card = GsonUnmarshaller.unmarshal(MostReadListCard.class, requireActivity().getIntent().getStringExtra(MOST_READ_CARD));
 
         getAppCompatActivity().getSupportActionBar().setTitle(String.format(getString(R.string.top_on_this_day), card.subtitle()));
+        setConditionalLayoutDirection(view, card.wikiSite().languageCode());
 
         initRecycler();
         mostReadLinks.setAdapter(new RecyclerAdapter(card.items(), new Callback()));
@@ -72,7 +77,7 @@ public class MostReadFragment extends Fragment {
 
     private void initRecycler() {
         mostReadLinks.setLayoutManager(new LinearLayoutManager(getContext()));
-        mostReadLinks.addItemDecoration(new DrawableItemDecoration(getContext(), R.attr.list_separator_drawable));
+        mostReadLinks.addItemDecoration(new DrawableItemDecoration(requireContext(), R.attr.list_separator_drawable));
         mostReadLinks.setNestedScrollingEnabled(false);
     }
 
@@ -85,13 +90,14 @@ public class MostReadFragment extends Fragment {
             this.callback = callback;
         }
 
+        @NonNull
         @Override
-        public DefaultViewHolder<ListCardItemView> onCreateViewHolder(ViewGroup parent, int viewType) {
+        public DefaultViewHolder<ListCardItemView> onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return new DefaultViewHolder<>(new ListCardItemView(parent.getContext()));
         }
 
         @Override
-        public void onBindViewHolder(DefaultViewHolder<ListCardItemView> holder, int position) {
+        public void onBindViewHolder(@NonNull DefaultViewHolder<ListCardItemView> holder, int position) {
             MostReadItemCard card = item(position);
             holder.getView().setCard(card)
                     .setHistoryEntry(new HistoryEntry(card.pageTitle(),
@@ -107,19 +113,19 @@ public class MostReadFragment extends Fragment {
     private class Callback implements ListCardItemView.Callback {
         @Override
         public void onSelectPage(@NonNull Card card, @NonNull HistoryEntry entry) {
-            startActivity(PageActivity.newIntentForNewTab(getContext(), entry, entry.getTitle()));
+            startActivity(PageActivity.newIntentForCurrentTab(requireContext(), entry, entry.getTitle()));
         }
 
         @Override
         public void onAddPageToList(@NonNull HistoryEntry entry) {
             bottomSheetPresenter.show(getChildFragmentManager(),
-                    AddToReadingListDialog.newInstance(entry.getTitle(),
-                            AddToReadingListDialog.InvokeSource.MOST_READ_ACTIVITY));
+                    AddToReadingListDialog.newInstance(entry.getTitle(), MOST_READ_ACTIVITY));
         }
 
         @Override
         public void onRemovePageFromList(@NonNull HistoryEntry entry) {
-            // TODO
+            FeedbackUtil.showMessage(requireActivity(),
+                    getString(R.string.reading_list_item_deleted, entry.getTitle().getDisplayText()));
         }
 
         @Override

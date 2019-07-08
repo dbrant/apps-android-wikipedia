@@ -1,8 +1,9 @@
 package org.wikipedia.feed.announcement;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -28,11 +29,17 @@ public class Announcement extends BaseModel {
     @SuppressWarnings("unused") @NonNull private List<String> platforms = Collections.emptyList();
     @SuppressWarnings("unused") @NonNull private List<String> countries = Collections.emptyList();
     @SuppressWarnings("unused") @SerializedName("caption_HTML") @Nullable private String footerCaption;
-    @SuppressWarnings("unused") @SerializedName("image") @Nullable private String imageUrl;
+    @SuppressWarnings("unused") @SerializedName("image_url") @Nullable private String imageUrl;
+    @SuppressWarnings("unused") @SerializedName("image_height") @Nullable private String imageHeight;
+    @SuppressWarnings("unused") @SerializedName("logged_in") @Nullable private Boolean loggedIn;
+    @SuppressWarnings("unused") @SerializedName("reading_list_sync_enabled") @Nullable private Boolean readingListSyncEnabled;
+    @SuppressWarnings("unused") @Nullable private Boolean beta;
+    @SuppressWarnings("unused") @SerializedName("min_version") @Nullable private String minVersion;
+    @SuppressWarnings("unused") @SerializedName("max_version") @Nullable private String maxVersion;
 
     @SuppressWarnings("unused,NullableProblems") @Required @NonNull private String text;
     @SuppressWarnings("unused") @Nullable private Action action;
-    @SuppressWarnings("unused") @Nullable private String negativeText;
+    @SuppressWarnings("unused") @SerializedName("negative_text") @Nullable private String negativeText;
 
     public Announcement() { }
 
@@ -55,7 +62,7 @@ public class Announcement extends BaseModel {
 
     @Nullable Date startTime() {
         try {
-            return DateUtil.getIso8601DateFormat().parse(startTime);
+            return DateUtil.iso8601DateParse(startTime);
         } catch (ParseException e) {
             return null;
         }
@@ -63,7 +70,7 @@ public class Announcement extends BaseModel {
 
     @Nullable Date endTime() {
         try {
-            return DateUtil.getIso8601DateFormat().parse(endTime);
+            return DateUtil.iso8601DateParse(endTime);
         } catch (ParseException e) {
             return null;
         }
@@ -109,8 +116,32 @@ public class Announcement extends BaseModel {
         return defaultString(imageUrl);
     }
 
+    @NonNull String imageHeight() {
+        return defaultString(imageHeight);
+    }
+
     @Nullable String negativeText() {
         return negativeText;
+    }
+
+    @Nullable Boolean loggedIn() {
+        return loggedIn;
+    }
+
+    @Nullable Boolean readingListSyncEnabled() {
+        return readingListSyncEnabled;
+    }
+
+    @Nullable Boolean beta() {
+        return beta;
+    }
+
+    @Nullable String minVersion() {
+        return minVersion;
+    }
+
+    @Nullable String maxVersion() {
+        return maxVersion;
     }
 
     public static class Action {

@@ -3,32 +3,25 @@ package org.wikipedia.page;
 import android.location.Location;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import android.util.Log;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.wikipedia.dataclient.WikiSite;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import org.wikipedia.dataclient.page.PageLeadProperties;
 import org.wikipedia.util.DimenUtil;
+import org.wikipedia.util.log.L;
 
 import java.text.ParseException;
 import java.util.Date;
 
 import static org.apache.commons.lang3.StringUtils.defaultString;
-import static org.wikipedia.util.DateUtil.getIso8601DateFormat;
+import static org.wikipedia.util.DateUtil.iso8601DateParse;
 
 /**
  * Immutable class that contains metadata associated with a PageTitle.
  */
 public class PageProperties implements Parcelable {
-    private static final String JSON_NAME_TITLE_PRONUNCIATION_URL = "titlePronunciationUrl";
-    private static final String JSON_NAME_GEO = "geo";
-    private static final String JSON_NAME_NAMESPACE = "namespace";
-
     private final int pageId;
     @NonNull private final Namespace namespace;
     private final long revisionId;
@@ -40,10 +33,11 @@ public class PageProperties implements Parcelable {
     private final boolean isDisambiguationPage;
     /** Nullable URL with no scheme. For example, foo.bar.com/ instead of http://foo.bar.com/. */
     @Nullable private final String leadImageUrl;
-    private final String leadImageName;
+    @Nullable private final String leadImageName;
     @Nullable private final String titlePronunciationUrl;
     @Nullable private final Location geo;
     @Nullable private final String wikiBaseItem;
+    @Nullable private final String descriptionSource;
 
     /**
      * True if the user who first requested this page can edit this page
@@ -55,9 +49,9 @@ public class PageProperties implements Parcelable {
      * Side note: Should later be moved out of this class but I like the similarities with
      * PageProperties(JSONObject).
      */
-    public PageProperties(@NonNull WikiSite wiki, PageLeadProperties core) {
+    public PageProperties(PageLeadProperties core) {
         pageId = core.getId();
-        namespace = core.getNamespace(wiki);
+        namespace = core.getNamespace();
         revisionId = core.getRevision();
         displayTitleText = defaultString(core.getDisplayTitle());
         titlePronunciationUrl = core.getTitlePronunciationUrl();
@@ -73,9 +67,9 @@ public class PageProperties implements Parcelable {
         String lastModifiedText = core.getLastModified();
         if (lastModifiedText != null) {
             try {
-                lastModified.setTime(getIso8601DateFormat().parse(lastModifiedText).getTime());
+                lastModified.setTime(iso8601DateParse(lastModifiedText).getTime());
             } catch (ParseException e) {
-                Log.d("PageProperties", "Failed to parse date: " + lastModifiedText);
+                L.d("Failed to parse date: " + lastModifiedText);
             }
         }
         // assume formatversion=2 is used so we get real booleans from the API
@@ -84,6 +78,7 @@ public class PageProperties implements Parcelable {
         isMainPage = core.isMainPage();
         isDisambiguationPage = core.isDisambiguation();
         wikiBaseItem = core.getWikiBaseItem();
+        descriptionSource = core.getDescriptionSource();
     }
 
     /**
@@ -107,48 +102,7 @@ public class PageProperties implements Parcelable {
         this.isMainPage = isMainPage;
         isDisambiguationPage = false;
         wikiBaseItem = null;
-    }
-
-    /**
-     * Create a new PageProperties object.
-     * @param json JSON object from which this item will be built.
-     */
-    public PageProperties(JSONObject json) {
-        pageId = json.optInt("id");
-        namespace = Namespace.of(json.optInt(JSON_NAME_NAMESPACE));
-        revisionId = json.optLong("revision");
-        displayTitleText = json.optString("displaytitle");
-        titlePronunciationUrl = json.optString(JSON_NAME_TITLE_PRONUNCIATION_URL, null);
-        geo = GeoUnmarshaller.unmarshal(json.optString(JSON_NAME_GEO, null));
-
-        if (json.optJSONObject("protection") != null && json.optJSONObject("protection").has("edit")) {
-            editProtectionStatus = json.optJSONObject("protection").optJSONArray("edit").optString(0);
-        } else {
-            editProtectionStatus = null;
-        }
-        languageCount = json.optInt("languagecount");
-        JSONObject thumb = json.optJSONObject("thumb");
-        leadImageUrl = thumb != null ? thumb.optString("url") : null;
-        JSONObject image = json.optJSONObject("image");
-        leadImageName = image != null ? image.optString("file") : null;
-        lastModified = new Date();
-        String lastModifiedText = json.optString("lastmodified");
-        try {
-            lastModified.setTime(getIso8601DateFormat().parse(lastModifiedText).getTime());
-        } catch (ParseException e) {
-            Log.d("PageProperties", "Failed to parse date: " + lastModifiedText);
-        }
-        // There's something really screwy going on with the "editable" key in the API response.
-        // It's not always returning a boolean, sadly.
-        // If the key is the empty string, or true, then the page is editable.
-        // If the key is not in the response, or is false, then the page is not editable.
-        // This solution, while stupid, will work even if the API starts returning a boolean.
-        canEdit = (json.has("editable") && json.optString("editable").equals(""))
-                || json.optString("editable").equals("true");
-
-        isMainPage = json.has("mainpage");
-        isDisambiguationPage = json.has("disambiguation");
-        wikiBaseItem = json.optString("wikibase_item");
+        descriptionSource = null;
     }
 
     public int getPageId() {
@@ -210,6 +164,7 @@ public class PageProperties implements Parcelable {
         return leadImageUrl;
     }
 
+    @Nullable
     public String getLeadImageName() {
         return leadImageName;
     }
@@ -217,6 +172,11 @@ public class PageProperties implements Parcelable {
     @Nullable
     public String getWikiBaseItem() {
         return wikiBaseItem;
+    }
+
+    @Nullable
+    public String getDescriptionSource() {
+        return descriptionSource;
     }
 
     @Override
@@ -241,6 +201,7 @@ public class PageProperties implements Parcelable {
         parcel.writeString(leadImageUrl);
         parcel.writeString(leadImageName);
         parcel.writeString(wikiBaseItem);
+        parcel.writeString(descriptionSource);
     }
 
     private PageProperties(Parcel in) {
@@ -259,6 +220,7 @@ public class PageProperties implements Parcelable {
         leadImageUrl = in.readString();
         leadImageName = in.readString();
         wikiBaseItem = in.readString();
+        descriptionSource = in.readString();
     }
 
     public static final Parcelable.Creator<PageProperties> CREATOR
@@ -320,55 +282,5 @@ public class PageProperties implements Parcelable {
         result = 31 * result + namespace.code();
         result = 31 * result + (int) revisionId;
         return result;
-    }
-
-    @Override
-    public String toString() {
-        return toJSON().toString();
-    }
-
-    public JSONObject toJSON() {
-        JSONObject json = new JSONObject();
-        try {
-            json.put("id", pageId);
-            json.put(JSON_NAME_NAMESPACE, namespace.code());
-            json.put("revision", revisionId);
-            json.put("lastmodified", getIso8601DateFormat().format(getLastModified()));
-            json.put("displaytitle", displayTitleText);
-            json.put(JSON_NAME_TITLE_PRONUNCIATION_URL, titlePronunciationUrl);
-            json.put(JSON_NAME_GEO, GeoMarshaller.marshal(geo));
-            json.put("wikibase_item", wikiBaseItem);
-            if (editProtectionStatus == null) {
-                json.put("protection", new JSONArray());
-            } else {
-                JSONObject protectionStatusObject = new JSONObject();
-                JSONArray editProtectionStatusArray = new JSONArray();
-                editProtectionStatusArray.put(editProtectionStatus);
-                protectionStatusObject.put("edit", editProtectionStatusArray);
-                json.put("protection", protectionStatusObject);
-            }
-            json.put("languagecount", languageCount);
-            json.put("editable", canEdit);
-            if (isMainPage) {
-                json.put("mainpage", "");
-            }
-            if (isDisambiguationPage) {
-                json.put("disambiguation", "");
-            }
-            if (leadImageUrl != null) {
-                JSONObject thumbObject = new JSONObject();
-                thumbObject.put("url", leadImageUrl);
-                json.put("thumb", thumbObject);
-            }
-            if (leadImageName != null) {
-                JSONObject imageObject = new JSONObject();
-                imageObject.put("file", leadImageName);
-                json.put("image", imageObject);
-            }
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-
-        return json;
     }
 }

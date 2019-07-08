@@ -5,12 +5,12 @@ Script that builds one or more release apks.
 Does the following things in several steps:
 
 Step 1: (e.g., --beta):
-    - Runs the selected (clean) Gradle builds (e.g. beta, amazon, or prod and releasesprod combined)
+    - Runs the selected (clean) Gradle builds (e.g. beta, amazon, or prod)
 
 Step 2: (e.g., --beta --push):
     - Creates an annotated tag called 'releases/versionName'
     - Pushes the git tag to origin for history
-    - TODO (Not implemented yet): Uploads certain bits to releases.mediawiki.org: releasesprod, beta
+    - TODO (Not implemented yet): Uploads certain bits to releases.mediawiki.org: r, beta
 
 To run
 1) tell people on #wikimedia-mobile you're about to bump the version,
@@ -24,7 +24,7 @@ Note: the apk file locations are printed to stdout
 7) python scripts/make-release.py --prod --push
 8) compile release note of prod using (replace "r/*" with "beta/*" or "amazon/*")
     git log --pretty=format:"%h | %cr | %s" --abbrev-commit --no-merges `git tag -l r/*|tail -1`..
-9) Upload prod apk to store, releasesprod apk to releases.mediawiki.org
+9) Upload prod apk to Play Store and to releases.mediawiki.org
 
 Requires the python module 'sh' and the environment variable ANDROID_HOME to run.
 Ensure you have a clean working directory before running as well.
@@ -77,7 +77,6 @@ def git_push_tag(target, version_name):
 
 def make_release(flavors, custom_channel):
     sh.cd(PATH_PREFIX)
-    # ./gradlew -q assembleDevDebug
     args = [GRADLEW,
             '-q',
             'clean',
@@ -86,16 +85,22 @@ def make_release(flavors, custom_channel):
     args += tasks
     subprocess.call(args)
 
+def make_bundle(flavors, custom_channel):
+    sh.cd(PATH_PREFIX)
+    args = [GRADLEW,
+            '-q',
+            'clean',
+            '-PcustomChannel=' + custom_channel]
+    tasks = ['bundle{0}Release'.format(flavor.title()) for flavor in flavors]
+    args += tasks
+    subprocess.call(args)
 
-def copy_artifacts(flavor):
-    folder_path = 'releases'
-    sh.mkdir("-p", folder_path)
-    version_name = get_version_name_from_apk(get_original_apk_file_name(flavor))
-    copy_apk(flavor, version_name)
 
-
-def get_original_apk_file_name(flavor):
+def get_output_apk_file_name(flavor):
     return 'app/build/outputs/apk/' + flavor + '/release/app-' + flavor + '-release.apk'
+
+def get_output_bundle_file_name(flavor):
+    return 'app/build/outputs/bundle/' + flavor + 'Release/app.aab'
 
 
 def get_android_home():
@@ -126,7 +131,7 @@ def get_version_code_from_build_file():
 
 
 def get_version_name_from_apk(apk_file):
-    aapt = '%s/build-tools/%s/aapt' % (get_android_home(), get_build_tools_version_from_build_file())
+    aapt = '%s/build-tools/%s/aapt' % (get_android_home(), next(os.walk('%s/build-tools/' % get_android_home()))[1][0])
     process = subprocess.check_output([aapt, 'dump', 'badging', apk_file])
     found = re.search(r'versionName=\'(\S+)\'', process)
     if found:
@@ -140,7 +145,14 @@ def copy_apk(flavor, version_name):
     folder_path = 'releases'
     sh.mkdir("-p", folder_path)
     output_file = '%s/wikipedia-%s.apk' % (folder_path, version_name)
-    sh.cp(get_original_apk_file_name(flavor), output_file)
+    sh.cp(get_output_apk_file_name(flavor), output_file)
+    print ' apk: %s' % output_file
+
+def copy_bundle(flavor, version_name):
+    folder_path = 'releases'
+    sh.mkdir("-p", folder_path)
+    output_file = '%s/wikipedia-%s.aab' % (folder_path, version_name)
+    sh.cp(get_output_bundle_file_name(flavor), output_file)
     print ' apk: %s' % output_file
 
 
@@ -186,7 +198,7 @@ def main():
         flavors = ['beta']
         targets = flavors
     elif args.prod:
-        flavors = ['prod', 'releasesprod']
+        flavors = ['prod']
         targets = ['r']
     elif args.amazon:
         flavors = ['amazon']
@@ -214,10 +226,20 @@ def main():
             git_tag(target, version_name)
             git_push_tag(target, version_name)
     else:
+        folder_path = 'releases'
+        sh.mkdir("-p", folder_path)
+
+        print('Building APK...')
         make_release(flavors, custom_channel)
-        copy_artifacts(flavors[0])
-        if flavors[0] == 'prod':
-            copy_artifacts(flavors[1])
+        version_name = get_version_name_from_apk(get_output_apk_file_name(flavors[0]))
+        print('Copying APK...')
+        copy_apk(flavors[0], version_name)
+
+        print('Building bundle...')
+        make_bundle(flavors, custom_channel)
+        print('Copying bundle...')
+        copy_bundle(flavors[0], version_name)
+
         print('Please test the APK. After that, run w/ --push flag, and release the tested APK.')
         print('A useful command for collecting the release notes:')
         print('git log --pretty=format:"%h | %cr | %s" --abbrev-commit --no-merges ' +

@@ -2,23 +2,27 @@ package org.wikipedia.feed.view;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.support.annotation.ColorRes;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
-import android.support.annotation.VisibleForTesting;
-import android.support.constraint.ConstraintLayout;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.ViewCompat;
-import android.support.v7.widget.AppCompatImageView;
-import android.support.v7.widget.PopupMenu;
+import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.annotation.VisibleForTesting;
+import androidx.appcompat.widget.AppCompatImageView;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+
 import org.wikipedia.R;
+import org.wikipedia.WikipediaApp;
 import org.wikipedia.feed.model.Card;
 
 import butterknife.BindView;
@@ -28,12 +32,15 @@ import butterknife.OnClick;
 public class CardHeaderView extends ConstraintLayout {
     public interface Callback {
         boolean onRequestDismissCard(@NonNull Card card);
+        void onRequestEditCardLanguages(@NonNull Card card);
         void onRequestCustomize(@NonNull Card card);
     }
 
     @BindView(R.id.view_card_header_image) AppCompatImageView imageView;
     @BindView(R.id.view_card_header_title) TextView titleView;
     @BindView(R.id.view_card_header_subtitle) TextView subtitleView;
+    @BindView(R.id.view_list_card_header_lang_background) View langCodeBackground;
+    @BindView(R.id.view_list_card_header_lang_code) TextView langCodeView;
     @Nullable private Card card;
     @Nullable private Callback callback;
 
@@ -96,6 +103,18 @@ public class CardHeaderView extends ConstraintLayout {
         return this;
     }
 
+    @NonNull public CardHeaderView setLangCode(@Nullable String langCode) {
+        if (TextUtils.isEmpty(langCode) || WikipediaApp.getInstance().language().getAppLanguageCodes().size() < 2) {
+            langCodeBackground.setVisibility(GONE);
+            langCodeView.setVisibility(GONE);
+        } else {
+            langCodeBackground.setVisibility(VISIBLE);
+            langCodeView.setVisibility(VISIBLE);
+            langCodeView.setText(langCode);
+        }
+        return this;
+    }
+
     @VisibleForTesting @Nullable Card getCard() {
         return card;
     }
@@ -105,8 +124,10 @@ public class CardHeaderView extends ConstraintLayout {
     }
 
     private void showOverflowMenu(View anchorView) {
-        PopupMenu menu = new PopupMenu(anchorView.getContext(), anchorView);
+        PopupMenu menu = new PopupMenu(anchorView.getContext(), anchorView, Gravity.END);
         menu.getMenuInflater().inflate(R.menu.menu_feed_card_header, menu.getMenu());
+        MenuItem editCardLangItem = menu.getMenu().findItem(R.id.menu_feed_card_edit_card_languages);
+        editCardLangItem.setVisible(card.type().contentType().isPerLanguage());
         menu.setOnMenuItemClickListener(new CardHeaderMenuClickListener());
         menu.show();
     }
@@ -120,6 +141,13 @@ public class CardHeaderView extends ConstraintLayout {
                         return callback.onRequestDismissCard(card);
                     }
                     return false;
+
+                case R.id.menu_feed_card_edit_card_languages:
+                    if (callback != null & card != null) {
+                        callback.onRequestEditCardLanguages(card);
+                    }
+                    return true;
+
                 case R.id.menu_feed_card_customize:
                     if (callback != null & card != null) {
                         callback.onRequestCustomize(card);

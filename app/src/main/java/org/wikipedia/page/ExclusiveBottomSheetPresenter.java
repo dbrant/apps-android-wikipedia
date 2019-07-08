@@ -2,11 +2,13 @@ package org.wikipedia.page;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentManager;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
+
+import org.wikipedia.Constants.InvokeSource;
 import org.wikipedia.readinglist.AddToReadingListDialog;
 
 public class ExclusiveBottomSheetPresenter {
@@ -14,22 +16,28 @@ public class ExclusiveBottomSheetPresenter {
     private Dialog currentDialog;
 
     public void showAddToListDialog(@NonNull FragmentManager fm, @NonNull PageTitle title,
-                                    @NonNull AddToReadingListDialog.InvokeSource source) {
+                                    @NonNull InvokeSource source) {
         show(fm, AddToReadingListDialog.newInstance(title, source));
     }
 
     public void showAddToListDialog(@NonNull FragmentManager fm, @NonNull PageTitle title,
-                                    @NonNull AddToReadingListDialog.InvokeSource source,
+                                    @NonNull InvokeSource source,
                                     @Nullable DialogInterface.OnDismissListener listener) {
         show(fm, AddToReadingListDialog.newInstance(title, source, listener));
     }
 
     public void show(@NonNull FragmentManager manager, @NonNull DialogFragment dialog) {
+        if (manager.isStateSaved() || manager.isDestroyed()) {
+            return;
+        }
         dismiss(manager);
         dialog.show(manager, BOTTOM_SHEET_FRAGMENT_TAG);
     }
 
     public void show(@NonNull FragmentManager manager, @NonNull Dialog dialog) {
+        if (manager.isStateSaved() || manager.isDestroyed()) {
+            return;
+        }
         dismiss(manager);
         currentDialog = dialog;
         currentDialog.setOnDismissListener((dialogInterface) -> currentDialog = null);
@@ -37,6 +45,9 @@ public class ExclusiveBottomSheetPresenter {
     }
 
     public void dismiss(@NonNull FragmentManager manager) {
+        if (manager.isStateSaved() || manager.isDestroyed()) {
+            return;
+        }
         DialogFragment dialog = (DialogFragment) manager.findFragmentByTag(BOTTOM_SHEET_FRAGMENT_TAG);
         if (dialog != null) {
             dialog.dismiss();

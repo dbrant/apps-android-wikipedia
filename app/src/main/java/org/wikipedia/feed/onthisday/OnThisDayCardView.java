@@ -2,14 +2,6 @@ package org.wikipedia.feed.onthisday;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,9 +10,21 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import org.wikipedia.R;
+import org.wikipedia.WikipediaApp;
+import org.wikipedia.analytics.FeedFunnel;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.restbase.page.RbPageSummary;
+import org.wikipedia.feed.model.CardType;
 import org.wikipedia.feed.view.CardHeaderView;
 import org.wikipedia.feed.view.DefaultFeedCardView;
 import org.wikipedia.feed.view.FeedAdapter;
@@ -41,6 +45,10 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
+import static org.wikipedia.Constants.InvokeSource.ON_THIS_DAY_ACTIVITY;
+import static org.wikipedia.Constants.InvokeSource.ON_THIS_DAY_CARD_BODY;
+import static org.wikipedia.Constants.InvokeSource.ON_THIS_DAY_CARD_FOOTER;
+
 public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implements ItemTouchHelperSwipeAdapter.SwipeableView, OnThisDayActionsDialog.Callback {
     @BindView(R.id.view_on_this_day_card_header) CardHeaderView headerView;
     @BindView(R.id.text) TextView descTextView;
@@ -54,11 +62,15 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
     @BindView(R.id.pages_recycler) RecyclerView pagesRecycler;
     @BindView(R.id.gradient_layout) View gradientLayout;
     @BindView(R.id.radio_image_view) View radio;
+    @BindView(R.id.view_on_this_day_rtl_container) View rtlContainer;
+    private FeedFunnel funnel = new FeedFunnel(WikipediaApp.getInstance());
+
     private int age;
     private ExclusiveBottomSheetPresenter bottomSheetPresenter = new ExclusiveBottomSheetPresenter();
 
     public OnThisDayCardView(@NonNull Context context) {
         super(context);
+        setAllowOverflow(true);
         inflate(getContext(), R.layout.view_card_on_this_day, this);
         ButterKnife.bind(this);
         initRecycler();
@@ -71,6 +83,7 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
     }
 
     private void initRecycler() {
+        pagesRecycler.setHasFixedSize(true);
         pagesRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         pagesRecycler.addItemDecoration(new MarginItemDecoration(getContext(),
                 R.dimen.view_horizontal_scrolling_list_card_item_margin_horizontal,
@@ -83,9 +96,8 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
 
     @Override
     public void onAddPageToList(@NonNull HistoryEntry entry) {
-        bottomSheetPresenter.show(((AppCompatActivity)getContext()).getSupportFragmentManager(),
-                AddToReadingListDialog.newInstance(entry.getTitle(),
-                        AddToReadingListDialog.InvokeSource.ON_THIS_DAY_ACTIVITY));
+        bottomSheetPresenter.show(((AppCompatActivity) getContext()).getSupportFragmentManager(),
+                AddToReadingListDialog.newInstance(entry.getTitle(), ON_THIS_DAY_ACTIVITY));
     }
 
     @Override
@@ -110,16 +122,16 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
             return this;
         }
 
-        @Override
-        public OnThisDayPagesViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+        @NonNull @Override
+        public OnThisDayPagesViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
             View itemView = LayoutInflater.
                     from(viewGroup.getContext()).
                     inflate(R.layout.item_on_this_day_pages, viewGroup, false);
-            return new OnThisDayPagesViewHolder((CardView) itemView, wiki, isSingleCard);
+            return new OnThisDayPagesViewHolder((Activity) viewGroup.getContext(), (CardView) itemView, wiki, isSingleCard);
         }
 
         @Override
-        public void onBindViewHolder(OnThisDayPagesViewHolder onThisDayPagesViewHolder, int i) {
+        public void onBindViewHolder(@NonNull OnThisDayPagesViewHolder onThisDayPagesViewHolder, int i) {
             if (itemCallback != null) {
                 onThisDayPagesViewHolder
                         .setCallback(itemCallback)
@@ -143,7 +155,8 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
         headerView.setTitle(card.title())
                 .setSubtitle(card.subtitle())
                 .setImage(R.drawable.ic_otd_icon)
-                .setImageCircleColor(ResourceUtil.getThemedAttributeId(getContext(), R.attr.main_toolbar_color))
+                .setImageCircleColor(ResourceUtil.getThemedAttributeId(getContext(), R.attr.colorAccent))
+                .setLangCode(card.wikiSite().languageCode())
                 .setCard(card)
                 .setCallback(getCallback());
         descTextView.setText(card.text());
@@ -157,27 +170,30 @@ public class OnThisDayCardView extends DefaultFeedCardView<OnThisDayCard> implem
     public void setCard(@NonNull OnThisDayCard card) {
         super.setCard(card);
         this.age = card.getAge();
+        setLayoutDirectionByWikiSite(card.wikiSite(), rtlContainer);
         setPagesRecycler(card);
         header(card);
     }
 
     @OnClick({R.id.view_on_this_day_click_container}) void onMoreClick() {
+        funnel.cardClicked(CardType.ON_THIS_DAY, getCard().wikiSite().languageCode());
         ActivityOptionsCompat options = ActivityOptionsCompat.
                 makeSceneTransitionAnimation((Activity) getContext(), dayTextView, getContext().getString(R.string.transition_on_this_day));
-        getContext().startActivity(OnThisDayActivity.newIntent(getContext(), age,
-                OnThisDayActivity.INVOKE_SOURCE_CARD_BODY), options.toBundle());
+        getContext().startActivity(OnThisDayActivity.newIntent(getContext(), age, getCard().wikiSite(),
+                ON_THIS_DAY_CARD_BODY), options.toBundle());
     }
 
     @OnClick({R.id.more_events_layout}) void onMoreFooterClick() {
+        funnel.cardClicked(CardType.ON_THIS_DAY, getCard().wikiSite().languageCode());
         ActivityOptionsCompat options = ActivityOptionsCompat.
                 makeSceneTransitionAnimation((Activity) getContext(), dayTextView, getContext().getString(R.string.transition_on_this_day));
-        getContext().startActivity(OnThisDayActivity.newIntent(getContext(), age,
-                OnThisDayActivity.INVOKE_SOURCE_CARD_FOOTER), options.toBundle());
+        getContext().startActivity(OnThisDayActivity.newIntent(getContext(), age, getCard().wikiSite(),
+                ON_THIS_DAY_CARD_FOOTER), options.toBundle());
     }
 
     private void setPagesRecycler(OnThisDayCard card) {
         if (card.pages() != null) {
-            RecyclerAdapter recyclerAdapter = new RecyclerAdapter(card.pages(), card.wiki(), true);
+            RecyclerAdapter recyclerAdapter = new RecyclerAdapter(card.pages(), card.wikiSite(), true);
             recyclerAdapter.setCallback(new ItemCallback());
             pagesRecycler.setAdapter(recyclerAdapter);
         } else {

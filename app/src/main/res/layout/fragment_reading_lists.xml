@@ -1,30 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<android.support.v4.widget.SwipeRefreshLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/reading_list_swipe_refresh"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:id="@+id/reading_list_content_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:animateLayoutChanges="true"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            app:layout_constraintTop_toTopOf="parent">
 
             <FrameLayout
                 android:id="@+id/reading_list_onboarding_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <android.support.v7.widget.RecyclerView
+            <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/reading_list_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -36,19 +35,20 @@
             android:id="@+id/empty_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:fillViewport="true"
-            android:layout_weight="1"
             android:animateLayoutChanges="true"
-            android:visibility="gone">
+            android:fillViewport="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/reading_list_content_container">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="30dp"
-                android:layout_marginRight="30dp"
-                android:gravity="center"
                 android:layout_gravity="center_horizontal"
+                android:layout_marginStart="30dp"
+                android:layout_marginEnd="30dp"
                 android:animateLayoutChanges="true"
+                android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
@@ -56,27 +56,15 @@
                     style="@style/MaterialLargePrimaryTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="20dp"
-                    android:gravity="center"
+                    android:layout_marginBottom="16dp"
                     android:text="@string/saved_list_empty_title" />
-
-                <ImageView
-                    android:id="@+id/empty_image"
-                    android:layout_width="168dp"
-                    android:layout_height="168dp"
-                    android:layout_gravity="center_horizontal"
-                    android:contentDescription="@null"
-                    app:srcCompat="@drawable/no_lists" />
 
                 <TextView
                     android:id="@+id/empty_message"
                     style="@style/MaterialMediumSecondaryCaption"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="32dp"
-                    android:layout_gravity="center_horizontal"
-                    android:gravity="center"
+                    android:layout_marginTop="16dp"
                     android:text="@string/reading_lists_empty_message" />
             </LinearLayout>
         </ScrollView>
@@ -84,11 +72,12 @@
         <org.wikipedia.views.SearchEmptyView
             android:id="@+id/search_empty_view"
             android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:layout_gravity="center" />
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-</android.support.v4.widget.SwipeRefreshLayout>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

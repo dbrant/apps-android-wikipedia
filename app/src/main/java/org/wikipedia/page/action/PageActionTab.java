@@ -1,6 +1,6 @@
 package org.wikipedia.page.action;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.wikipedia.model.EnumCode;
 import org.wikipedia.model.EnumCodeMap;
@@ -30,6 +30,12 @@ public enum PageActionTab implements EnumCode {
             cb.onFindInPageTabSelected();
         }
     },
+    FONT_AND_THEME() {
+        @Override
+        public void select(@NonNull Callback cb) {
+            cb.onFontAndThemeTabSelected();
+        }
+    },
     VIEW_TOC() {
         @Override
         public void select(@NonNull Callback cb) {
@@ -57,6 +63,7 @@ public enum PageActionTab implements EnumCode {
         void onSharePageTabSelected();
         void onChooseLangTabSelected();
         void onFindInPageTabSelected();
+        void onFontAndThemeTabSelected();
         void onViewToCTabSelected();
         void updateBookmark(boolean pageSaved);
     }

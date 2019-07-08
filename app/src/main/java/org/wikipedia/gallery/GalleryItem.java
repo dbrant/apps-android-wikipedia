@@ -1,127 +1,205 @@
 package org.wikipedia.gallery;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.lang3.StringUtils;
+import org.wikipedia.dataclient.Service;
+import org.wikipedia.util.ImageUrlUtil;
+import org.wikipedia.util.StringUtil;
 
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class GalleryItem {
-    @NonNull private String name;
-    @Nullable private String url;
-    @NonNull private String mimeType;
-    @Nullable private ExtMetadata metadata;
-    @Nullable private String thumbUrl;
-    private int width;
-    private int height;
-    @NonNull private ImageLicense license;
-    @Nullable private List<Derivative> derivatives;
+import static org.wikipedia.Constants.PREFERRED_GALLERY_IMAGE_SIZE;
 
-    public GalleryItem(@NonNull String title, @NonNull ImageInfo imageInfo) {
-        boolean video = imageInfo instanceof VideoInfo;
-        this.name = title;
-        this.url = video ? StringUtils.defaultString(getWebmUrlIfExists((VideoInfo) imageInfo), "")
-                : StringUtils.defaultString(imageInfo.getOriginalUrl(), "");
-        this.mimeType = imageInfo.getMimeType();
-        this.thumbUrl = imageInfo.getThumbUrl();
-        this.width = imageInfo.getWidth();
-        this.height = imageInfo.getHeight();
-        this.metadata = imageInfo.getMetadata();
-        this.license = this.metadata != null ? new ImageLicense(this.metadata) : new ImageLicense();
+@SuppressWarnings("unused")
+public class GalleryItem implements Serializable {
+    @SerializedName("section_id") private int sectionId;
+    @SuppressWarnings("NullableProblems") @NonNull private String type;
+    @Nullable @SerializedName("audio_type") private String audioType;
+    @Nullable private TextInfo caption;
+    private boolean showInGallery;
+    @SuppressWarnings("NullableProblems") @NonNull private Titles titles;
+    @Nullable private ImageInfo thumbnail;
+    @Nullable private ImageInfo original;
+    @Nullable private List<VideoInfo> sources;
+    @Nullable @SerializedName("file_page") private String filePage;
+    @Nullable private ArtistInfo artist;
+    private double duration;
+    @SuppressWarnings("NullableProblems") @NonNull private ImageLicense license;
+    @Nullable private TextInfo description;
+    @Nullable @SerializedName("wb_entity_id") private String entityId;
+    @Nullable @SerializedName("structured") private StructuredData structuredData;
 
-        if (video) {
-            this.derivatives = ((VideoInfo) imageInfo).getDerivatives();
-        }
+    public GalleryItem() {
     }
 
-    private String getWebmUrlIfExists(@NonNull VideoInfo videoInfo) {
-        if (videoInfo.getDerivatives() != null) {
-            for (Derivative derivative : videoInfo.getDerivatives()) {
-                if (derivative.getType() != null && derivative.getType().contains("webm")) {
-                    return derivative.getSrc();
-                }
-            }
-        }
-        return null;
-    }
-
-    // GalleryItem constructor for Featured Images from the feed, where we know enough to display it
-    // in the gallery but don't have a lot of extra info
-    GalleryItem(String name) {
-        this.name = name;
-        this.url = null;
-        this.mimeType = "*/*";
-        this.thumbUrl = null;
-        this.metadata = null;
-        this.width = 0;
-        this.height = 0;
+    public GalleryItem(@NonNull String title) {
+        this.type = "*/*";
+        this.titles = new Titles(title, StringUtil.addUnderscores(title), title);
+        this.original = new ImageInfo();
+        this.thumbnail = new ImageInfo();
+        this.description = new TextInfo();
         this.license = new ImageLicense();
     }
 
-    @NonNull public String getName() {
-        return name;
+    @NonNull
+    public String getType() {
+        return StringUtils.defaultString(type);
     }
 
-    // TODO: Convert to Uri
-    @Nullable public String getUrl() {
-        return url;
+    @NonNull
+    public String getAudioType() {
+        return StringUtils.defaultString(audioType);
     }
 
-    void setUrl(@NonNull String url) {
-        this.url = url;
+    @Nullable
+    public TextInfo getCaption() {
+        return caption;
     }
 
-    @NonNull public String getMimeType() {
-        return mimeType;
+    public boolean isShowInGallery() {
+        return showInGallery;
     }
 
-    void setMimeType(@NonNull String mimeType) {
-        this.mimeType = mimeType;
+    @NonNull
+    public Titles getTitles() {
+        return titles;
     }
 
-    @Nullable public ExtMetadata getMetadata() {
-        return metadata;
+    protected void setTitle(@NonNull String title) {
+        titles = new Titles(title, StringUtil.addUnderscores(title), title);
     }
 
-    // TODO: Convert to Uri
-    @Nullable public String getThumbUrl() {
-        return thumbUrl;
+    @NonNull
+    public ImageInfo getThumbnail() {
+        if (thumbnail == null) {
+            thumbnail = new ImageInfo();
+        }
+        return thumbnail;
     }
 
-    void setThumbUrl(@NonNull String thumbUrl) {
-        this.thumbUrl = thumbUrl;
+    @NonNull
+    public String getThumbnailUrl() {
+        return getThumbnail().getSource();
     }
 
-    public int getWidth() {
-        return width;
+    @NonNull
+    public String getPreferredSizedImageUrl() {
+        return ImageUrlUtil.getUrlForPreferredSize(getThumbnailUrl(), PREFERRED_GALLERY_IMAGE_SIZE);
     }
 
-    void setWidth(int width) {
-        this.width = width;
+    @NonNull
+    public ImageInfo getOriginal() {
+        if (original == null) {
+            original = new ImageInfo();
+        }
+        return original;
     }
 
-    public int getHeight() {
-        return height;
+    @Nullable
+    public List<VideoInfo> getSources() {
+        return sources;
     }
 
-    void setHeight(int height) {
-        this.height = height;
+    @Nullable
+    public VideoInfo getOriginalVideoSource() {
+        // The getSources has different levels of source,
+        // should have an option that allows user to chose which quality to play
+        return sources == null || sources.size() == 0
+                ? null : sources.get(sources.size() - 1);
     }
 
-    @NonNull public ImageLicense getLicense() {
+    public double getDuration() {
+        return duration;
+    }
+
+    @NonNull
+    public String getFilePage() {
+        // return the base url of Wiki Commons for WikiSite() if the file_page is null.
+        return StringUtils.defaultString(filePage, Service.COMMONS_URL);
+    }
+
+    public void setFilePage(@NonNull String filePage) {
+        this.filePage = filePage;
+    }
+
+    @Nullable
+    public ArtistInfo getArtist() {
+        return artist;
+    }
+
+    public void setArtist(@Nullable ArtistInfo artist) {
+        this.artist = artist;
+    }
+
+    @NonNull
+    public ImageLicense getLicense() {
         return license;
     }
 
-    void setLicense(@NonNull ImageLicense license) {
+    public void setLicense(@NonNull ImageLicense license) {
         this.license = license;
     }
 
-    @NonNull public String getLicenseUrl() {
-        return license.getLicenseUrl();
+    @NonNull
+    public TextInfo getDescription() {
+        if (description == null) {
+            description = new TextInfo();
+        }
+        return description;
     }
 
-    @Nullable public List<Derivative> getDerivatives() {
-        return derivatives;
+    @NonNull
+    public Map<String, String> getStructuredCaptions() {
+        return (structuredData != null && structuredData.captions != null) ? structuredData.captions : Collections.emptyMap();
+    }
+
+    public void setStructuredCaptions(@NonNull Map<String, String> captions) {
+        if (structuredData == null) {
+            structuredData = new StructuredData();
+        }
+        structuredData.captions = new HashMap<>(captions);
+    }
+
+    public static class Titles implements Serializable {
+        @Nullable private String canonical;
+        @Nullable private String normalized;
+        @Nullable private String display;
+
+        Titles(@NonNull String display, @NonNull String canonical, @NonNull String normalized) {
+            this.display = display;
+            this.canonical = canonical;
+            this.normalized = normalized;
+        }
+
+        @NonNull
+        public String getCanonical() {
+            return StringUtils.defaultString(canonical);
+        }
+
+        @NonNull
+        public String getNormalized() {
+            return StringUtils.defaultString(normalized);
+        }
+
+        @NonNull
+        public String getDisplay() {
+            return StringUtils.defaultString(display);
+        }
+    }
+
+    public static class StructuredData implements Serializable {
+        @Nullable private HashMap<String, String> captions;
+
+        @Nullable public HashMap<String, String> getCaptions() {
+            return captions;
+        }
     }
 }

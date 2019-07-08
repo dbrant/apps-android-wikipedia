@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Authors:
+* Cedric31
+* Envlh
+* Guilhelma
+* Nicolas Eynaud
+* Patriccck
+* Unuaiga
+-->
 <resources>
   <string name="app_name_prod">Wikipèdia</string>
   <string name="app_name_beta">Wikipèdia Bèta</string>
-  <string name="app_name_alpha">Wikipèdia alfa</string>
+  <string name="app_name_alpha">Wikipèdia Alfa</string>
   <string name="wikimedia">Wikimèdia</string>
   <string name="search_hint">Recercar dins Wikipèdia</string>
   <string name="search_hint_search_history">Recercar dins l\'istoric</string>
-  <string name="search_hint_search_my_lists">Recercar dins mas listas</string>
-  <string name="search_hint_search_reading_list">Recercar dins ma lista de lectura</string>
   <string name="nav_item_history">Istoric</string>
   <string name="error_network_error">Impossible de se connectar a Internet.</string>
   <string name="page_error_retry">Ensajar tornarmai</string>
@@ -23,7 +29,6 @@
   <string name="menu_page_show_tabs">Afichar los onglets</string>
   <string name="menu_page_other_languages">Cambiar de lenga</string>
   <string name="menu_page_find_in_page">Recercar dins la pagina</string>
-  <string name="menu_page_content_issues">Problèmas de contengut</string>
   <string name="menu_page_font_and_theme">Modificar la poliça e lo tèma</string>
   <string name="menu_page_add_to_list">Apondre a la lista de lectura</string>
   <string name="menu_page_share">Partejar lo ligam</string>
@@ -36,16 +41,16 @@
   <string name="menu_text_select_edit_here">Editar aiçí</string>
   <string name="nav_item_nearby">A proximitat</string>
   <string name="nearby_zoom_to_location">Zoomar sus un endreit de la mapa</string>
-  <string name="last_updated_text">Darrièra modificacion lo %1$s</string>
-  <string name="talk_page_link_text">Discussion</string>
+  <string name="last_updated_text">Darrièra modificacion lo %s</string>
+  <string name="talk_page_link_text">Veire la pagina de discussion</string>
+  <string name="edit_history_link_text">Afichar l\'istoric de las modificacions</string>
   <string name="content_license_html">Lo contengut es disponible jos &lt;a href=\"%1$s\"&gt;licéncia CC BY-SA 3.0&lt;/a&gt; levat indicacion contrària</string>
-  <string name="edit_save_action_license_logged_in">En enregistrant, acceptatz las &lt;a href=\"%1$s\"&gt;Condicions d’utilizacion&lt;/a&gt;, e plaçatz de faiçon irrevocabla vòstras contribucions jos la licéncia &lt;a href=\"%2$s\"&gt;CC-BY-SA 3.0&lt;/a&gt;.</string>
-  <string name="edit_save_action_license_anon">En enregistrant, acceptatz las &lt;a href=\"%1$s\"&gt;Condicions d’utilizacion&lt;/a&gt;, e plaçatz de faiçon irrevocabla vòstras contribucions jos la licéncia &lt;a href=\"%2$s/\"&gt;CC-BY-SA 3.0&lt;/a&gt;.\nLas modificacions seràn atribuidas a l’adreça IP de vòstre equipament. Se &lt;a href=\"https://#login\"&gt;vos connectatz&lt;/a&gt;, auretz mai de confidencialitat.</string>
-  <string name="preference_title_language">Lenga de Wikipèdia</string>
-  <string name="preference_languages_filter_hint">Recercar</string>
+  <string name="edit_save_action_license_logged_in" fuzzy="true">En enregistrant, acceptatz las &lt;a href=\"%1$s\"&gt;Condicions d’utilizacion&lt;/a&gt;, e plaçatz de faiçon irrevocabla vòstras contribucions jos la licéncia &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt;.</string>
+  <string name="edit_save_action_license_anon" fuzzy="true">En enregistrant, acceptatz las &lt;a href=\"%1$s\"&gt;Condicions d’utilizacion&lt;/a&gt;, e plaçatz de faiçon irrevocabla vòstras contribucions jos la licéncia &lt;a href=\"%2$s/\"&gt;CC BY-SA 3.0&lt;/a&gt;. Las modificacions seràn atribuidas a l’adreça IP de vòstre equipament. Se &lt;a href=\"https://#login\"&gt;vos connectatz&lt;/a&gt;, auretz mai de confidencialitat.</string>
+  <string name="preference_title_language" fuzzy="true">Lenga de Wikipèdia</string>
   <string name="langlinks_filter_hint">Recercar</string>
   <string name="langlinks_empty">Aquesta pagina es pas disponibla dins d’autras lengas</string>
-  <string name="langlinks_no_match">Cap de lenga pas trobat que corresponda a vòstra requèsta.</string>
+  <string name="langlinks_no_match" fuzzy="true">Cap de lenga pas trobat que corresponda a vòstra requèsta.</string>
   <string name="langlinks_activity_title">Autras lengas</string>
   <string name="menu_save_changes">Publicar las modificacions</string>
   <string name="dialog_saving_in_progress">Publicacion en cors…</string>
@@ -91,16 +96,6 @@
   <string name="create_account_button">Crear un compte</string>
   <string name="preferences_general_heading">General</string>
   <string name="wikipedia_app_faq">FAQ de las aplicacions Wikipèdia</string>
-  <string name="zero_charged_verbiage">L’accès liure a Wikipèdia Zèro es pas mai actiu.</string>
-  <string name="zero_warn_when_leaving">Avertir en quitant Wikipèdia Zèro</string>
-  <string name="zero_webpage_title">FAQ de Wikipèdia Zèro</string>
-  <string name="zero_wikipedia_zero_heading">Wikipèdia Zèro</string>
-  <string name="zero_interstitial_title">Sortida de Wikipèdia Zèro</string>
-  <string name="zero_interstitial_leave_app">De fraisses de donadas se poiràn aplicar. Contunhar cap al site extèrne ?</string>
-  <string name="zero_interstitial_continue">Quitar</string>
-  <string name="zero_interstitial_cancel">Demorar aicí</string>
-  <string name="zero_learn_more_learn_more">Ne saber mai</string>
-  <string name="zero_learn_more_dismiss">Regetar</string>
   <string name="edit_preview_fetching_dialog_message">Recèrca d’un apercebut…</string>
   <string name="send_feedback">Mandar un comentari sus l’aplicacion</string>
   <string name="create_account_account_created_toast">Compte creat !</string>
@@ -125,7 +120,7 @@
   <string name="about_translators_heading">Traductors</string>
   <string name="about_translators_translatewiki">Aquesta aplicacion es estada traduita pels traductors volontaris de &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt;.</string>
   <string name="about_app_license_heading">Licéncia</string>
-  <string name="about_wmf">Un produit de la &lt;a href=\"http://m.wikimediafoundation.org/wiki/Home\"&gt;Fondacion Wikimèdia&lt;/a&gt;</string>
+  <string name="about_wmf" fuzzy="true">Un produit de la &lt;a href=\"https://wikimediafoundation.org/\"&gt;Fondacion Wikimèdia&lt;/a&gt;</string>
   <string name="about_activity_title">A prepaus</string>
   <string name="edit_abandon_confirm">La pagina es estada modificada. Sètz segur que volètz quitar sens enregistrar vòstras modificacions ?</string>
   <string name="edit_abandon_confirm_yes">Òc</string>
@@ -141,10 +136,10 @@
   <string name="edit_summary_tag_links">Ligams aponduts</string>
   <string name="edit_summary_tag_other">Autre</string>
   <string name="edit_summary_tag_other_hint">Autres biaisses de melhorar la pagina</string>
+  <string name="edit_conflict_title">Modificar lo conflicte.</string>
+  <string name="edit_conflict_message">Aquesta pagina foguèt ja modificada per un autre utilizaire, e es en conflicte amb la vòstra publicacion. Merce de copiar las vòstras publicacions, tornar a la pagina precedenta e refrescar la pagina, puèi ensajatz de publicar tornamai.</string>
   <string name="find_next">Recercar lo seguent</string>
   <string name="find_previous">Recercar lo precedent</string>
-  <string name="dialog_page_issues">Discussions sus la pagina</string>
-  <string name="button_page_issues">Questions sus la pagina</string>
   <string name="text_size_select">Talha de poliça</string>
   <string name="page_similar_titles">Paginas similaras</string>
   <string name="search_did_you_mean">Volètz dire « %s » ?</string>
@@ -208,17 +203,15 @@
   <string name="article_menu_bar_bookmark">Apondre aqueste article a una lista de lectura</string>
   <string name="article_menu_bar_share">Partejar lo ligam cap a la pagina</string>
   <string name="article_header_edit_hint">Modificar...</string>
-  <string name="article_header_edit_description">Modificar la descripcion del títol</string>
+  <string name="article_header_edit_description" fuzzy="true">Modificar la descripcion del títol</string>
   <string name="article_header_edit_lead_section">Modificar l\'introduccion</string>
   <string name="color_theme_select">Tèma</string>
   <string name="color_theme_light">Clar</string>
   <string name="color_theme_dark">Escur</string>
   <string name="nav_item_reading_lists">Mas listas</string>
-  <string name="reading_list_untitled">Sens títol</string>
   <string name="reading_list_save_to">Enregistrar dins la lista de lectura</string>
   <string name="reading_list_create_new">Crear un novèl</string>
   <string name="reading_list_title_exists">La lista de lectura «%s» existís ja.</string>
-  <string name="reading_list_entry_empty">Entratz un títol.</string>
   <string name="reading_list_added_to_named">Apondut a %s.</string>
   <string name="reading_list_already_exists">Aqueste article fa ja partida d\'aquesta lista.</string>
   <string name="reading_list_added_view_button">Afichar la lista</string>
@@ -242,13 +235,7 @@
   <string name="reading_lists_onboarding_got_it">L’obténer</string>
   <string name="reading_list_delete_confirm" fuzzy="true">Sètz segur que volètz suprimir aquesta lista %s de lectura ?</string>
   <string name="user_option_sync_label">Preferéncias</string>
-  <string name="notification_button_view_user">Parlar a l\'utilizaire</string>
-  <string name="notification_talk_title">Messatge novèl sus Wikipèdia</string>
-  <string name="notification_talk">&lt;em&gt;%1$s&lt;/em&gt; a daissat un messatge sus vòstra pagina de discussion &lt;strong&gt;%2$s&lt;/strong&gt;</string>
   <string name="notification_reverted_title">Modificacion anullada</string>
-  <string name="notification_thanks_title">Vos an mercejat !</string>
-  <string name="notification_thanks">&lt;em&gt;%1$s&lt;/em&gt; vos a mercejat per vòstra modificacion sus la pagina &lt;strong&gt;%2$s&lt;/strong&gt;</string>
-  <string name="view_continue_reading_card_title">Contunhar de legir</string>
   <string name="view_because_you_read_card_title">Perque avètz legit</string>
   <string name="view_random_card_title">A l\'azard</string>
   <string name="view_random_card_subtitle" fuzzy="true">Legissètz un article de la Wikipèdia a l\'azard</string>
@@ -270,23 +257,19 @@
   </plurals>
   <string name="view_continue_reading_card_subtitle_today" fuzzy="true">Uèi</string>
   <string name="view_announcement_card_negative_action">Non mercé</string>
-  <string name="description_edit_text_hint">Descripcion del títol</string>
+  <string name="description_edit_text_hint" fuzzy="true">Descripcion del títol</string>
   <string name="description_edit_save">Publicar</string>
-  <string name="description_edit_add_description">Apondre una descripcion del títol</string>
-  <string name="description_edit_edit_description">Modificar la descripcion</string>
+  <string name="description_edit_add_description" fuzzy="true">Apondre una descripcion del títol</string>
+  <string name="description_edit_edit_description" fuzzy="true">Modificar la descripcion</string>
   <string name="description_edit_cancel_hint">Anullar</string>
-  <string name="description_edit_help_title">Ajuda : descripcions dels títols</string>
+  <string name="description_edit_help_title" fuzzy="true">Ajuda : descripcions dels títols</string>
   <string name="description_edit_help_about_wikidata">A prepaus de Wikidata</string>
   <string name="description_edit_help_wikidata_guide">Guida Wikidata per escriure de descripcions</string>
-  <string name="wikidata_about_url">https://www.wikidata.org/wiki/Wikidata:Introduction/oc</string>
   <string name="wikidata_description_guide_url">https://www.wikidata.org/wiki/Help:Description#Guidelines_for_descriptions_in_English</string>
-  <string name="description_edit_success_saved">Descripcion publicada !</string>
+  <string name="description_edit_success_saved" fuzzy="true">Descripcion publicada !</string>
   <string name="description_edit_success_done">Fait</string>
   <string name="description_edit_success_did_you_know">O sabiatz ?</string>
-  <string name="description_edit_tutorial_title_descriptions">Descripcions del títol</string>
+  <string name="description_edit_tutorial_title_descriptions" fuzzy="true">Descripcions del títol</string>
   <string name="description_edit_tutorial_keep_it_short">Siatz brèu</string>
   <string name="description_edit_tutorial_button_label_start_editing">Començatz d\'editar</string>
-  <string name="description_edit_help_about_title">A prepaus</string>
-  <string name="description_edit_help_tips_examples">Per exemple :</string>
-  <string name="description_edit_help_more_info">Mai d’informacions</string>
 </resources>

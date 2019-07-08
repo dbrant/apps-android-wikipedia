@@ -5,9 +5,10 @@ import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -16,7 +17,6 @@ import org.wikipedia.WikipediaApp;
 import org.wikipedia.json.GsonMarshaller;
 import org.wikipedia.json.GsonUnmarshaller;
 import org.wikipedia.login.LoginResult;
-import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.log.L;
 
 import java.util.Collections;
@@ -108,7 +108,6 @@ public final class AccountUtil {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 accountManager().removeAccountExplicitly(account);
             } else {
-                //noinspection deprecation
                 accountManager().removeAccount(account, null, null);
             }
         }
@@ -129,24 +128,6 @@ public final class AccountUtil {
             L.logRemoteErrorIfProd(e);
         }
         return null;
-    }
-
-    public static void migrateAccountFromSharedPrefs() {
-        if (Prefs.hasLoginUsername() || Prefs.hasLoginPassword()) {
-            if (!TextUtils.isEmpty(Prefs.getLoginUsername())
-                    && !TextUtils.isEmpty(Prefs.getLoginPassword())) {
-                createAccount(Prefs.getLoginUsername(), Prefs.getLoginPassword());
-            }
-            setUserIds(Prefs.getLoginUserIds());
-            if (Prefs.getLoginGroups() != null) {
-                setGroups(Prefs.getLoginGroups());
-            }
-
-            Prefs.removeLoginUsername();
-            Prefs.removeLoginPassword();
-            Prefs.removeLoginUserIds();
-            Prefs.removeLoginGroups();
-        }
     }
 
     @NonNull

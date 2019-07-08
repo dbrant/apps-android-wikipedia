@@ -1,9 +1,4 @@
-/* --- Wikimedia Page Library CSS bundle --- */
-
-
-/* --- CSS from '/src/transform/ThemeTransform.css' --- */ 
-
- /*
+/*
 The styles referred to as 'baseline' in the comments below are critical because they ensure
 a theme colors are more universally applied even by elements colored via inline styles. These are
 particularly difficult to theme otherwise. We can build on top of, so to speak, these baseline
@@ -32,6 +27,10 @@ styles with only the things which need tweaking.
   color: #36c;
 }
 
+.pagelib_theme_div_do_not_apply_baseline {
+  color: #000;
+}
+
 /* external anchor */
 .pagelib_theme_dark a.external,
 .pagelib_theme_sepia a.external,
@@ -41,21 +40,21 @@ styles with only the things which need tweaking.
 
 /* baseline table */
 .pagelib_theme_dark .content table,
-.pagelib_theme_dark .content td,
+.pagelib_theme_dark .content td:not(.pagelib_theme_div_do_not_apply_baseline),
 .pagelib_theme_dark .content tr,
 .pagelib_theme_dark .content th {
   background: #27292d !important;
   color: #f8f9fa !important;
 }
 .pagelib_theme_sepia .content table,
-.pagelib_theme_sepia .content td,
+.pagelib_theme_sepia .content td:not(.pagelib_theme_div_do_not_apply_baseline),
 .pagelib_theme_sepia .content tr,
 .pagelib_theme_sepia .content th {
   background: #f0e6d6 !important;
   color: #222 !important;
 }
 .pagelib_theme_black .content table,
-.pagelib_theme_black .content td,
+.pagelib_theme_black .content td:not(.pagelib_theme_div_do_not_apply_baseline),
 .pagelib_theme_black .content tr,
 .pagelib_theme_black .content th {
   background: #222 !important;
@@ -89,13 +88,13 @@ styles with only the things which need tweaking.
 }
 
 /* baseline border color */
-.pagelib_theme_dark .content * {
+.pagelib_theme_dark .content :not(.pagelib_theme_div_do_not_apply_baseline) {
   border-color: #43464a !important;
 }
-.pagelib_theme_sepia .content * {
+.pagelib_theme_sepia .content :not(.pagelib_theme_div_do_not_apply_baseline) {
   border-color: #cbc8c1 !important;
 }
-.pagelib_theme_black .content * {
+.pagelib_theme_black .content :not(.pagelib_theme_div_do_not_apply_baseline) {
   border-color: #43464a !important;
 }
 
@@ -192,6 +191,11 @@ styles with only the things which need tweaking.
 .pagelib_theme_black .content code.mw-highlight,
 .pagelib_theme_black .content div.mw-highlight {
   background: #000;
+}
+
+.pagelib_theme_dark table.BarChartTemplate span.nowrap,
+.pagelib_theme_black table.BarChartTemplate span.nowrap {
+  color: #222 !important;
 }
 
 /* 'mw-highlight' colors for dark background */
@@ -425,13 +429,7 @@ styles with only the things which need tweaking.
 .pagelib_theme_sepia .content .mw-highlight span.vm { color: #00688B } /* Name.Variable.Magic */
 .pagelib_theme_sepia .content .mw-highlight span.il { color: #B452CD } /* Literal.Number.Integer.Long */
 
-
-
-
-
-/* --- CSS from '/src/transform/CollapseTable.css' --- */ 
-
- /* Examples:
+/* Examples:
   - Barack Obama's collapsed infobox:
 
     <div class=pagelib_collapse_table_container>
@@ -510,6 +508,7 @@ styles with only the things which need tweaking.
 table.infobox caption {
   text-align: center;
   font-weight: bold;
+  padding: 10px 10px 0px 10px;
 }
 
 div.pagelib_collapse_table_container {
@@ -606,33 +605,72 @@ div.pagelib_collapse_table_container {
   box-sizing: border-box;
 }
 
-
-
-
-/* --- CSS from '/src/transform/DimImagesTransform.css' --- */ 
-
- .pagelib_dim_images img {
-  opacity: 0.65;
+/* Avoid infobox too narrow issue, see https://phabricator.wikimedia.org/T201381,
+   undoing some of https://gerrit.wikimedia.org/r/c/mediawiki/skins/MinervaNeue/+/428868
+   but only for tables we collapse. */
+.pagelib_collapse_table_container table {
+    display: block;
+    width: 100% !important;
+    height: initial !important;
 }
 
+/* Fix for upstream CSS landscape tablet layout interfering with collapsible table width. */
+@media all and (min-width:720px) {
+  table.infobox {
+    margin: initial;
+    max-width: initial;
+    float: initial;
+  }
+}
 
+.pagelib_dim_images img {
+  opacity: 0.65;
+}
+.pagelib_edit_section_header {
+  display: flex;
+  align-items: flex-end;
+}
 
+.pagelib_edit_section_title {
+  flex: 1;
+}
 
-/* --- CSS from '/src/transform/EditTransform.css' --- */ 
+#pagelib_edit_section_title_pronunciation {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAdhwAAHYcBj+XxZQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAI4SURBVGiB7Zm/ThRRFIc/SZYYCleRhGBlCEFjoq0J/kEDlRieAAqfwvbUxsYnUKMvIUowsEgwVNhAqEysLIwW0gA7FpMJcDhn7+7s/DPMl2xx795z8/1m9t7JnYWampqa88Yz4GrZEv0QAYfAMjBfsksQMfoi9dkEHhfo1DVCLKjRASKgDbwCBouSCyEcy2la2CEiYJ0KrA/htJTFTeAN8ZXXIbaAZt6SHmIIdeIusGvUtICLuVk6iCESCgBwBfhg1L3MxdJBDIFuAwA0gCVVdwRMZy1qIfjyVoALzjxNYEfVfuswPhOEzvJWgFVg0pnvPvGVP1k/l6nxCYSwvPcc+AM8dOZ9reo/pxXsRi5tgCSEdSduc3p7bQPXqhgg2S4t1tS4RU9yoLdMmXMPmDX6l1R7xpug7AAAC0bfqmrf8IqrEGDK6Puu2qNpJi5iDUTAvjFmSI3560lW4Q5YIbVX2yuuQoAfRt+Iav/0iqsQ4IvRd121Kx3gvdGnn9K7aSYuYhHr7TJBn9qsrbb0AL+BCeP7O6q+DYylCRBCSB/gF/b+D/BW1a9kKa0Reg+wDIw78z3g7Dn5SabGBkJvATwuc/ZAs03OB5qE5/QXYBD4qOqOiO9IYQjpAgwDn4y6F7lYBhBDpBNTwJ5Rs0YJr1UShHCAW8A77BdbX4FLuVsGEPwA69g/teTBNlyMYphkYWss8eTlbqMwuy4Ro0/LbwCPilPqnwg4IN42n5bskor//i+mmpqammP+AebGbBiuYyfiAAAAAElFTkSuQmCC");
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: .54;
+  margin: auto 0.35em 0.1em 0.35em;
+  display: inline-block;
+  background-size: contain;
+  width: 0.8em;
+  height: 0.8em;
+  vertical-align: middle;
+}
 
- #mainpage a.pagelib_edit_section_link,
+html[dir="rtl"] #pagelib_edit_section_title_pronunciation {
+  -webkit-transform: scaleX( -1 );
+  transform: scaleX( -1 );
+}
+
+#mainpage a.pagelib_edit_section_link,
 .no-editing a.pagelib_edit_section_link {
   display: none;
 }
 
 .pagelib_edit_section_link_container {
-  margin: 2px 8px;
-  float: right;
+  margin: 0px 0px 0px 16px;
   opacity: .54;
 }
 
+h2 + .pagelib_edit_section_link_container {
+	margin-bottom: 8px;
+}
+
 .pagelib_theme_dark .pagelib_edit_section_link_container,
-.pagelib_theme_black .pagelib_edit_section_link_container {
+.pagelib_theme_black .pagelib_edit_section_link_container,
+.pagelib_theme_dark #pagelib_edit_section_title_pronunciation,
+.pagelib_theme_black #pagelib_edit_section_title_pronunciation {
   opacity: .7;
   -webkit-filter: invert(100%);
   filter: invert(100%);
@@ -644,22 +682,23 @@ div.pagelib_collapse_table_container {
   filter: none;
 }
 
-.pagelib_theme_sepia .pagelib_edit_section_link_container {
+.pagelib_theme_sepia .pagelib_edit_section_link_container,
+.pagelib_theme_sepia #pagelib_edit_section_title_pronunciation {
   opacity: .7;
 }
 
 .content-rtl .pagelib_edit_section_link_container {
-  float: left;
   -webkit-transform: scaleX( -1 );
   transform: scaleX( -1 );
+  margin: 0px 16px 0px 0px;
 }
 
 a.pagelib_edit_section_link {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: inline-block;
-  background-size: 28px 28px;
+  background-size: 24px 24px;
   background-repeat: no-repeat;
 
   background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgPGRlZnM+CiAgICA8cGF0aCBpZD0iYSIgZD0iTTMsMTcuMjQ3NSBMMywyMC45OTc1IEw2Ljc1LDIwLjk5NzUgTDE3LjgxNSw5LjkzMjUgTDE0LjA2NSw2LjE4MjUgTDMsMTcuMjQ3NSBaIE0yMC43MDUsNy4wNDI1IEMyMS4wOTUsNi42NTI1IDIxLjA5NSw2LjAxNzUgMjAuNzA1LDUuNjI3NSBMMTguMzcsMy4yOTI1IEMxNy45OCwyLjkwMjUgMTcuMzQ1LDIuOTAyNSAxNi45NTUsMy4yOTI1IEwxNS4xMjUsNS4xMjI1IEwxOC44NzUsOC44NzI1IEwyMC43MDUsNy4wNDI1IFoiLz4KICA8L2RlZnM+CiAgPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgIDx1c2UgZmlsbD0iIzAwMDAwMCIgeGxpbms6aHJlZj0iI2EiLz4KICA8L2c+Cjwvc3ZnPgo=);
@@ -709,46 +748,64 @@ a.pagelib_edit_section_link {
   background-color: #111;
 }
 
-.pagelib_platform_ios h3.section_heading span.pagelib_edit_section_link_container,
-.pagelib_platform_ios h4.section_heading span.pagelib_edit_section_link_container,
-.pagelib_platform_ios h5.section_heading span.pagelib_edit_section_link_container,
-.pagelib_platform_ios h6.section_heading span.pagelib_edit_section_link_container {
+.pagelib_platform_ios h3.pagelib_edit_section_title + span.pagelib_edit_section_link_container,
+.pagelib_platform_ios h4.pagelib_edit_section_title + span.pagelib_edit_section_link_container,
+.pagelib_platform_ios h5.pagelib_edit_section_title + span.pagelib_edit_section_link_container,
+.pagelib_platform_ios h6.pagelib_edit_section_title + span.pagelib_edit_section_link_container {
     display: none;
 }
 
-
-
-
-
-/* --- CSS from '/src/transform/FooterContainer.css' --- */ 
-
- .pagelib_footer_container {
-  background-color: #eaecf0;
+/* Wikidata description styling */
+#pagelib_edit_section_title_description {
+    font-size: 14px;
+    line-height: 22px;
+    color: #777D84;
+    margin-top: 3px;
+    margin-bottom: 5px;
+    padding-bottom: 0px;
 }
 
-.pagelib_theme_dark .pagelib_footer_container {
-  background-color: #222;
+#pagelib_edit_section_add_title_description {
+    font-size: 14px;
+    font-style: italic;
+    display: inline;
 }
 
-.pagelib_theme_sepia .pagelib_footer_container {
-  background-color: #e1dad1;
+#pagelib_edit_section_add_title_description:before {
+    content: "";
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAMCAYAAAADFL+5AAAAAXNSR0IArs4c6QAAADFJREFUOBFjNE47859hAAHTANoNtnrUAQMdA6P2D3wIMFK7HDg7y4SRFG+NZsMBDwEAJj8Gc0QaQK8AAAAASUVORK5CYII=');
+    background-repeat: no-repeat;
+    width: 1.8em;
+    height: 0.75em;
+    background-size: 1.0em 0.375em;
+    display: inline-block;
+    background-position: left center;
 }
 
-.pagelib_theme_black .pagelib_footer_container {
-  background-color: #101418;
+html[dir="rtl"] #pagelib_edit_section_add_title_description:before {
+    -webkit-transform: scaleX( -1 );
+    transform: scaleX(-1);
 }
 
-.pagelib_footer_container_heading {
-  padding-top: 35px;
-  font-size: 0.95em;
-  line-height: 1.6;
+/* Horizontal divider between title/description and lead section text */
+#pagelib_edit_section_divider {
+    border: 1px solid #ccc;
+    margin: 12px 0px 16px 0px;
+    width: 60px;
 }
 
-#pagelib_footer_container_readmore_pages {
+@media (-webkit-min-device-pixel-ratio: 2) {
+    #pagelib_edit_section_divider {
+        border-width: 0.5px;
+    }
 }
 
-#pagelib_footer_container_menu_heading {
-  margin-bottom: 10px;
+.pagelib_footer_section {
+  padding-bottom: 1.5em;
+}
+
+.pagelib_footer_section a:hover {
+  text-decoration: none;
 }
 
 #pagelib_footer_container_menu_items {
@@ -767,13 +824,7 @@ a.pagelib_edit_section_link {
   background-color: #cbc8c1;
 }
 
-
-
-
-
-/* --- CSS from '/src/transform/FooterLegal.css' --- */ 
-
- .pagelib_footer_legal_contents {
+.pagelib_footer_legal_contents {
   margin-top: 27px;
   padding-top: 23px;
   padding-bottom: 27px;
@@ -844,13 +895,7 @@ html[dir='rtl'] .pagelib_footer_legal_contents,
 .pagelib_theme_sepia .pagelib_footer_legal_divider {
   background-color: #cbc8c1;
 }
-
-
-
-
-/* --- CSS from '/src/transform/FooterMenu.css' --- */ 
-
- .pagelib_footer_menu_item {
+.pagelib_footer_menu_item {
   padding: 10px;
   background-size: 40px 40px;
   background-repeat: no-repeat;
@@ -871,11 +916,13 @@ html[dir='rtl'] .pagelib_footer_legal_contents,
   background-color: #222;
 }
 
-html[dir='ltr'] .pagelib_footer_menu_item {
+html[dir='ltr'] .pagelib_footer_menu_item,
+body[dir='ltr'] .pagelib_footer_menu_item {
   background-position: left center;
 }
 
-html[dir='rtl'] .pagelib_footer_menu_item {
+html[dir='rtl'] .pagelib_footer_menu_item,
+body[dir='rtl'] .pagelib_footer_menu_item {
   background-position: right center;
 }
 
@@ -889,11 +936,13 @@ html[dir='rtl'] .pagelib_footer_menu_item {
   color: #f8f9fa;
 }
 
-html[dir='ltr'] .pagelib_footer_menu_item_title {
+html[dir='ltr'] .pagelib_footer_menu_item_title,
+body[dir='ltr'] .pagelib_footer_menu_item_title {
   padding-left: 50px;
 }
 
-html[dir='rtl'] .pagelib_footer_menu_item_title {
+html[dir='rtl'] .pagelib_footer_menu_item_title,
+body[dir='rtl'] .pagelib_footer_menu_item_title {
   padding-right: 50px;
 }
 
@@ -907,11 +956,13 @@ html[dir='rtl'] .pagelib_footer_menu_item_title {
   color: #7c776e;
 }
 
-html[dir='ltr'] .pagelib_footer_menu_item_subtitle {
+html[dir='ltr'] .pagelib_footer_menu_item_subtitle,
+body[dir='ltr'] .pagelib_footer_menu_item_subtitle {
   padding-left: 50px;
 }
 
-html[dir='rtl'] .pagelib_footer_menu_item_subtitle {
+html[dir='rtl'] .pagelib_footer_menu_item_subtitle,
+body[dir='rtl'] .pagelib_footer_menu_item_subtitle {
   padding-right: 50px;
 }
 
@@ -993,13 +1044,7 @@ html[dir='rtl'] .pagelib_footer_menu_item_subtitle {
   background-image: url('data:image/png;base64,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');
 }
 
-
-
-
-
-/* --- CSS from '/src/transform/FooterReadMore.css' --- */ 
-
- .pagelib_footer_readmore_page {
+.pagelib_footer_readmore_page {
   background-color: white;
   padding: 11px 10px;
   margin-top: 10px;
@@ -1026,10 +1071,6 @@ html[dir='rtl'] .pagelib_footer_menu_item_subtitle {
 }
 
 .pagelib_footer_readmore_page_container {
-}
-
-.pagelib_platform_android #pagelib_footer_container_readmore_heading {
-  font-size: 24px;
 }
 
 .pagelib_footer_readmore_page_title {
@@ -1104,6 +1145,7 @@ html[dir='rtl'] .pagelib_footer_menu_item_subtitle {
 }
 
 html[dir='rtl'] .pagelib_footer_readmore_page_save,
+body[dir='rtl'] .pagelib_footer_readmore_page_save,
 .content-rtl .pagelib_footer_readmore_page_save {
   background-position: right center;
 }
@@ -1123,19 +1165,14 @@ html[dir='rtl'] .pagelib_footer_readmore_page_save,
 }
 
 html[dir='rtl'] .pagelib_footer_readmore_page_image,
+body[dir='rtl'] .pagelib_footer_readmore_page_image
 .content-rtl .pagelib_footer_readmore_page_image {
   float: left;
   margin-right: 8px;
   margin-left: 0px;
 }
 
-
-
-
-
-/* --- CSS from '/src/transform/LazyLoadTransform.css' --- */ 
-
- /* Transform lifecycle:
+/* Transform lifecycle:
 
 - Original:
     <img class=foo style='width: 100px; height: 200px' width=3 height=4 src=/ srcset=/ alt=bar>
@@ -1262,13 +1299,7 @@ html[dir='rtl'] .pagelib_footer_readmore_page_image,
 @keyframes pagelib_lazy_load_image_fade_in {
   from { opacity: 0; } to { opacity: 1; }
 }
-
-
-
-
-/* --- CSS from '/src/transform/WidenImage.css' --- */ 
-
- .pagelib_widen_image_override {
+.pagelib_widen_image_override {
   /* Center images. */
   display: block;
   margin-left: auto;
@@ -1316,6 +1347,11 @@ html[dir='rtl'] .pagelib_footer_readmore_page_image,
 .thumbinner, .gallerytext {
   text-align: center;
 }
+.content .thumb.tright,
+.content .thumb.tleft,
+.content figure.mw-default-size {
+  float: none;
+}
 
 /* Parsoid: center text beneath images now that images are centered. */
 figcaption {
@@ -1334,3 +1370,13 @@ li.gallerybox div.thumb > div {
 div.gallerytext > p {
   margin-top: 0px !important;
 }
+/*
+Fix for upstream change: https://gerrit.wikimedia.org/r/#/c/mediawiki/skins/MinervaNeue/+/494374/3/resources/skins.minerva.content.styles/lists.less
+Which caused this clipping: https://phabricator.wikimedia.org/T150377#5019102
+*/
+.content ol {
+  list-style: decimal inside;
+  padding: 0;
+}
+
+/*# sourceMappingURL=wikimedia-page-library-transform.css.map*/

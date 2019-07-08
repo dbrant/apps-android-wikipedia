@@ -6,8 +6,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
 
 import org.wikipedia.database.column.Column;
 import org.wikipedia.util.ArrayUtils;
@@ -65,7 +66,7 @@ public abstract class DatabaseTable<T> {
      * replaced with "IS NULL" in getPrimaryKeySelection(T obj, String[] selectionKeys).)
      */
     public String[] getPrimaryKeySelectionArgs(@NonNull T obj) {
-        return ArrayUtils.removeAllOccurences(getUnfilteredPrimaryKeySelectionArgs(obj), null);
+        return ArrayUtils.removeAllOccurrences(getUnfilteredPrimaryKeySelectionArgs(obj), null);
     }
 
     /**

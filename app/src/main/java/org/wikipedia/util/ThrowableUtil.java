@@ -1,8 +1,9 @@
 package org.wikipedia.util;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONException;
 import org.wikipedia.R;
@@ -22,7 +23,7 @@ public final class ThrowableUtil {
 
     // TODO: replace with Apache Commons Lang ExceptionUtils.
     @NonNull
-    private static Throwable getInnermostThrowable(@NonNull Throwable e) {
+    public static Throwable getInnermostThrowable(@NonNull Throwable e) {
         Throwable t = e;
         while (t.getCause() != null) {
             t = t.getCause();
@@ -34,7 +35,7 @@ public final class ThrowableUtil {
     private static boolean throwableContainsException(@NonNull Throwable e, Class<?> exClass) {
         Throwable t = e;
         while (t != null) {
-            if (t.getClass().equals(exClass)) {
+            if (exClass.isInstance(t)) {
                 return true;
             }
             t = t.getCause();
@@ -86,9 +87,8 @@ public final class ThrowableUtil {
         return caught instanceof HttpStatusException && ((HttpStatusException) caught).code() == 404;
     }
 
-    private static boolean isNetworkError(@NonNull Throwable e) {
-        return ThrowableUtil.throwableContainsException(e, HttpStatusException.class)
-                || ThrowableUtil.throwableContainsException(e, UnknownHostException.class)
+    public static boolean isNetworkError(@NonNull Throwable e) {
+        return ThrowableUtil.throwableContainsException(e, UnknownHostException.class)
                 || ThrowableUtil.throwableContainsException(e, TimeoutException.class)
                 || ThrowableUtil.throwableContainsException(e, SSLException.class);
     }

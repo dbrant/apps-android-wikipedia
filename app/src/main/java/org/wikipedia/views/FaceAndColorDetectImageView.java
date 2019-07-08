@@ -3,11 +3,12 @@ package org.wikipedia.views;
 import android.content.Context;
 import android.graphics.PointF;
 import android.net.Uri;
-import android.support.annotation.ColorInt;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.interfaces.DraweeController;
@@ -66,16 +67,18 @@ public class FaceAndColorDetectImageView extends SimpleDraweeView {
     private class DefaultListener implements OnImageLoadListener {
         @Override
         public void onImageLoaded(int bmpHeight, @Nullable final PointF faceLocation, @ColorInt int mainColor) {
-            post(() -> {
-                if (faceLocation != null) {
-                    getHierarchy().setActualImageFocusPoint(faceLocation);
-                }
-            });
+            if (isAttachedToWindow() && faceLocation != null) {
+                post(() -> {
+                    if (isAttachedToWindow()) {
+                        getHierarchy().setActualImageFocusPoint(faceLocation);
+                    }
+                });
+            }
         }
 
         @Override
         public void onImageFailed() {
-            post(() -> setActualImageResource(R.drawable.lead_default));
+            setActualImageResource(R.drawable.lead_default);
         }
     }
 }

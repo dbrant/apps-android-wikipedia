@@ -1,6 +1,6 @@
 package org.wikipedia.analytics;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
 import org.wikipedia.WikipediaApp;
@@ -9,7 +9,7 @@ import org.wikipedia.util.ReleaseUtil;
 
 public class PageScrollFunnel extends TimedFunnel {
     private static final String SCHEMA_NAME = "MobileWikiAppPageScroll";
-    private static final int REV_ID = 14591606;
+    private static final int REV_ID = 18118723;
 
     private final int pageId;
     private int viewportHeight;

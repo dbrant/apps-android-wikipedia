@@ -1,6 +1,6 @@
 package org.wikipedia.feed.aggregated;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -12,7 +12,7 @@ import org.wikipedia.feed.onthisday.OnThisDay;
 
 import java.util.List;
 
-class AggregatedFeedContent {
+public class AggregatedFeedContent {
     @SuppressWarnings("unused") @Nullable private RbPageSummary tfa;
     @SuppressWarnings("unused") @Nullable private List<NewsItem> news;
     @SuppressWarnings("unused") @SerializedName("mostread") @Nullable private MostReadArticles mostRead;
@@ -25,7 +25,7 @@ class AggregatedFeedContent {
     }
 
     @Nullable
-    RbPageSummary tfa() {
+    public RbPageSummary tfa() {
         return tfa;
     }
 

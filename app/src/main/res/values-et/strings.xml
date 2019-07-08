@@ -15,8 +15,7 @@
   <string name="last_updated_text">Viimati uuendatud %s</string>
   <string name="content_license_html">Sisu on kasutatav vastavalt litsentsile &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt;, kui ei ole märgitud teisiti.</string>
   <string name="preference_title_language">Vikipeedia keel</string>
-  <string name="preference_languages_filter_hint">Otsi</string>
-  <string name="langlinks_filter_hint">Otsi</string>
+    <string name="langlinks_filter_hint">Otsi</string>
   <string name="langlinks_empty">See lehekülg ei ole teistes keeltes saadaval</string>
   <string name="langlinks_activity_title">Teised keeled</string>
   <string name="menu_save_changes">Salvesta muudatused</string>
@@ -52,19 +51,7 @@
   <string name="create_account_next">Edasi</string>
   <string name="create_account_button">Loo konto</string>
   <string name="preferences_general_heading">Üldine</string>
-  <string name="zero_charged_verbiage">Wikipedia Zero välja lülitatud</string>
-  <string name="zero_warn_when_leaving">Hoiata, kui lahkun Wikipedia Zerost</string>
-  <string name="zero_warn_when_leaving_summary">Kui su mobiilioperaator loobub Vikipeedia rakenduse andmesidetasudest Wikipedia Zero partnerluse kaudu, siis selle seade sisselülitamine annab sulle teada, kui lahkud Vikipeedia rakendusest ja sinu edasine tegevus võib olla tasuline.</string>
-  <string name="zero_webpage_title">Wikipedia Zero KKK</string>
-  <string name="zero_wikipedia_zero_heading">Wikipedia Zero</string>
-  <string name="zero_interstitial_title">Lahkumine Wikipedia Zerost</string>
-  <string name="zero_interstitial_leave_app">Andmesidetasud võivad rakenduda. Kas soovid jätkuvalt siirduda välisele leheküljele?</string>
-  <string name="zero_interstitial_continue">Lahku</string>
-  <string name="zero_interstitial_cancel">Jää siia!</string>
-  <string name="zero_learn_more">Sellele Vikipeedia rakendusele ei rakendu andmesidetasud.</string>
-  <string name="zero_learn_more_learn_more">Loe edasi</string>
-  <string name="zero_learn_more_dismiss">Hülga</string>
-  <string name="edit_preview_fetching_dialog_message">Eelvaate laadimine…</string>
+    <string name="edit_preview_fetching_dialog_message">Eelvaate laadimine…</string>
   <string name="send_feedback">Saada tagasisidet rakenduse kohta</string>
   <string name="create_account_account_created_toast">Konto loodud!</string>
   <string name="preference_title_eventlogging_opt_in">Saada kasutusaruanded</string>
@@ -81,7 +68,7 @@
   <string name="about_description">Teave Vikipeedia rakenduse kohta</string>
   <string name="about_libraries_heading" fuzzy="true">kasutatud raamatukogud</string>
   <string name="about_contributors_heading" fuzzy="true">kaastöölised</string>
-  <string name="about_wmf">&lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt;Wikimedia Foundationi&lt;/a&gt; toode</string>
+  <string name="about_wmf">&lt;a href=\"https://wikimediafoundation.org/\"&gt;Wikimedia Foundationi&lt;/a&gt; toode</string>
   <string name="about_activity_title">Teave</string>
   <string name="edit_abandon_confirm">Lehekülg on muudetud. Kas oled kindel, et soovid väljuda muudatusi salvestamata?</string>
   <string name="user_blocked_from_editing_title">Tõkestatud</string>

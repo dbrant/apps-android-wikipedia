@@ -1,23 +1,32 @@
 package org.wikipedia.util;
 
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.SpannedString;
 import android.text.TextUtils;
-import android.text.style.StyleSpan;
 import android.text.style.TypefaceSpan;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.google.gson.Gson;
+
+import org.json.JSONArray;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.Collator;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public final class StringUtil {
     private static final String CSV_DELIMITER = ",";
@@ -109,6 +118,18 @@ public final class StringUtil {
         return text.substring(0, text.indexOf("#"));
     }
 
+    public static String removeNamespace(@NonNull String text) {
+        if (text.length() > text.indexOf(":")) {
+            return text.substring(text.indexOf(":") + 1, text.length());
+        } else {
+            return text;
+        }
+    }
+
+    public static String removeHTMLTags(@NonNull String text) {
+        return fromHtml(text).toString();
+    }
+
     public static String sanitizeText(@NonNull String selectedText) {
         return selectedText.replaceAll("\\[\\d+\\]", "") // [1]
                 // https://en.wikipedia.org/wiki/Phonetic_symbols_in_Unicode
@@ -138,13 +159,14 @@ public final class StringUtil {
         if (source == null) {
             return new SpannedString("");
         }
-        if (!source.contains("<") && !source.contains("&#")) {
-            // If the string doesn't contain any hints of HTML tags, then skip the expensive
+        if (!source.contains("<") && !source.contains("&")) {
+            // If the string doesn't contain any hints of HTML entities, then skip the expensive
             // processing that fromHtml() performs.
             return new SpannedString(source);
         }
         source = source.replaceAll("&#8206;", "\u200E")
-                .replaceAll("&#8207;", "\u200F");
+                .replaceAll("&#8207;", "\u200F")
+                .replaceAll("&amp;", "&");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return Html.fromHtml(source, Html.FROM_HTML_MODE_LEGACY);
         } else {
@@ -159,14 +181,84 @@ public final class StringUtil {
         for (String subString : subStrings) {
             int index = text.toLowerCase().indexOf(subString.toLowerCase());
             if (index != -1) {
-                sb.setSpan(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-                        ? new TypefaceSpan("sans-serif-medium")
-                        : new StyleSpan(android.graphics.Typeface.BOLD),
+                sb.setSpan(new TypefaceSpan("sans-serif-medium"),
                         index, index + subString.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
             }
         }
         return sb;
     }
 
-    private StringUtil() { }
+    public static void highlightEditText(@NonNull EditText editText, @NonNull String parentText, @NonNull String highlightText) {
+        String[] words = highlightText.split("\\s+");
+        int pos = 0;
+        for (String word : words) {
+            pos = parentText.indexOf(word, pos);
+            if (pos == -1) {
+                break;
+            }
+        }
+        if (pos == -1) {
+            pos = parentText.indexOf(words[words.length - 1]);
+        }
+        if (pos >= 0) {
+            // TODO: Programmatic selection doesn't seem to work with RTL content...
+            editText.setSelection(pos, pos + words[words.length - 1].length());
+            editText.performLongClick();
+        }
+    }
+
+    public static void boldenKeywordText(@NonNull TextView textView, @NonNull String parentText, @Nullable String searchQuery) {
+        int startIndex = indexOf(parentText, searchQuery);
+        if (startIndex >= 0) {
+            parentText = parentText.substring(0, startIndex)
+                    + "<strong>"
+                    + parentText.substring(startIndex, startIndex + searchQuery.length())
+                    + "</strong>"
+                    + parentText.substring(startIndex + searchQuery.length());
+            textView.setText(StringUtil.fromHtml(parentText));
+        } else {
+            textView.setText(parentText);
+        }
+    }
+
+    // case insensitive indexOf, also more lenient with similar chars, like chars with accents
+    private static int indexOf(@NonNull String original, @Nullable String search) {
+        if (!TextUtils.isEmpty(search)) {
+            Collator collator = Collator.getInstance();
+            collator.setStrength(Collator.PRIMARY);
+            for (int i = 0; i <= original.length() - search.length(); i++) {
+                if (collator.equals(search, original.substring(i, i + search.length()))) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    @NonNull
+    public static String getBase26String(@IntRange(from = 1) int number) {
+        final int base = 26;
+        String str = "";
+        while (--number >= 0) {
+            str = (char)('A' + number % base) + str;
+            number /= base;
+        }
+        return str;
+    }
+
+    @NonNull
+    public static String listToJsonArrayString(@NonNull List<String> list) {
+        return new JSONArray(list).toString();
+    }
+
+    public static String stringToListMapToJSONString(@Nullable Map<String, List<Integer>> map) {
+        return new Gson().toJson(map);
+    }
+
+    public static String listToJSONString(@Nullable List<Integer> list) {
+        return new Gson().toJson(list);
+    }
+
+    private StringUtil() {
+    }
 }

@@ -1,11 +1,12 @@
 package org.wikipedia.edit;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.google.gson.stream.MalformedJsonException;
 
 import org.junit.Test;
 import org.wikipedia.captcha.CaptchaResult;
+import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.mwapi.MwException;
 import org.wikipedia.dataclient.okhttp.HttpStatusException;
@@ -79,7 +80,7 @@ public class EditClientTest extends MockWebServerTest {
         Call<Edit> call = request(cb, true);
 
         server().takeRequest();
-        assertCallbackFailure(call, cb, UserNotLoggedInException.class);
+        assertCallbackFailure(call, cb, MwException.class);
     }
 
     @Test public void testRequestResponseGenericApiError() throws Throwable {
@@ -113,7 +114,7 @@ public class EditClientTest extends MockWebServerTest {
     }
 
     @Test public void testRequestResponseMalformed() throws Throwable {
-        server().enqueue("(-(-_(-_-)_-)-)");
+        enqueueMalformed();
 
         EditClient.Callback cb = mock(EditClient.Callback.class);
         Call<Edit> call = request(cb, false);
@@ -140,7 +141,7 @@ public class EditClientTest extends MockWebServerTest {
 
     private Call<Edit> request(@NonNull EditClient.Callback cb, boolean loggedIn) {
         PageTitle title = new PageTitle(null, "TEST", WikiSite.forLanguageCode("test"));
-        return subject.request(service(EditClient.Service.class), title, 0, "new text", "token",
-                "summary", loggedIn, "captchaId", "captchaSubmission", cb);
+        return subject.request(service(Service.class), title, 0, "new text", "token",
+                "summary", null, loggedIn, "captchaId", "captchaSubmission", cb);
     }
 }

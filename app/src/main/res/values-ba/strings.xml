@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Authors:
+* Envlh
+* Lizalizaufa
+* Patriccck
+* Sagan
+* Азат Хәлилов
+* Айсар
+* Ансар
+* Гизатуллина
+* Кутлубаева Кунсулу Закиевна
+* Ләйсән
+* Мухамадеева
+* Рустам Нурыев
+* Янмурза Баки
+-->
 <resources>
   <string name="app_name_prod">Википедия</string>
-  <string name="app_name_beta">Википедия (бета)</string>
-  <string name="app_name_alpha">Википедия (альфа)</string>
+  <string name="app_name_beta">Википедия бета</string>
+  <string name="app_name_alpha">Википедия альфа</string>
   <string name="wikimedia">Викимедиа</string>
   <string name="search_hint">Википедияла эҙләү</string>
   <string name="nav_item_history">Тарих</string>
@@ -17,7 +32,6 @@
   <string name="menu_page_show_tabs">Ҡушымтаны күрһәтергә</string>
   <string name="menu_page_other_languages">Телде һайларға</string>
   <string name="menu_page_find_in_page">Был биттә эҙләргә</string>
-  <string name="menu_page_content_issues">Һорауҙар йөкмәткеһе</string>
   <string name="menu_page_font_and_theme">Шрифты һәм биҙәлеште үҙгәртергә</string>
   <string name="menu_page_add_to_list">Уҡыу исемлегенә өҫтәргә</string>
   <string name="menu_page_share">Һылтанма менән бүлешергә</string>
@@ -31,15 +45,14 @@
   <string name="nav_item_nearby">Эргәлә</string>
   <string name="nearby_zoom_to_location">Картала урынды күрһәтергә</string>
   <string name="last_updated_text">Һуңғы яңыртыу %s</string>
-  <string name="talk_page_link_text">Әңгәмә</string>
+  <string name="talk_page_link_text" fuzzy="true">Әңгәмә</string>
   <string name="content_license_html">Эстәлек &lt;a href=\"%1$s\"&gt;CC BY-SA 3.0&lt;/a&gt; лицензияһына ярашлы ҡулланыла</string>
-  <string name="edit_save_action_license_logged_in">Үҙгәртеүҙәрҙе һаҡлап, һеҙ &lt;a href=\"%1$s\" &gt;&lt;/a&gt;, шулай уҡ ошо лицензия буйынса, кире алынмай торған баҫтырыуға ризалыҡ бирәһегеҙ&lt;a href=\"%2$s\"&gt;CC-BY-SA 3.0&lt;/a&gt;.</string>
-  <string name="edit_save_action_license_anon">Үҙгәрештәрҙе һаҡлап, һеҙ &lt;a href=\"%1$s\"&gt; &lt;/a&gt; менән килешәһегеҙ, шулай уҡ &lt;a href=\"%2$s\"&gt;CC-BY-SA 3.0&lt;/a&gt; лицензияһы буйынса баҫманы кире таптырып алмаҫҡа ризалашаһығыҙ. Төҙәтмәләр һеҙҙең ҡоролманың IP-адресына бәйләнәсәк. Әгәр ҙә &lt;a href=\"https://#login\"&gt;танылһағыҙ&lt;/a&gt;, сер һаҡлауҙың юғары кимәле менән ҡуллана алаһығыҙ.</string>
-  <string name="preference_title_language">Википедия теле</string>
-  <string name="preference_languages_filter_hint">Эҙләү</string>
+  <string name="edit_save_action_license_logged_in" fuzzy="true">Үҙгәртеүҙәрҙе һаҡлап, һеҙ &lt;a href=\"%1$s\" &gt;&lt;/a&gt;, шулай уҡ ошо лицензия буйынса, кире алынмай торған баҫтырыуға ризалыҡ бирәһегеҙ&lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt;.</string>
+  <string name="edit_save_action_license_anon" fuzzy="true">Үҙгәрештәрҙе һаҡлап, һеҙ &lt;a href=\"%1$s\"&gt; &lt;/a&gt; менән килешәһегеҙ, шулай уҡ &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; лицензияһы буйынса баҫманы кире таптырып алмаҫҡа ризалашаһығыҙ. Төҙәтмәләр һеҙҙең ҡоролманың IP-адресына бәйләнәсәк. Әгәр ҙә &lt;a href=\"https://#login\"&gt;танылһағыҙ&lt;/a&gt;, сер һаҡлауҙың юғары кимәле менән ҡуллана алаһығыҙ.</string>
+  <string name="preference_title_language" fuzzy="true">Википедия теле</string>
   <string name="langlinks_filter_hint">Эҙләү</string>
   <string name="langlinks_empty">Был бит башҡа телдәрҙә юҡ.</string>
-  <string name="langlinks_no_match">Һеҙҙең һорау буйынса телдәр табылманы.</string>
+  <string name="langlinks_no_match" fuzzy="true">Һеҙҙең һорау буйынса телдәр табылманы.</string>
   <string name="langlinks_activity_title">Башҡа телдәр</string>
   <string name="menu_save_changes" fuzzy="true">Үҙгәрештәрҙе һаҡларға</string>
   <string name="dialog_saving_in_progress">Һаҡлана…</string>
@@ -47,7 +60,7 @@
   <string name="dialog_message_edit_failed">Мөхәррирләү хатаһы!</string>
   <string name="dialog_message_edit_failed_retry">Ҡабатлау</string>
   <string name="dialog_message_edit_failed_cancel">Кире алырға</string>
-  <string name="dialog_message_leaving_edit">Үҙгәртеүҙәр һаҡланманы. Был биттән сығырға теләйһегеҙме?</string>
+  <string name="dialog_message_leaving_edit" fuzzy="true">Үҙгәртеүҙәр һаҡланманы. Был биттән сығырға теләйһегеҙме?</string>
   <string name="dialog_message_leaving_edit_leave">Китергә</string>
   <string name="dialog_message_leaving_edit_stay">Ҡалырға</string>
   <string name="menu_show_toc">Эстәлеге</string>
@@ -80,18 +93,6 @@
   <string name="create_account_button">Иҫәп яҙмаһын булдырырға</string>
   <string name="preferences_general_heading">Дөйөм</string>
   <string name="wikipedia_app_faq">Википедия ҡушымтаһы буйынса йыш бирелгән һорауҙар</string>
-  <string name="zero_charged_verbiage" fuzzy="true">Zero Википедияһы һүндерелгән</string>
-  <string name="zero_warn_when_leaving">Zero Википедияһынан сыҡҡанда, иҫкәртергә</string>
-  <string name="zero_warn_when_leaving_summary">Һеҙҙең мобиль оператор Wikipedia Zero менән хеҙмәттәшлек аша Википедия ҡушымтаһы мәғлүмәттәренә ингән өсөн хаҡ алмаһа, был параметрҙы керетеү трафик өсөн түләү башланыуын, ҡушымтанан сығыуҙы белергә ярҙам итә</string>
-  <string name="zero_webpage_title">Zero Википедияһы буйынса йыш бирелгән һорауҙар</string>
-  <string name="zero_wikipedia_zero_heading">Zero Википедияһы</string>
-  <string name="zero_interstitial_title">Zero Википедияһынан сығыу</string>
-  <string name="zero_interstitial_leave_app">Мәғлүмәт ебәргән өсөн стандарт хаҡ алыныуы ихтимал. Тышҡы сайтҡа күсеүҙе дауам итергәме?</string>
-  <string name="zero_interstitial_continue">Китергә</string>
-  <string name="zero_interstitial_cancel">Ҡалырға</string>
-  <string name="zero_learn_more" fuzzy="true">Википедия ҡушымтаһын файҙаланғанда, мәғлүмәт өсөн хаҡ алынмай</string>
-  <string name="zero_learn_more_learn_more" fuzzy="true">Тулыраҡ уҡырға</string>
-  <string name="zero_learn_more_dismiss">Ябырға</string>
   <string name="edit_preview_fetching_dialog_message">Алдан ҡарауҙы сығарыу…</string>
   <string name="send_feedback">Ҡушымта тураһында баһалама ебәрергә</string>
   <string name="create_account_account_created_toast">Иҫәп яҙмаһы  булдырылды!</string>
@@ -119,7 +120,7 @@
   <string name="about_translators_translatewiki">Был ҡушымта &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt; төркөмө ирекмәндәре тарафынан тәржемә ителгән.</string>
   <string name="about_app_license_heading">Лицензия</string>
   <string name="about_app_license">&lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia/blob/master/COPYING\"&gt;Apache 2.0&lt;/a&gt; лицензияһы буйынса\nбашланғыс код бында &lt;a href=\"https://gerrit.wikimedia.org/r/#/admin/projects/apps/android/wikipedia\"&gt;Gerrit&lt;/a&gt; һәм &lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia\"&gt;Gerrit&lt;/a&gt; алырға мөмкин. Әгәр ҙә башҡа күрһәтмә булмаһа, йөкмәтке &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License\"&gt;Creative Commons Attribution-ShareAlike&lt;/a&gt; лицезияһына ярашлы алына.</string>
-  <string name="about_wmf" fuzzy="true">&lt;a href=\"http://wikimediafoundation.org/wiki/Home\"&gt; Викимедиа фонды &lt;/a&gt;-ның продукты</string>
+  <string name="about_wmf" fuzzy="true">&lt;a href=\"https://wikimediafoundation.org/\"&gt; Викимедиа фонды &lt;/a&gt;-ның продукты</string>
   <string name="about_activity_title">Ҡушымта тураһында</string>
   <string name="edit_abandon_confirm">\nБит үҙгәртелде. Үҙгәртеүҙәрҙе һаҡламайынса сығырға уйлайһығыҙмы?</string>
   <string name="user_blocked_from_editing_title">Блок ҡуйылған</string>
@@ -140,8 +141,6 @@
   <string name="abusefilter_title_disallow" fuzzy="true">Һеҙ был битте һаҡлай алмайһығыҙ, кире ҡайтып, уны үҙгәртегеҙ</string>
   <string name="abusefilter_text_warn">Автоматлаштырылған фильтр был төҙәтеүҙе конструктив түгел тип һанай. Ул түбәндәге бер нисә ғәмәлде үҙ эсенә ала: :&lt;br /&gt;&lt;br /&gt;·Баш хәреф менән баҫырға. Мәҡәләләрҙе мисәтләү йәки спам&lt;br /&gt;· Тура килмәгән тышҡы һылтанмалар йәки һүрәттәр&lt;br /&gt;· Ҡабатланған символдар</string>
   <string name="abusefilter_text_disallow">Автоматлаштырылған фильтр был төҙәтеүҙе хаталы йәки емереү теләге кеүек билдәләне..&lt;br /&gt;&lt;br /&gt;Википедия - ул энциклопедия, бында нейтраль йәки әһәмиәтле  нәмәләр генә ҡабул ителә</string>
-  <string name="dialog_page_issues">Бит буйынса һорауҙар</string>
-  <string name="button_page_issues">Бит буйынса һорауҙар</string>
   <string name="text_size_select">Шрифт ҙурлығы</string>
   <string name="page_similar_titles">Оҡшаш биттәр</string>
   <string name="search_did_you_mean">Бәлки һеҙ %s-ҙы күҙ уңында тотҡанһығыҙҙыр?</string>
@@ -183,10 +182,8 @@
   <string name="gallery_uploader_unknown">Күсерелгән файл билдәһеҙ</string>
   <string name="menu_new_tab">Яңы ҡушымта</string>
   <string name="button_close_tab">Ҡушымтаны ябыу</string>
-  <string name="tool_tip_select_text" fuzzy="true">Күсерергә билдәләү һәм бүлешеү өсөн текстың теләгән урынына баҫығыҙ һәм тотоп тороғоҙ.</string>
   <string name="tool_tip_share">Ҡыҙыҡлы фактты билдәләгәндән һуң, уның менән яратҡан социаль селтәрҙәрегеҙҙә уртаҡлашығыҙ</string>
   <string name="page_view_in_browser">Браузерҙа битте ҡарау</string>
-  <string name="tool_tip_toc_button">Был төймәгә баҫып йәки экрандың уң ситенән бармаҡ менән йөрөтөп йөкмәткене теләгән ваҡытта ҡарарға була</string>
   <string name="error_response_malformed">Серверҙың яуабы корректһыҙ форматланған</string>
   <string name="error_unknown">Билдәһеҙ хата барлыҡҡа килде.</string>
   <string name="format_error_server_message">Хәбәр: «%s» .</string>
@@ -216,7 +213,6 @@
   <string name="text_size_increase">Текст ҙурлығын арттырырға</string>
   <string name="text_size_decrease">Шрифт ҙурлығын кәметергә</string>
   <string name="nav_item_reading_lists" fuzzy="true">Уҡыу өсөн исемлектәр</string>
-  <string name="reading_list_untitled">Исемһеҙ</string>
   <string name="reading_list_save_to">Уҡыу исемлегенә һаҡларға</string>
   <string name="reading_list_create_new">Яңыны төҙөргә</string>
   <string name="reading_list_added_to_named">%s өҫтәлде.</string>
@@ -243,5 +239,4 @@
   <string name="reading_lists_onboarding_got_it">Аңланым</string>
   <string name="reading_list_delete_confirm" fuzzy="true">Был уҡыу теҙмәһен ысынлап юйырға теләйһегеҙме %s?</string>
   <string name="user_option_sync_label">Көйләүҙәр</string>
-  <string name="storage_used_by_compilations">үҙаллы китапхана тарафынан ҡулланыла</string>
 </resources>

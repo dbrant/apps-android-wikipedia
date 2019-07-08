@@ -3,11 +3,7 @@ package org.wikipedia.page.linkpreview;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Location;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.widget.PopupMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -15,6 +11,10 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 
 import com.facebook.drawee.view.SimpleDraweeView;
 
@@ -24,16 +24,10 @@ import org.wikipedia.WikipediaApp;
 import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.analytics.GalleryFunnel;
 import org.wikipedia.analytics.LinkPreviewFunnel;
-import org.wikipedia.concurrency.CallbackTask;
-import org.wikipedia.dataclient.ServiceError;
+import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.page.PageClientFactory;
-import org.wikipedia.dataclient.page.PageSummary;
 import org.wikipedia.gallery.GalleryActivity;
-import org.wikipedia.gallery.GalleryCollection;
-import org.wikipedia.gallery.GalleryCollectionClient;
-import org.wikipedia.gallery.GalleryItem;
 import org.wikipedia.gallery.GalleryThumbnailScrollView;
-import org.wikipedia.gallery.ImageInfo;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment;
 import org.wikipedia.page.PageTitle;
@@ -42,12 +36,9 @@ import org.wikipedia.util.StringUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ViewUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import retrofit2.Call;
-import retrofit2.Response;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.wikipedia.settings.Prefs.isImageDownloadEnabled;
 import static org.wikipedia.util.L10nUtil.getStringForArticleLanguage;
@@ -63,6 +54,10 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         void showWikidataInfoBox(@NonNull PageTitle title);
     }
 
+    private static final String ARG_ENTRY = "entry";
+    private static final String ARG_LOCATION = "location";
+    private static final String ARG_FULL_WIDTH = "fullWidth";
+
     private boolean navigateSuccess = false;
 
     private LinearLayout dialogContainer;
@@ -77,30 +72,38 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
     private View toolbarView;
     private View overflowButton;
 
+    private HistoryEntry historyEntry;
     private PageTitle pageTitle;
-    private int entrySource;
     @Nullable private Location location;
-    @NonNull private GalleryCollectionClient client = new GalleryCollectionClient();
     private LinkPreviewFunnel funnel;
+    private CompositeDisposable disposables = new CompositeDisposable();
 
-    public static LinkPreviewDialog newInstance(PageTitle title, int entrySource, @Nullable Location location) {
+    public static LinkPreviewDialog newInstance(@NonNull HistoryEntry entry, @Nullable Location location, boolean fullWidth) {
         LinkPreviewDialog dialog = new LinkPreviewDialog();
         Bundle args = new Bundle();
-        args.putParcelable("title", title);
-        args.putInt("entrySource", entrySource);
+        args.putParcelable(ARG_ENTRY, entry);
         if (location != null) {
-            args.putParcelable("location", location);
+            args.putParcelable(ARG_LOCATION, location);
         }
+        args.putBoolean(ARG_FULL_WIDTH, fullWidth);
         dialog.setArguments(args);
         return dialog;
+    }
+
+    public static LinkPreviewDialog newInstance(@NonNull HistoryEntry entry, @Nullable Location location) {
+        return newInstance(entry, location, false);
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         WikipediaApp app = WikipediaApp.getInstance();
-        pageTitle = getArguments().getParcelable("title");
-        entrySource = getArguments().getInt("entrySource");
-        location = getArguments().getParcelable("location");
+        historyEntry = getArguments().getParcelable(ARG_ENTRY);
+        pageTitle = historyEntry.getTitle();
+        location = getArguments().getParcelable(ARG_LOCATION);
+
+        if (getArguments().getBoolean(ARG_FULL_WIDTH)) {
+            enableFullWidthDialog();
+        }
 
         View rootView = inflater.inflate(R.layout.dialog_link_preview, container);
         dialogContainer = rootView.findViewById(R.id.dialog_link_preview_container);
@@ -118,35 +121,13 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
 
         titleText = rootView.findViewById(R.id.link_preview_title);
         setConditionalLayoutDirection(rootView, pageTitle.getWikiSite().languageCode());
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            // for <5.0, give the title a bit more bottom padding, since these versions
-            // incorrectly cut off the bottom of the text when line spacing is <1.
-            final int bottomPadding = 8;
-            ViewUtil.setBottomPaddingDp(titleText, bottomPadding);
-        }
 
         extractText = rootView.findViewById(R.id.link_preview_extract);
         thumbnailView = rootView.findViewById(R.id.link_preview_thumbnail);
         thumbnailGallery = rootView.findViewById(R.id.link_preview_thumbnail_gallery);
-
-        if (isImageDownloadEnabled()) {
-            CallbackTask.execute(() -> client.request(pageTitle.getWikiSite(), pageTitle, true),
-                new CallbackTask.Callback<Map<String, ImageInfo>>() {
-                @Override public void success(@Nullable Map<String, ImageInfo> result) {
-                    setThumbGallery(result);
-                    thumbnailGallery.setGalleryViewListener(galleryViewListener);
-                }
-
-                @Override
-                public void failure(Throwable caught) {
-                    L.w("Failed to fetch gallery collection.", caught);
-                }
-            });
-        }
-
         overflowButton = rootView.findViewById(R.id.link_preview_overflow_button);
         overflowButton.setOnClickListener((View v) -> {
-            PopupMenu popupMenu = new PopupMenu(getActivity(), overflowButton);
+            PopupMenu popupMenu = new PopupMenu(requireActivity(), overflowButton);
             popupMenu.inflate(R.menu.menu_link_preview);
             popupMenu.setOnMenuItemClickListener(menuListener);
             popupMenu.show();
@@ -158,41 +139,44 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         // and kick off the task to load all the things...
         loadContent();
 
-        funnel = new LinkPreviewFunnel(app, entrySource);
+        funnel = new LinkPreviewFunnel(app, historyEntry.getSource());
         funnel.logLinkClick();
 
         return rootView;
     }
 
-    public void goToLinkedPage() {
+    public void goToLinkedPage(boolean inNewTab) {
         navigateSuccess = true;
         funnel.logNavigate();
         if (getDialog() != null) {
             getDialog().dismiss();
         }
-        HistoryEntry newEntry = new HistoryEntry(pageTitle, entrySource);
-        loadPage(pageTitle, newEntry, false);
+        loadPage(pageTitle, historyEntry, inNewTab);
     }
 
     @Override public void onResume() {
         super.onResume();
-        if (overlayView == null) {
-            ViewGroup containerView = getDialog().findViewById(R.id.container);
+        ViewGroup containerView = getDialog().findViewById(R.id.container);
+        if (overlayView == null && containerView != null) {
             overlayView = new LinkPreviewOverlayView(getContext());
             overlayView.setCallback(new OverlayViewCallback());
             overlayView.setPrimaryButtonText(getStringForArticleLanguage(pageTitle, R.string.button_continue_to_article));
-            overlayView.showSecondaryButton(location != null);
+            overlayView.setSecondaryButtonText(getStringForArticleLanguage(pageTitle, R.string.menu_long_press_open_in_new_tab));
+            overlayView.showTertiaryButton(location != null);
             containerView.addView(overlayView);
         }
     }
 
     @Override
     public void onDestroyView() {
+        disposables.clear();
         thumbnailGallery.setGalleryViewListener(null);
         toolbarView.setOnClickListener(null);
         overflowButton.setOnClickListener(null);
-        overlayView.setCallback(null);
-        overlayView = null;
+        if (overlayView != null) {
+            overlayView.setCallback(null);
+            overlayView = null;
+        }
         super.onDestroyView();
     }
 
@@ -227,27 +211,49 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
     }
 
     private void loadContent() {
-        PageClientFactory
-                .create(pageTitle.getWikiSite(), pageTitle.namespace())
-                .summary(pageTitle.getPrefixedText())
-                .enqueue(linkPreviewCallback);
+        disposables.add(PageClientFactory.create(pageTitle.getWikiSite(), pageTitle.namespace())
+                .summary(pageTitle.getWikiSite(), pageTitle.getPrefixedText(), historyEntry.getReferrer())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(summary -> {
+                    funnel.setPageId(summary.getPageId());
+                    pageTitle.setThumbUrl(summary.getThumbnailUrl());
+                    // TODO: Remove this logic once Parsoid starts supporting language variants.
+                    if (pageTitle.getWikiSite().languageCode().equals(pageTitle.getWikiSite().subdomain())) {
+                        titleText.setText(StringUtil.fromHtml(summary.getDisplayTitle()));
+                    } else {
+                        titleText.setText(StringUtil.fromHtml(pageTitle.getDisplayText()));
+                    }
+
+                    // TODO: remove after the restbase endpoint supports ZH variants
+                    pageTitle.setConvertedText(summary.getConvertedTitle());
+                    showPreview(new LinkPreviewContents(summary, pageTitle.getWikiSite()));
+                }, caught -> {
+                    L.e(caught);
+                    titleText.setText(StringUtil.fromHtml(pageTitle.getDisplayText()));
+                    showError(caught);
+                }));
+    }
+
+    private void loadGallery() {
+        if (isImageDownloadEnabled()) {
+            disposables.add(ServiceFactory.getRest(pageTitle.getWikiSite()).getMedia(pageTitle.getConvertedText())
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(gallery -> {
+                        thumbnailGallery.setGalleryList(gallery.getItems("image", "video"));
+                        thumbnailGallery.setGalleryViewListener(galleryViewListener);
+                    }, caught -> {
+                        // ignore errors
+                        L.w("Failed to fetch gallery collection.", caught);
+                    }));
+        }
     }
 
     private void showPreview(@NonNull LinkPreviewContents contents) {
+        loadGallery();
         progressBar.setVisibility(View.GONE);
         setPreviewContents(contents);
-    }
-
-    private void setThumbGallery(Map<String, ImageInfo> result) {
-        List<GalleryItem> list = new ArrayList<>();
-        for (Map.Entry<String, ImageInfo> entry : result.entrySet()) {
-            if (GalleryCollection.shouldIncludeImage(entry.getValue())) {
-                list.add(new GalleryItem(entry.getKey(), entry.getValue()));
-            }
-        }
-        if (!list.isEmpty()) {
-            thumbnailGallery.setGalleryCollection(new GalleryCollection(list));
-        }
     }
 
     private void showError(@Nullable Throwable caught) {
@@ -256,6 +262,7 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         progressBar.setVisibility(View.GONE);
         contentContainer.setVisibility(View.GONE);
         overlayView.showSecondaryButton(false);
+        overlayView.showTertiaryButton(false);
         errorContainer.setVisibility(View.VISIBLE);
         errorContainer.setError(caught);
         errorContainer.setCallback(this);
@@ -272,54 +279,22 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         if (contents.getExtract().length() > 0) {
             extractText.setText(contents.getExtract());
         }
-        ViewUtil.loadImageUrlInto(thumbnailView, contents.getTitle().getThumbUrl());
+        String thumbnailImageUrl = contents.getTitle().getThumbUrl();
+        if (thumbnailImageUrl != null) {
+            thumbnailView.setVisibility(View.VISIBLE);
+            ViewUtil.loadImageUrlInto(thumbnailView, thumbnailImageUrl);
+        }
+        if (overlayView != null) {
+            overlayView.setPrimaryButtonText(getStringForArticleLanguage(pageTitle,
+                    contents.isDisambiguation() ? R.string.button_continue_to_disambiguation : R.string.button_continue_to_article));
+        }
     }
-
-    private retrofit2.Callback<PageSummary> linkPreviewCallback
-            = new retrofit2.Callback<PageSummary>() {
-        @Override public void onResponse(@NonNull Call<PageSummary> call, @NonNull Response<PageSummary> rsp) {
-            if (!isAdded()) {
-                return;
-            }
-
-            PageSummary summary = rsp.body();
-            if (summary != null && !summary.hasError()) {
-
-                // TODO: Remove this logic once Parsoid starts supporting language variants.
-                if (pageTitle.getWikiSite().languageCode().equals(pageTitle.getWikiSite().subdomain())) {
-                    titleText.setText(StringUtil.fromHtml(summary.getDisplayTitle()));
-                } else {
-                    titleText.setText(StringUtil.fromHtml(pageTitle.getDisplayText()));
-                }
-
-                showPreview(new LinkPreviewContents(summary, pageTitle.getWikiSite()));
-            } else {
-                titleText.setText(StringUtil.fromHtml(pageTitle.getDisplayText()));
-                showError(null);
-                logError(summary != null && summary.hasError() ? summary.getError() : null,
-                        "Page summary network request failed");
-            }
-        }
-
-        @Override public void onFailure(@NonNull Call<PageSummary> call, @NonNull Throwable caught) {
-            L.e(caught);
-            if (!isAdded()) {
-                return;
-            }
-            titleText.setText(StringUtil.fromHtml(pageTitle.getDisplayText()));
-            showError(caught);
-        }
-    };
 
     private PopupMenu.OnMenuItemClickListener menuListener = new PopupMenu.OnMenuItemClickListener() {
         @Override
         public boolean onMenuItemClick(MenuItem item) {
             Callback callback = callback();
             switch (item.getItemId()) {
-                case R.id.menu_link_preview_open_in_new_tab:
-                    loadPage(pageTitle, new HistoryEntry(pageTitle, entrySource), true);
-                    dismiss();
-                    return true;
                 case R.id.menu_link_preview_add_to_list:
                     if (callback != null) {
                         callback.onLinkPreviewAddToList(pageTitle);
@@ -347,18 +322,18 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
             = new GalleryThumbnailScrollView.GalleryViewListener() {
         @Override
         public void onGalleryItemClicked(String imageName) {
-            startActivityForResult(GalleryActivity.newIntent(getContext(), pageTitle, imageName,
+            startActivityForResult(GalleryActivity.newIntent(requireContext(), pageTitle, imageName,
                     pageTitle.getWikiSite(), GalleryFunnel.SOURCE_LINK_PREVIEW),
                     Constants.ACTIVITY_REQUEST_GALLERY);
         }
     };
 
-    private View.OnClickListener goToPageListener = (View v) -> goToLinkedPage();
+    private View.OnClickListener goToPageListener = (View v) -> goToLinkedPage(false);
 
     private void goToExternalMapsApp() {
         if (location != null) {
             dismiss();
-            GeoUtil.sendGeoIntent(getActivity(), location, pageTitle.getDisplayText());
+            GeoUtil.sendGeoIntent(requireActivity(), location, pageTitle.getDisplayText());
         }
     }
 
@@ -369,21 +344,19 @@ public class LinkPreviewDialog extends ExtendedBottomSheetDialogFragment
         }
     }
 
-    private void logError(@Nullable ServiceError error, @NonNull String message) {
-        if (error != null) {
-            message += ": " + error.toString();
-        }
-        L.e(message);
-    }
-
     private class OverlayViewCallback implements LinkPreviewOverlayView.Callback {
         @Override
         public void onPrimaryClick() {
-            goToLinkedPage();
+            goToLinkedPage(false);
         }
 
         @Override
         public void onSecondaryClick() {
+            goToLinkedPage(true);
+        }
+
+        @Override
+        public void onTertiaryClick() {
             goToExternalMapsApp();
         }
     }

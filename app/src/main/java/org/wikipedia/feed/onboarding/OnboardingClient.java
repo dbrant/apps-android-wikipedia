@@ -1,10 +1,12 @@
 package org.wikipedia.feed.onboarding;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import org.wikipedia.R;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.feed.FeedCoordinator;
 import org.wikipedia.feed.announcement.Announcement;
 import org.wikipedia.feed.dataclient.FeedClient;
 import org.wikipedia.feed.model.Card;
@@ -18,7 +20,7 @@ public class OnboardingClient implements FeedClient {
     @Override public void request(@NonNull Context context, @NonNull WikiSite wiki, int age,
                                   @NonNull FeedClient.Callback cb) {
         List<Card> cards = getCards(context);
-        cb.success(age < cards.size() ? Collections.singletonList(cards.get(age)) : Collections.emptyList());
+        FeedCoordinator.postCardsToCallback(cb, age < cards.size() ? Collections.singletonList(cards.get(age)) : Collections.emptyList());
     }
 
     private List<Card> getCards(@NonNull Context context) {
@@ -42,7 +44,7 @@ public class OnboardingClient implements FeedClient {
                 "readingListssyncCard",
                 context.getString(R.string.feed_reading_lists_sync_onboarding_text),
                 "https://upload.wikimedia.org/wikipedia/commons/5/53/Reading_list_sync_image.png",
-                new Announcement.Action(context.getString(R.string.menu_login), UriUtil.LOCAL_URL_LOGIN),
+                new Announcement.Action(context.getString(R.string.onboarding_card_login), UriUtil.LOCAL_URL_LOGIN),
                 context.getString(R.string.onboarding_got_it)));
 
         if (card.shouldShow()) {
