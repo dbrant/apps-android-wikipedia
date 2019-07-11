@@ -4,15 +4,17 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.net.Uri;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.view.ViewCompat;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
 
 import org.wikipedia.R;
 import org.wikipedia.util.DimenUtil;
@@ -31,10 +33,13 @@ import static org.wikipedia.util.GradientUtil.getPowerGradient;
 public class PageHeaderView extends LinearLayoutOverWebView implements ObservableWebView.OnScrollChangeListener {
     @BindView(R.id.view_page_header_image) FaceAndColorDetectImageView image;
     @BindView(R.id.view_page_header_image_gradient) View gradientView;
+    @BindView(R.id.call_to_action_container) View callToActionContainer;
+    @BindView(R.id.call_to_action_text) TextView callToActionTextView;
     @Nullable private Callback callback;
 
     public interface Callback {
         void onImageClicked();
+        void onCallToActionClicked();
     }
 
     public PageHeaderView(Context context) {
@@ -70,6 +75,15 @@ public class PageHeaderView extends LinearLayoutOverWebView implements Observabl
         this.callback = callback;
     }
 
+    public void setUpCallToAction(String callToActionText) {
+        if (callToActionText != null) {
+            callToActionContainer.setVisibility(VISIBLE);
+            callToActionTextView.setText(callToActionText);
+        } else {
+            callToActionContainer.setVisibility(GONE);
+        }
+    }
+
     public void loadImage(@Nullable String url) {
         if (TextUtils.isEmpty(url)) {
             image.setVisibility(GONE);
@@ -94,6 +108,12 @@ public class PageHeaderView extends LinearLayoutOverWebView implements Observabl
     @OnClick(R.id.view_page_header_image) void onImageClick() {
         if (callback != null) {
             callback.onImageClicked();
+        }
+    }
+
+    @OnClick(R.id.call_to_action_container) void onCallToActionClicked() {
+        if (callback != null) {
+            callback.onCallToActionClicked();
         }
     }
 
