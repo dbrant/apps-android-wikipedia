@@ -2,9 +2,10 @@ package org.wikipedia.util;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.RawRes;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RawRes;
 
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
