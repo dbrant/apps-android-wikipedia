@@ -94,6 +94,7 @@ public class SearchResultsFragment extends Fragment {
         SearchResultAdapter adapter = new SearchResultAdapter(inflater);
         searchResultsList.setAdapter(adapter);
 
+        searchErrorView.setBackClickListener((v) -> requireActivity().finish());
         searchErrorView.setRetryClickListener((v) -> {
             searchErrorView.setVisibility(View.GONE);
             startSearch(currentSearchTerm, true);
@@ -228,7 +229,7 @@ public class SearchResultsFragment extends Fragment {
                     // Just return an empty SearchResults() in this case.
                     return new SearchResults();
                 })
-                .doFinally(() -> updateProgressBar(false))
+                .doAfterTerminate(() -> updateProgressBar(false))
                 .subscribe(results -> {
                     searchErrorView.setVisibility(View.GONE);
                     handleResults(results, searchTerm, startTime);
@@ -319,7 +320,7 @@ public class SearchResultsFragment extends Fragment {
                     // Just return an empty SearchResults() in this case.
                     return new SearchResults();
                 })
-                .doFinally(() -> updateProgressBar(false))
+                .doAfterTerminate(() -> updateProgressBar(false))
                 .subscribe(results -> {
                     List<SearchResult> resultList = results.getResults();
                     cache(resultList, searchTerm);
@@ -497,7 +498,7 @@ public class SearchResultsFragment extends Fragment {
             if (TextUtils.isEmpty(result.getRedirectFrom())) {
                 redirectText.setVisibility(View.GONE);
                 redirectArrow.setVisibility(View.GONE);
-                descriptionText.setText(StringUtils.capitalize(result.getPageTitle().getDescription()));
+                descriptionText.setText(result.getPageTitle().getDescription());
             } else {
                 redirectText.setVisibility(View.VISIBLE);
                 redirectArrow.setVisibility(View.VISIBLE);

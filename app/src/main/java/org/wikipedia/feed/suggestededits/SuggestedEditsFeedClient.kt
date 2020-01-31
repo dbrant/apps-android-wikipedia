@@ -4,21 +4,23 @@ import android.content.Context
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import org.wikipedia.Constants
-import org.wikipedia.Constants.InvokeSource.*
 import org.wikipedia.WikipediaApp
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
+import org.wikipedia.descriptions.DescriptionEditActivity
+import org.wikipedia.descriptions.DescriptionEditActivity.Action.*
 import org.wikipedia.feed.FeedCoordinator
 import org.wikipedia.feed.dataclient.FeedClient
 import org.wikipedia.feed.model.Card
 import org.wikipedia.page.Namespace
 import org.wikipedia.page.PageTitle
 import org.wikipedia.suggestededits.SuggestedEditsSummary
+import org.wikipedia.suggestededits.SuggestedEditsUserStats
 import org.wikipedia.suggestededits.provider.MissingDescriptionProvider
 import org.wikipedia.util.StringUtil
+import java.util.*
 
-class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource) : FeedClient {
+class SuggestedEditsFeedClient(private var action: DescriptionEditActivity.Action) : FeedClient {
     interface Callback {
         fun updateCardContent(card: SuggestedEditsCard)
     }
@@ -34,6 +36,18 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
     override fun request(context: Context, wiki: WikiSite, age: Int, cb: FeedClient.Callback) {
         this.age = age
         cancel()
+
+        if (age == 0) {
+            // In the background, fetch the user's latest contribution stats, so that we can update whether the
+            // Suggested Edits feature is paused or disabled, the next time the feed is refreshed.
+            SuggestedEditsUserStats.updateStatsInBackground()
+        }
+
+        if (SuggestedEditsUserStats.isDisabled() || SuggestedEditsUserStats.maybePauseAndGetEndDate() != null) {
+            FeedCoordinator.postCardsToCallback(cb, Collections.emptyList())
+            return
+        }
+
         fetchSuggestedEditForType(cb, null)
     }
 
@@ -42,14 +56,14 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
     }
 
     private fun toSuggestedEditsCard(wiki: WikiSite): SuggestedEditsCard {
-        return SuggestedEditsCard(wiki, invokeSource, sourceSummary, targetSummary, age)
+        return SuggestedEditsCard(wiki, action, sourceSummary, targetSummary, age)
     }
 
     fun fetchSuggestedEditForType(cb: FeedClient.Callback?, callback: Callback?) {
-        when (invokeSource) {
-            FEED_CARD_SUGGESTED_EDITS_TRANSLATE_DESC -> getArticleToTranslateDescription(cb, callback)
-            FEED_CARD_SUGGESTED_EDITS_IMAGE_CAPTION -> getImageToAddCaption(cb, callback)
-            FEED_CARD_SUGGESTED_EDITS_TRANSLATE_IMAGE_CAPTION -> getImageToTranslateCaption(cb, callback)
+        when (action) {
+            TRANSLATE_DESCRIPTION -> getArticleToTranslateDescription(cb, callback)
+            ADD_CAPTION -> getImageToAddCaption(cb, callback)
+            TRANSLATE_CAPTION -> getImageToTranslateCaption(cb, callback)
             else -> getArticleToAddDescription(cb, callback)
         }
     }
@@ -61,10 +75,9 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ pageSummary ->
                     sourceSummary = SuggestedEditsSummary(
-                            pageSummary.title,
+                            pageSummary.apiTitle,
                             langFromCode,
                             pageSummary.getPageTitle(WikiSite.forLanguageCode(langFromCode)),
-                            pageSummary.normalizedTitle,
                             pageSummary.displayTitle,
                             pageSummary.description,
                             pageSummary.thumbnailUrl,
@@ -93,10 +106,9 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
                     val target = pair.first
 
                     sourceSummary = SuggestedEditsSummary(
-                            source.title,
+                            source.apiTitle,
                             langFromCode,
                             source.getPageTitle(WikiSite.forLanguageCode(langFromCode)),
-                            source.normalizedTitle,
                             source.displayTitle,
                             source.description,
                             source.thumbnailUrl,
@@ -105,10 +117,9 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
                     )
 
                     targetSummary = SuggestedEditsSummary(
-                            target.title,
+                            target.apiTitle,
                             langToCode,
                             target.getPageTitle(WikiSite.forLanguageCode(langToCode)),
-                            target.normalizedTitle,
                             target.displayTitle,
                             target.description,
                             target.thumbnailUrl,
@@ -152,7 +163,6 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
                                         imageInfo.thumbUrl,
                                         WikiSite.forLanguageCode(langFromCode)
                                 ),
-                                StringUtil.removeUnderscores(title),
                                 StringUtil.removeHTMLTags(title),
                                 imageInfo.metadata!!.imageDescription(),
                                 imageInfo.thumbUrl,
@@ -199,7 +209,6 @@ class SuggestedEditsFeedClient(private var invokeSource: Constants.InvokeSource)
                                         imageInfo.thumbUrl,
                                         WikiSite.forLanguageCode(langFromCode)
                                 ),
-                                StringUtil.removeUnderscores(title),
                                 StringUtil.removeHTMLTags(title),
                                 fileCaption,
                                 imageInfo.thumbUrl,
