@@ -90,7 +90,7 @@ import static org.wikipedia.util.UriUtil.visitInExternalBrowser;
 
 public class PageActivity extends BaseActivity implements PageFragment.Callback,
         LinkPreviewDialog.Callback, ThemeChooserDialog.Callback,
-        WiktionaryDialog.Callback, ReferenceListDialog.Callback {
+        WiktionaryDialog.Callback, ReferenceListDialog.Callback, WikidataInfoDialog.Callback {
     public static final String ACTION_LOAD_IN_NEW_TAB = "org.wikipedia.load_in_new_tab";
     public static final String ACTION_LOAD_IN_CURRENT_TAB = "org.wikipedia.load_in_current_tab";
     public static final String ACTION_LOAD_IN_CURRENT_TAB_SQUASH = "org.wikipedia.load_in_current_tab_squash";
@@ -742,6 +742,12 @@ public class PageActivity extends BaseActivity implements PageFragment.Callback,
         currentActionModes.remove(mode);
         toolbarHideHandler.onScrolled(pageFragment.getWebView().getScrollY(),
                 pageFragment.getWebView().getScrollY());
+    }
+
+    @Override
+    public void wikidataInfoLinkClicked(@NonNull PageTitle title) {
+        HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK);
+        onPageShowLinkPreview(historyEntry);
     }
 
     protected void clearActionBarTitle() {

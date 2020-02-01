@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,13 +20,12 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
+import org.wikipedia.activity.FragmentUtil;
 import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
-import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonUtil;
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment;
-import org.wikipedia.page.PageActivity;
 import org.wikipedia.page.PageTitle;
 import org.wikipedia.util.DateUtil;
 import org.wikipedia.util.FeedbackUtil;
@@ -44,6 +44,10 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 
 public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
+    public interface Callback {
+        void wikidataInfoLinkClicked(@NonNull PageTitle title);
+    }
+
     private PageTitle pageTitle;
     private InfoAdapter adapter;
     private ProgressBar progressBar;
@@ -307,9 +311,15 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         @Override
         public void onClick(View view) {
             PageTitle title = new PageTitle(((TextView) view).getText().toString(), pageTitle.getWikiSite());
-            startActivity(PageActivity.newIntentForCurrentTab(requireActivity(),
-                    new HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), title));
+            if (callback() != null) {
+                callback().wikidataInfoLinkClicked(title);
+            }
             dismiss();
         }
     };
+
+    @Nullable
+    private Callback callback() {
+        return FragmentUtil.getCallback(this, Callback.class);
+    }
 }
