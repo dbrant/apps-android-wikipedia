@@ -5,7 +5,6 @@ import android.text.format.DateUtils;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.settings.Prefs;
-import org.wikipedia.settings.RbSwitch;
 import org.wikipedia.util.StringUtil;
 
 public class SessionFunnel extends Funnel {
@@ -104,7 +103,7 @@ public class SessionFunnel extends Funnel {
                 "fromExternal", sessionData.getPagesFromExternal(),
                 "fromHistory", sessionData.getPagesFromHistory(),
                 "fromReadingList", sessionData.getPagesFromReadingList(),
-                "fromNearby", sessionData.getPagesFromNearby(),
+                "fromNearby", 0,
                 "fromDisambig", sessionData.getPagesFromDisambig(),
                 "fromBack", sessionData.getPagesFromBack(),
                 "noDescription", sessionData.getPagesWithNoDescription(),
@@ -113,7 +112,7 @@ public class SessionFunnel extends Funnel {
                 "leadLatency", sessionData.getLeadLatency(),
                 "restLatency", sessionData.getRestLatency(),
                 "languages", StringUtil.listToJsonArrayString(getApp().language().getAppLanguageCodes()),
-                "apiMode", RbSwitch.INSTANCE.isRestBaseEnabled() ? 1 : 0
+                "apiMode", 1
         );
     }
 }

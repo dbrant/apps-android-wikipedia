@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ShortcutManager;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
@@ -13,8 +14,9 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.MenuItem;
+import android.view.View;
 
-import androidx.annotation.ColorRes;
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -30,8 +32,6 @@ import org.wikipedia.analytics.LoginFunnel;
 import org.wikipedia.appshortcuts.AppShortcuts;
 import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.crash.CrashReportActivity;
-import org.wikipedia.events.CaptionEditUnlockEvent;
-import org.wikipedia.events.DescriptionEditUnlockEvent;
 import org.wikipedia.events.LoggedOutInBackgroundEvent;
 import org.wikipedia.events.NetworkConnectEvent;
 import org.wikipedia.events.ReadingListsEnableDialogEvent;
@@ -46,10 +46,10 @@ import org.wikipedia.recurring.RecurringTasksExecutor;
 import org.wikipedia.savedpages.SavedPageSyncService;
 import org.wikipedia.settings.Prefs;
 import org.wikipedia.settings.SiteInfoClient;
-import org.wikipedia.suggestededits.SuggestedEditsCardsActivity;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.PermissionUtil;
+import org.wikipedia.util.ResourceUtil;
 import org.wikipedia.util.log.L;
 
 import io.reactivex.disposables.CompositeDisposable;
@@ -57,6 +57,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 
 import static org.wikipedia.Constants.INTENT_EXTRA_INVOKE_SOURCE;
+import static org.wikipedia.appshortcuts.AppShortcuts.APP_SHORTCUT_ID;
 
 public abstract class BaseActivity extends AppCompatActivity {
     private static ExclusiveBusConsumer EXCLUSIVE_BUS_METHODS;
@@ -77,7 +78,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1
                 && AppShortcuts.ACTION_APP_SHORTCUT.equals(getIntent().getAction())) {
             getIntent().putExtra(INTENT_EXTRA_INVOKE_SOURCE, Constants.InvokeSource.APP_SHORTCUTS);
-            String shortcutId = getIntent().getStringExtra("APP_SHORTCUT_ID");
+            String shortcutId = getIntent().getStringExtra(APP_SHORTCUT_ID);
             if (!TextUtils.isEmpty(shortcutId)) {
                 getApplicationContext().getSystemService(ShortcutManager.class)
                         .reportShortcutUsed(shortcutId);
@@ -101,6 +102,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         registerReceiver(networkStateReceiver, filter);
 
         DeviceUtil.setLightSystemUiVisibility(this);
+        setNavigationBarColor(ResourceUtil.getThemedColor(this, R.attr.paper_color));
 
         maybeShowLoggedOutInBackgroundDialog();
     }
@@ -136,6 +138,19 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void applyOverrideConfiguration(Configuration configuration) {
+        // TODO: remove when this is fixed:
+        // https://issuetracker.google.com/issues/141132133
+        // On Lollipop the current version of AndroidX causes a crash when instantiating a WebView.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+                && getResources().getConfiguration().uiMode == WikipediaApp.getInstance().getResources().getConfiguration().uiMode) {
+            return;
+        }
+        super.applyOverrideConfiguration(configuration);
+    }
+
+
     @Override public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
@@ -165,9 +180,18 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    protected void setStatusBarColor(@ColorRes int color) {
+    protected void setStatusBarColor(@ColorInt int color) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().setStatusBarColor(ContextCompat.getColor(this, color));
+            getWindow().setStatusBarColor(color);
+        }
+    }
+
+    protected void setNavigationBarColor(@ColorInt int color) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            boolean isDarkThemeOrDarkBackground = WikipediaApp.getInstance().getCurrentTheme().isDark()
+                    || color == ContextCompat.getColor(this, android.R.color.black);
+            getWindow().setNavigationBarColor(color);
+            getWindow().getDecorView().setSystemUiVisibility(isDarkThemeOrDarkBackground ? 0 : View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR | getWindow().getDecorView().getSystemUiVisibility());
         }
     }
 
@@ -257,7 +281,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     private class NonExclusiveBusConsumer implements Consumer<Object> {
         @Override
-        public void accept(Object event) throws Exception {
+        public void accept(Object event) {
             if (event instanceof ThemeChangeEvent) {
                 BaseActivity.this.recreate();
             }
@@ -269,7 +293,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     private class ExclusiveBusConsumer implements Consumer<Object> {
         @Override
-        public void accept(Object event) throws Exception {
+        public void accept(Object event) {
             if (event instanceof NetworkConnectEvent) {
                 SavedPageSyncService.enqueue();
             } else if (event instanceof SplitLargeListsEvent) {
@@ -283,18 +307,6 @@ public abstract class BaseActivity extends AppCompatActivity {
                 ReadingListSyncBehaviorDialogs.mergeExistingListsOnLoginDialog(BaseActivity.this);
             } else if (event instanceof ReadingListsEnableDialogEvent) {
                 ReadingListSyncBehaviorDialogs.promptEnableSyncDialog(BaseActivity.this);
-            } else if (event instanceof DescriptionEditUnlockEvent) {
-                if (((DescriptionEditUnlockEvent) event).getNumTargetsPassed() == 1) {
-                    SuggestedEditsCardsActivity.Companion.showEditDescriptionUnlockDialog(BaseActivity.this);
-                } else if (((DescriptionEditUnlockEvent) event).getNumTargetsPassed() == 2) {
-                    SuggestedEditsCardsActivity.Companion.showTranslateDescriptionUnlockDialog(BaseActivity.this);
-                }
-            } else if (event instanceof CaptionEditUnlockEvent) {
-                if (((CaptionEditUnlockEvent) event).getNumTargetsPassed() == 1) {
-                    SuggestedEditsCardsActivity.Companion.showEditCaptionUnlockDialog(BaseActivity.this);
-                } else if (((CaptionEditUnlockEvent) event).getNumTargetsPassed() == 2) {
-                    SuggestedEditsCardsActivity.Companion.showTranslateCaptionUnlockDialog(BaseActivity.this);
-                }
             } else if (event instanceof LoggedOutInBackgroundEvent) {
                 maybeShowLoggedOutInBackgroundDialog();
             }

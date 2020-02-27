@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,6 +17,7 @@ import androidx.annotation.Nullable;
 import org.wikipedia.R;
 import org.wikipedia.WikipediaApp;
 import org.wikipedia.feed.image.FeaturedImage;
+import org.wikipedia.page.PageTitle;
 import org.wikipedia.util.FileUtil;
 
 import java.io.File;
@@ -33,30 +35,30 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
         this.callback = callback;
     }
 
-    public static void download(@NonNull Context context, @NonNull FeaturedImage featuredImage) {
+    public void download(@NonNull Context context, @NonNull FeaturedImage featuredImage) {
         String filename = FileUtil.sanitizeFileName(featuredImage.title());
         String targetDirectory = Environment.DIRECTORY_PICTURES;
         performDownloadRequest(context, Uri.parse(featuredImage.getOriginal().getSource()), targetDirectory, filename, null);
     }
 
-    public static void download(@NonNull Context context, @NonNull GalleryItem galleryItem) {
-        String saveFilename = FileUtil.sanitizeFileName(trimFileNamespace(galleryItem.getTitles().getCanonical()));
-        String fileUrl = galleryItem.getOriginal().getSource();
+    public void download(@NonNull Context context, @NonNull PageTitle imageTitle, @NonNull ImageInfo mediaInfo) {
+        String saveFilename = FileUtil.sanitizeFileName(trimFileNamespace(imageTitle.getDisplayText()));
+        String fileUrl = mediaInfo.getOriginalUrl();
         String targetDirectoryType;
-        if (FileUtil.isVideo(galleryItem.getType())) {
+        if (FileUtil.isVideo(mediaInfo.getMimeType()) && mediaInfo.getBestDerivative() != null) {
             targetDirectoryType = Environment.DIRECTORY_MOVIES;
-            fileUrl = galleryItem.getOriginalVideoSource().getOriginalUrl();
-        } else if (FileUtil.isAudio(galleryItem.getType())) {
+            fileUrl = mediaInfo.getBestDerivative().getSrc();
+        } else if (FileUtil.isAudio(mediaInfo.getMimeType())) {
             targetDirectoryType = Environment.DIRECTORY_MUSIC;
-        } else if (FileUtil.isImage(galleryItem.getType())) {
+        } else if (FileUtil.isImage(mediaInfo.getMimeType())) {
             targetDirectoryType = Environment.DIRECTORY_PICTURES;
         } else {
             targetDirectoryType = Environment.DIRECTORY_DOWNLOADS;
         }
-        performDownloadRequest(context, Uri.parse(fileUrl), targetDirectoryType, saveFilename, galleryItem.getType());
+        performDownloadRequest(context, Uri.parse(fileUrl), targetDirectoryType, saveFilename, mediaInfo.getMimeType());
     }
 
-    private static void performDownloadRequest(@NonNull Context context, @NonNull Uri uri,
+    private void performDownloadRequest(@NonNull Context context, @NonNull Uri uri,
                                         @NonNull String targetDirectoryType,
                                         @NonNull String targetFileName, @Nullable String mimeType) {
         final String targetSubfolderName = WikipediaApp.getInstance().getString(R.string.app_name);
@@ -86,8 +88,7 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
             DownloadManager.Query query = new DownloadManager.Query();
             query.setFilterById(downloadId);
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-            Cursor c = downloadManager.query(query);
-            try {
+            try (Cursor c = downloadManager.query(query)) {
                 if (c.moveToFirst()) {
                     int statusIndex = c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS);
                     int pathIndex = c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI);
@@ -100,8 +101,6 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
                                 c.getString(mimeIndex));
                     }
                 }
-            } finally {
-                c.close();
             }
         }
     }
@@ -110,9 +109,9 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
         return filename.startsWith(FILE_NAMESPACE) ? filename.substring(FILE_NAMESPACE.length()) : filename;
     }
 
-    private void notifyContentResolver(@NonNull Context context, @NonNull String path, @NonNull String mimeType) {
+    private void notifyContentResolver(@NonNull Context context, @Nullable String path, @NonNull String mimeType) {
         ContentValues values = new ContentValues();
-        Uri contentUri;
+        Uri contentUri = null;
         if (FileUtil.isVideo(mimeType)) {
             values.put(MediaStore.Video.Media.DATA, path);
             values.put(MediaStore.Video.Media.MIME_TYPE, mimeType);
@@ -121,11 +120,13 @@ public class MediaDownloadReceiver extends BroadcastReceiver {
             values.put(MediaStore.Audio.Media.DATA, path);
             values.put(MediaStore.Audio.Media.MIME_TYPE, mimeType);
             contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        } else {
+        } else if (!TextUtils.isEmpty(path)) {
             values.put(MediaStore.Images.Media.DATA, path);
             values.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
             contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         }
-        context.getContentResolver().insert(contentUri, values);
+        if (contentUri != null) {
+            context.getContentResolver().insert(contentUri, values);
+        }
     }
 }
