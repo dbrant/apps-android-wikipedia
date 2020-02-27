@@ -63,7 +63,7 @@ import static org.wikipedia.settings.languages.WikipediaLanguagesFragment.ACTIVI
 import static org.wikipedia.util.ResourceUtil.getThemedColor;
 
 public class SearchFragment extends Fragment implements SearchResultsFragment.Callback,
-        RecentSearchesFragment.Callback, LanguageScrollView.Callback {
+        RecentSearchesFragment.Callback, LanguageScrollView.Callback, WikidataInfoDialog.Callback {
 
     private static final String ARG_QUERY = "lastQuery";
 
@@ -299,7 +299,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
 
     @Override
     public void showWikidataInfoBox(@NonNull PageTitle title) {
-        bottomSheetPresenter.show(requireActivity().getSupportFragmentManager(), WikidataInfoDialog.newInstance(title));
+        bottomSheetPresenter.show(getChildFragmentManager(), WikidataInfoDialog.newInstance(title));
     }
 
     @Override
@@ -487,6 +487,11 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
     @Override
     public void onLanguageButtonClicked() {
         onLangButtonClick();
+    }
+
+    @Override
+    public void wikidataInfoLinkClicked(@NonNull PageTitle title) {
+        navigateToTitle(title, true, 0);
     }
 
     public String getSearchLanguageCode() {
