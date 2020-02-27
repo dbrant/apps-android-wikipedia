@@ -6,6 +6,7 @@ import android.util.AttributeSet;
 
 import androidx.annotation.Nullable;
 
+import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
@@ -36,7 +37,7 @@ public class CommonsDraweeView extends FaceAndColorDetectImageView {
     public void loadImage(String commonsTitle) {
         cancel();
         disposable = ServiceFactory.get(new WikiSite(Service.COMMONS_URL))
-                .getImageExtMetadata(commonsTitle)
+                .getImageInfo(commonsTitle, WikipediaApp.getInstance().getAppOrSystemLanguageCode())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(response -> loadImage(Uri.parse(response.query().firstPage().imageInfo().getThumbUrl())),

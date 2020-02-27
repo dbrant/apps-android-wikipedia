@@ -22,6 +22,7 @@ import org.wikipedia.WikipediaApp;
 import org.wikipedia.dataclient.Service;
 import org.wikipedia.dataclient.ServiceFactory;
 import org.wikipedia.dataclient.WikiSite;
+import org.wikipedia.dataclient.wikidata.Entities;
 import org.wikipedia.history.HistoryEntry;
 import org.wikipedia.json.GsonUtil;
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment;
@@ -50,7 +51,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
     private List<ListItem> infoItems = new ArrayList<>();
     private CompositeDisposable disposables = new CompositeDisposable();
 
-    private class ListItem {
+    private static class ListItem {
         private int p;
         private String value;
 
