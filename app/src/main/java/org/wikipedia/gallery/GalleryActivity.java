@@ -705,54 +705,51 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
     }
 
     public void updateGalleryItemControls() {
-        GalleryItem currentItem = getCurrentItem();
+        GalleryItemFragment currentItem = getCurrentItem();
         button3d.setVisibility(View.GONE);
         buttonVr.setVisibility(View.GONE);
         if (currentItem == null) {
             return;
         }
-        WikiSite wiki = new WikiSite(currentItem.getFilePage());
-        PageTitle title = wiki.titleForUri(Uri.parse(currentItem.getFilePage()));
         disposables.clear();
-        disposables.add(ServiceFactory.get(wiki).getCategories(title.getPrefixedText())
+        disposables.add(ServiceFactory.get(currentItem.getImageTitle().getWikiSite()).getCategories(currentItem.getImageTitle().getPrefixedText())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(response -> {
-                    GalleryItem item = getCurrentItem();
-                    if (item == null) {
-                        return;
-                    }
-                    if (item.isStl()) {
-                        button3d.setVisibility(View.VISIBLE);
-                        buttonVr.setVisibility(View.VISIBLE);
-                    } else {
-                        // check if it's a 360-degree panorama by looking at categories.
-                        boolean is360 = false;
-                        for (MwQueryPage.Category cat : response.query().firstPage().categories()) {
-                            if (cat.title().contains("360")) {
-                                is360 = true;
-                            }
-                        }
-                        if (is360) {
-                            item.setPanorama(true);
+                    GalleryItemFragment item = getCurrentItem();
+                    if (item != null) {
+                        if (item.getMediaInfo().isStl()) {
                             button3d.setVisibility(View.VISIBLE);
                             buttonVr.setVisibility(View.VISIBLE);
+                        } else {
+                            // check if it's a 360-degree panorama by looking at categories.
+                            boolean is360 = false;
+                            for (MwQueryPage.Category cat : response.query().firstPage().categories()) {
+                                if (cat.title().contains("360")) {
+                                    is360 = true;
+                                }
+                            }
+                            if (is360) {
+                                item.getMediaInfo().setPanorama(true);
+                                button3d.setVisibility(View.VISIBLE);
+                                buttonVr.setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                 }, L::e));
     }
 
     @OnClick({R.id.view_3d_button, R.id.view_vr_button}) void onClick3d(View v) {
-        GalleryItem item = getCurrentItem();
+        GalleryItemFragment item = getCurrentItem();
         if (item == null) {
             return;
         }
         try {
             Intent intent = new Intent();
-            intent.setData(Uri.parse(item.getOriginal().getSource()));
-            if (item.isPanorama()) {
+            intent.setData(Uri.parse(item.getMediaInfo().getOriginalUrl()));
+            if (item.getMediaInfo().isPanorama()) {
                 intent.setClassName("com.dmitrybrant.photo360", "com.dmitrybrant.photo360.MainActivity");
-                intent.setData(Uri.parse(item.getPreferredSizedImageUrl()));
+                intent.setData(Uri.parse(item.getMediaInfo().getOriginalUrl()));
             } else {
                 intent.setClassName("com.dmitrybrant.modelviewer", "com.dmitrybrant.modelviewer.MainActivity");
             }

@@ -37,6 +37,7 @@ public class ImageInfo implements Serializable {
     @Nullable private List<String> codecs;
     @Nullable private String name;
     @Nullable @SerializedName("short_name") private String shortName;
+    private boolean isPanorama;
 
     @NonNull public Map<String, String> getCaptions() {
         return captions != null ? captions : Collections.emptyMap();
@@ -93,6 +94,18 @@ public class ImageInfo implements Serializable {
 
     @Nullable public ExtMetadata getMetadata() {
         return metadata;
+    }
+
+    public boolean isStl() {
+        return getMimeType().contains("/sla");
+    }
+
+    public boolean isPanorama() {
+        return isPanorama;
+    }
+
+    public void setPanorama(boolean panorama) {
+        isPanorama = panorama;
     }
 
     @NonNull public List<Derivative> getDerivatives() {

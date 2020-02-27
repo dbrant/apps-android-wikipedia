@@ -55,10 +55,6 @@ public class GalleryItem implements Serializable {
         return StringUtils.defaultString(type);
     }
 
-    public boolean isStl() {
-        return original != null && original.getMimeType().contains("/sla");
-    }
-
     @NonNull
     public String getAudioType() {
         return StringUtils.defaultString(audioType);
@@ -159,14 +155,6 @@ public class GalleryItem implements Serializable {
             description = new TextInfo();
         }
         return description;
-    }
-
-    public boolean isPanorama() {
-        return isPanorama;
-    }
-
-    public void setPanorama(boolean panorama) {
-        isPanorama = panorama;
     }
 
     // TODO: Move the following models into a folder

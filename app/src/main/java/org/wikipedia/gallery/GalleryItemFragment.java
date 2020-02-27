@@ -236,6 +236,7 @@ public class GalleryItemFragment extends Fragment {
                     updateProgressBar(false);
                     requireActivity().invalidateOptionsMenu();
                     ((GalleryActivity) requireActivity()).layOutGalleryDescription();
+                    ((GalleryActivity) requireActivity()).updateGalleryItemControls();
                 })
                 .subscribe(response -> {
                     mediaInfo = response.query().firstPage().imageInfo();
