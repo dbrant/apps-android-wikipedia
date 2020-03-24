@@ -247,7 +247,8 @@ public class MainFragment extends Fragment implements BackPressedHandler, FeedFr
     }
 
     @Override public void onFeedVoiceSearchRequested() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         try {
             startActivityForResult(intent, Constants.ACTIVITY_REQUEST_VOICE_SEARCH);
         } catch (ActivityNotFoundException a) {
@@ -369,7 +370,7 @@ public class MainFragment extends Fragment implements BackPressedHandler, FeedFr
 
     @Override
     public void onLinkPreviewCopyLink(@NonNull PageTitle title) {
-        copyLink(title.getCanonicalUri());
+        copyLink(title.getUri());
     }
 
     @Override

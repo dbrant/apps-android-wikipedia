@@ -183,10 +183,6 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
         toolbar.setNavigationOnClickListener((v) -> requireActivity().finish());
 
         initSearchView();
-
-        if (!TextUtils.isEmpty(query)) {
-            showPanel(PANEL_SEARCH_RESULTS);
-        }
         return view;
     }
 
@@ -196,6 +192,10 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
         setUpLanguageScroll(0);
         startSearch(query, false);
         searchView.setCloseButtonVisibility(query);
+
+        if (!TextUtils.isEmpty(query)) {
+            showPanel(PANEL_SEARCH_RESULTS);
+        }
     }
 
     @Override
@@ -316,7 +316,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
 
     @Override
     public void onSearchResultCopyLink(@NonNull PageTitle title) {
-        ClipboardUtil.setPlainText(requireContext(), null, title.getCanonicalUri());
+        ClipboardUtil.setPlainText(requireContext(), null, title.getUri());
         FeedbackUtil.showMessage(this, R.string.address_copied);
     }
 
