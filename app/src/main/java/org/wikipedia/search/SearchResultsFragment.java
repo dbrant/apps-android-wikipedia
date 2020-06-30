@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -15,8 +16,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.LruCache;
 import androidx.fragment.app.Fragment;
-
-import com.facebook.drawee.view.SimpleDraweeView;
 
 import org.apache.commons.lang3.StringUtils;
 import org.wikipedia.Constants.InvokeSource;
@@ -43,9 +42,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.schedulers.Schedulers;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.wikipedia.util.L10nUtil.setConditionalLayoutDirection;
@@ -275,7 +274,7 @@ public class SearchResultsFragment extends Fragment {
     private void handleSuggestion(@Nullable String suggestion) {
         if (suggestion != null) {
             searchSuggestion.setText(StringUtil.fromHtml("<u>"
-                    + String.format(getString(R.string.search_did_you_mean), suggestion)
+                    + getString(R.string.search_did_you_mean, suggestion)
                     + "</u>"));
             searchSuggestion.setTag(suggestion);
             searchSuggestion.setVisibility(View.VISIBLE);
@@ -485,13 +484,14 @@ public class SearchResultsFragment extends Fragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.item_search_result, parent, false);
+                convertView.setFocusable(true);
                 convertView.setOnClickListener(this);
                 convertView.setOnLongClickListener(this);
             }
             TextView pageTitleText = convertView.findViewById(R.id.page_list_item_title);
             SearchResult result = (SearchResult) getItem(position);
 
-            SimpleDraweeView searchResultItemImage = convertView.findViewById(R.id.page_list_item_image);
+            ImageView searchResultItemImage = convertView.findViewById(R.id.page_list_item_image);
             GoneIfEmptyTextView descriptionText = convertView.findViewById(R.id.page_list_item_description);
             TextView redirectText = convertView.findViewById(R.id.page_list_item_redirect);
             View redirectArrow = convertView.findViewById(R.id.page_list_item_redirect_arrow);
@@ -502,7 +502,7 @@ public class SearchResultsFragment extends Fragment {
             } else {
                 redirectText.setVisibility(View.VISIBLE);
                 redirectArrow.setVisibility(View.VISIBLE);
-                redirectText.setText(String.format(getString(R.string.search_redirect_from), result.getRedirectFrom()));
+                redirectText.setText(getString(R.string.search_redirect_from, result.getRedirectFrom()));
                 descriptionText.setVisibility(View.GONE);
             }
 
@@ -510,8 +510,7 @@ public class SearchResultsFragment extends Fragment {
             StringUtil.boldenKeywordText(pageTitleText, result.getPageTitle().getDisplayText(), currentSearchTerm);
 
             searchResultItemImage.setVisibility((result.getPageTitle().getThumbUrl() == null) ? View.GONE : View.VISIBLE);
-            ViewUtil.loadImageUrlInto(searchResultItemImage,
-                    result.getPageTitle().getThumbUrl());
+            ViewUtil.loadImageWithRoundedCorners(searchResultItemImage, result.getPageTitle().getThumbUrl());
 
 
             View infoButton = convertView.findViewById(R.id.info_button);
