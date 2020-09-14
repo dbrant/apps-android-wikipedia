@@ -499,9 +499,9 @@ public class SearchResultsFragment extends Fragment {
             ViewUtil.loadImageWithRoundedCorners(searchResultItemImage, result.getPageTitle().getThumbUrl());
 
 
-            View infoButton = convertView.findViewById(R.id.info_button);
+            View infoButton = getView().findViewById(R.id.info_button);
             infoButton.setTag(position);
-            FeedbackUtil.setToolbarButtonLongPressToast(infoButton);
+            FeedbackUtil.setButtonLongPressToast(infoButton);
             infoButton.setOnClickListener(infoClickListener);
 
             // ...and lastly, if we've scrolled to the last item in the list, then
@@ -528,7 +528,7 @@ public class SearchResultsFragment extends Fragment {
         }
 
         private View.OnClickListener infoClickListener = view -> {
-            SearchResult result = (SearchResult) getItem((int) view.getTag());
+            SearchResult result = totalResults.get((int) view.getTag());
             if (callback() != null) {
                 callback().showWikidataInfoBox(result.getPageTitle());
             }

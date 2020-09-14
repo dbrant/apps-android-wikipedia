@@ -119,7 +119,7 @@ public class WikidataInfoDialog extends ExtendedBottomSheetDialogFragment {
         readingListView.setAdapter(adapter);
 
         View closeButton = rootView.findViewById(R.id.close_button);
-        FeedbackUtil.setToolbarButtonLongPressToast(closeButton);
+        FeedbackUtil.setButtonLongPressToast(closeButton);
         closeButton.setOnClickListener(v -> dismiss());
 
         TextView infoTitle = rootView.findViewById(R.id.info_title);

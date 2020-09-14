@@ -33,6 +33,7 @@ import org.wikipedia.talk.TalkTopicsActivity.Companion.newIntent
 import org.wikipedia.util.*
 import org.wikipedia.util.log.L
 import org.wikipedia.views.DrawableItemDecoration
+import org.wikipedia.wikidata.WikidataInfoDialog
 import java.util.concurrent.TimeUnit
 
 class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
@@ -383,5 +384,9 @@ class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
 
     override fun onLinkPreviewShareLink(title: PageTitle) {
         ShareUtil.shareText(this, title)
+    }
+
+    override fun showWikidataInfoBox(title: PageTitle) {
+        bottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 }
