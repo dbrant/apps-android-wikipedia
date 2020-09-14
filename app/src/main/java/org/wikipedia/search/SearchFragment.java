@@ -87,7 +87,6 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
     private String tempLangCodeHolder;
     private boolean langBtnClicked = false;
     public static final int RESULT_LANG_CHANGED = 1;
-    public static final int RESULT_LANG_CONSISTENT = 2;
     public static final int LANG_BUTTON_TEXT_SIZE_LARGER = 12;
     public static final int LANG_BUTTON_TEXT_SIZE_SMALLER = 8;
     /**
@@ -183,13 +182,19 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
     @Override
     public void onStart() {
         super.onStart();
-        setUpLanguageScroll(0);
+        setUpLanguageScroll(Prefs.getSelectedLanguagePositionInSearch());
         startSearch(query, false);
         searchView.setCloseButtonVisibility(query);
 
         if (!TextUtils.isEmpty(query)) {
             showPanel(PANEL_SEARCH_RESULTS);
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Prefs.setSelectedLanguagePositionInSearch(languageScrollView.getSelectedPosition());
     }
 
     @Override
@@ -203,8 +208,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
             } else if (app.language().getAppLanguageCodes().contains(searchLanguageCode)) {
                 position = app.language().getAppLanguageCodes().indexOf(searchLanguageCode);
             }
-            setUpLanguageScroll(position);
-            startSearch(query, true);
+            Prefs.setSelectedLanguagePositionInSearch(position);
         }
     }
 
@@ -226,10 +230,10 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
 
     private void setUpLanguageScroll(int position) {
         searchLanguageCode = app.language().getAppLanguageCode();
-
         if (app.language().getAppLanguageCodes().size() > 1) {
+            position = app.language().getAppLanguageCodes().size() > position ? position : 0;
             languageScrollContainer.setVisibility(View.VISIBLE);
-            languageScrollView.setUpLanguageScrollTabData(app.language().getAppLanguageCodes(), this, position);
+            languageScrollView.setUpLanguageScrollTabData(app.language().getAppLanguageCodes(), position, this);
             langButtonContainer.setVisibility(View.GONE);
         } else {
             showMultiLingualOnboarding();
@@ -238,7 +242,6 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
             initLangButton();
         }
     }
-
 
     private void showMultiLingualOnboarding() {
         if (Prefs.isMultilingualSearchTutorialEnabled()) {
@@ -304,7 +307,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
         funnel.searchClick(position, searchLanguageCode);
         HistoryEntry historyEntry = new HistoryEntry(title, HistoryEntry.SOURCE_SEARCH);
         startActivity(inNewTab ? PageActivity.newIntentForNewTab(requireContext(), historyEntry, historyEntry.getTitle())
-                : PageActivity.newIntentForExistingTab(requireContext(), historyEntry, historyEntry.getTitle()));
+                : PageActivity.newIntentForCurrentTab(requireContext(), historyEntry, historyEntry.getTitle(), false));
         closeSearch();
     }
 
@@ -443,7 +446,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
     private void initLangButton() {
         langButton.setText(app.language().getAppLanguageCode().toUpperCase(Locale.ENGLISH));
         ViewUtil.formatLangButton(langButton, app.language().getAppLanguageCode().toUpperCase(Locale.ENGLISH), LANG_BUTTON_TEXT_SIZE_SMALLER, LANG_BUTTON_TEXT_SIZE_LARGER);
-        FeedbackUtil.setToolbarButtonLongPressToast(langButtonContainer);
+        FeedbackUtil.setButtonLongPressToast(langButtonContainer);
     }
 
     private boolean isValidQuery(String queryText) {
@@ -461,7 +464,7 @@ public class SearchFragment extends Fragment implements SearchResultsFragment.Ca
     }
 
     @Override
-    public void onLanguageTabSelected(String selectedLanguageCode) {
+    public void onLanguageTabSelected(@NonNull String selectedLanguageCode) {
         if (langBtnClicked) {
             //We need to skip an event when we return back from 'add languages' screen,
             // because it triggers two events while re-drawing the UI
