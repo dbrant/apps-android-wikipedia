@@ -41,6 +41,7 @@
 * Pginer
 * Remux
 * Rodm23
+* Rodney Araujo
 * Ryo567
 * SRuizR
 * Sporeunai
@@ -81,6 +82,7 @@
   <string name="history_item_delete_undo">Deshacer</string>
   <string name="notification_archive_undo">Deshacer</string>
   <string name="app_settings">Configuración de aplicación</string>
+  <string name="history_list_title">Historial</string>
   <string name="dialog_title_clear_history">Borrar el historial de navegación</string>
   <string name="dialog_message_clear_history">¿Confirmas que quieres vaciar el historial de navegación y cerrar cualesquier pestañas abiertas?</string>
   <string name="dialog_message_clear_history_yes">Sí</string>
@@ -90,7 +92,7 @@
   <string name="search_redirect_from">Redirigido desde %s</string>
   <string name="menu_page_show_tabs">Mostrar pestañas</string>
   <string name="menu_page_other_languages">Cambiar idioma</string>
-  <string name="menu_page_find_in_page">Buscar en la página</string>
+  <string name="menu_page_find_in_page" fuzzy="true">Buscar en la página</string>
   <string name="edit_section_find_in_page">Buscar en la página</string>
   <string name="menu_page_font_and_theme">Tipo de letra y tema</string>
   <string name="menu_page_add_to_list">Añadir a lista de lectura</string>
@@ -279,10 +281,14 @@
   <string name="abusefilter_title_disallow">No puedes publicar esta edición. Vuelve atrás y cámbiala.</string>
   <string name="abusefilter_text_warn">Un filtro automático ha identificado esta edición como potencialmente no constructiva. Puede contener uno o más de los siguientes:&lt;br&gt;&lt;br&gt;· Escrito en mayúsculas&lt;br&gt;· Borrado de artículos o spam&lt;br&gt;· Enlaces externos o imágenes irrelevantes&lt;br&gt;· Caracteres repetidos</string>
   <string name="abusefilter_text_disallow">Un filtro automático ha identificado esta edición como potencialmente no constructiva, o probable vandalismo.&lt;br /&gt;&lt;br /&gt;Wikipedia es una enciclopedía y sólo contenido neutral y notable pertenece aquí.</string>
-  <string name="text_size_select">Tamaño de letra</string>
   <string name="page_similar_titles">Páginas similares</string>
   <string name="search_did_you_mean">¿Quisiste decir «%s»?</string>
   <string name="search_recent_header">Búsquedas recientes:</string>
+  <string name="search_results_count_zero">No hay ningún resultado</string>
+  <plurals name="search_results_count">
+    <item quantity="one">1 resultado</item>
+    <item quantity="other">%d resultados</item>
+  </plurals>
   <string name="button_clear_all_recent_searches">Borrar búsquedas recientes</string>
   <string name="clear_recent_searches_confirm">¿Confirmas que quieres vaciar tu historial de búsquedas?</string>
   <string name="clear_recent_searches_confirm_yes">Sí</string>
@@ -346,6 +352,7 @@
   <string name="address_copied">Dirección copiada en el portapapeles.</string>
   <string name="text_copied">Texto copiado en el portapapeles.</string>
   <string name="button_continue_to_article">Leer artículo</string>
+  <string name="button_continue_to_talk_page">Ver página de discusión</string>
   <string name="button_continue_to_disambiguation">Ver páginas similares</string>
   <string name="link_preview_disambiguation_description">Este título hace referencia a más de una página:</string>
   <string name="button_add_to_reading_list">Añadir a lista de lectura</string>
@@ -360,7 +367,7 @@
   <string name="preference_summary_show_link_previews">Mostrar una vista previa rápida de los artículos al pulsar en los enlaces.</string>
   <string name="preference_title_collapse_tables">Minimizar tablas</string>
   <string name="preference_summary_collapse_tables">Minimizar automáticamente tablas en los artículos, como por ejemplo cajas de información, referencias y notas.</string>
-  <string name="nav_item_donate">Apoya a Wikipedia</string>
+  <string name="nav_item_donate" fuzzy="true">Apoya a Wikipedia</string>
   <string name="error_voice_search_not_available">El reconocimiento de voz no está disponible.</string>
   <string name="location_service_disabled">Los servicios de ubicación están desactivados.</string>
   <string name="enable_location_service">Activar</string>
@@ -592,12 +599,8 @@
   <string name="preference_summary_notification_user_talk">Mensajes en páginas de discusión</string>
   <string name="view_because_you_read_card_title">Porque leíste</string>
   <string name="view_random_card_title">Aleatorio</string>
-  <string name="view_random_card_subtitle">Leer un artículo al azar de Wikipedia.</string>
-  <string name="view_random_card_action">Lanzar el dado</string>
   <string name="view_next_random_article">Cargar otro artículo al azar</string>
   <string name="view_main_page_card_title">Hoy en Wikipedia</string>
-  <string name="view_main_page_card_subtitle">Página principal al %s</string>
-  <string name="view_main_page_card_action">Ver la página principal</string>
   <string name="view_featured_image_card_title">Imagen del día</string>
   <string name="view_featured_image_card_download">Descargar</string>
   <string name="menu_feed_card_dismiss">Ocultar esta tarjeta</string>
@@ -607,7 +610,6 @@
   <string name="feed_featured_image_share_subject">Imagen destacada de Wikimedia Commons</string>
   <string name="feed">Explorar</string>
   <string name="home">Inicio</string>
-  <string name="most_read_list_card_title">Tendencias</string>
   <string name="view_static_card_icon_content_description">Icono de tarjeta</string>
   <string name="view_card_news_title">En las noticias</string>
   <plurals name="view_continue_reading_card_subtitle">
@@ -633,7 +635,6 @@
   <string name="feed_item_type_featured_article">Artículo destacado del día en Wikipedia</string>
   <string name="feed_item_type_trending">Artículos más vistos del día</string>
   <string name="feed_item_type_featured_image">Imagen destacada del día en Wikimedia Commons</string>
-  <string name="feed_item_type_main_page">Página principal de Wikipedia con contenido destacado diario</string>
   <string name="feed_item_type_randomizer">Generar artículos al azar para leer</string>
   <string name="feed_item_type_suggested_edits">Sugerencias para añadir contenido a Wikipedia</string>
   <string name="feed_empty_message">No hay nada en el suministro Explorar</string>
@@ -770,9 +771,9 @@
   <string name="suggested_edits_onboarding_message">&lt;b&gt;Hola, %s&lt;/b&gt;, abajo puedes encontrar algunas formas rápidas y fáciles para ayuda a mejorar Wikipedia. Verás la diferencia que estás haciendo tan pronto como empieces. ¡Feliz edición!</string>
   <string name="suggested_edits_image_captions_task_detail">Describe una imagen para ayudar a los lectores a comprender su significado y contexto.</string>
   <string name="suggested_edits_add_descriptions_task_detail">Resume un artículo para ayudar a los lectores a comprender el tema en un vistazo.</string>
-  <string name="suggested_edits_contributions_stat_tooltip">El número total de tus contribuciones con Ediciones sugeridas.</string>
-  <string name="suggested_edits_edit_streak_stat_tooltip">Cuántos días seguidos has contribuido a Ediciones sugeridas. Si hace tiempo que no contribuyes, mostrará la fecha de tu última contribución.</string>
-  <string name="suggested_edits_page_views_stat_tooltip">Total de páginas vistas de elementos a los que contribuiste en los últimos 30 días con ediciones sugeridas.</string>
+  <string name="suggested_edits_contributions_stat_tooltip" fuzzy="true">El número total de tus contribuciones con Ediciones sugeridas.</string>
+  <string name="suggested_edits_edit_streak_stat_tooltip" fuzzy="true">Cuántos días seguidos has contribuido a Ediciones sugeridas. Si hace tiempo que no contribuyes, mostrará la fecha de tu última contribución.</string>
+  <string name="suggested_edits_page_views_stat_tooltip" fuzzy="true">Total de páginas vistas de elementos a los que contribuiste en los últimos 30 días con ediciones sugeridas.</string>
   <string name="suggested_edits_edit_quality_stat_tooltip">Basado en la cantidad de veces que una de tus contribuciones ha sido revertida (anulado por otro editor). Ediciones revertidas: %d.</string>
   <string name="suggested_edits_paused_message">Las ediciones sugeridas están pausadas hasta %1$s. Lo sentimos %2$s, algunas de tus contribuciones recientes se han revertido.</string>
   <string name="suggested_edits_disabled_message">Las ediciones sugeridas están desactivadas. Lo sentimos %s, muchas de tus contribuciones recientes se han revertido.</string>
@@ -881,13 +882,10 @@
   <string name="app_shortcuts_random">Aleatorio</string>
   <string name="app_shortcuts_continue_reading">Continuar leyendo</string>
   <string name="app_shortcuts_search">Buscar</string>
-  <string name="more_trending_text">Más de esto</string>
-  <string name="top_on_this_day">Tendencias del %1$s</string>
   <string name="on_this_day_card_title">Un día como hoy</string>
   <string name="more_events_text">Más acontecimientos históricos en este día</string>
   <string name="events_count_text">%1$s acontecimientos entre %2$s y %3$d</string>
   <string name="this_year">Este año</string>
-  <string name="back_to_top">Volver al principio</string>
   <string name="on_this_day_dialog_next_month">Mes siguiente</string>
   <string name="on_this_day_dialog_previous_month">Mes anterior</string>
   <string name="on_this_day_open_date_picker">Abrir selector de fecha</string>
@@ -948,4 +946,6 @@
   <string name="talk_new_topic">Tema nuevo</string>
   <string name="talk_page_empty">Esta página de discusión está vacía.</string>
   <string name="talk_add_reply">Responder</string>
+  <string name="talk_no_subject">(Sin asunto)</string>
+  <string name="talk_reply_subject">Asunto</string>
 </resources>

@@ -126,6 +126,11 @@ public interface Service {
     @GET(MW_API_PREFIX + "action=query&generator=unreviewedimagelabels&guillimit=10&prop=imagelabels|imageinfo&iiprop=timestamp|user|url|mime|extmetadata&iiurlwidth=" + PREFERRED_THUMB_SIZE)
     @NonNull Observable<MwQueryResponse> getImagesWithUnreviewedLabels(@NonNull @Query("uselang") String lang);
 
+    @FormUrlEncoded
+    @POST(MW_API_PREFIX + "action=options")
+    @NonNull Observable<MwPostResponse> postSetOptions(@NonNull @Field("change") String change,
+                                                       @NonNull @Field("token") String token);
+
 
     // ------- CSRF, Login, and Create Account -------
 
@@ -206,6 +211,18 @@ public interface Service {
     @Headers("Cache-Control: no-cache")
     @GET(MW_API_PREFIX + "action=query&meta=unreadnotificationpages&unplimit=max&unpwikis=*")
     @NonNull Observable<MwQueryResponse> getUnreadNotificationWikis();
+
+    @FormUrlEncoded
+    @Headers("Cache-Control: no-cache")
+    @POST(MW_API_PREFIX + "action=echopushsubscriptions&command=create&provider=fcm")
+    @NonNull Observable<MwQueryResponse> subscribePush(@Field("token") @NonNull String csrfToken,
+                                                       @Field("providertoken") @NonNull String providerToken);
+
+    @FormUrlEncoded
+    @Headers("Cache-Control: no-cache")
+    @POST(MW_API_PREFIX + "action=echopushsubscriptions&command=delete&provider=fcm")
+    @NonNull Observable<MwQueryResponse> unsubscribePush(@Field("token") @NonNull String csrfToken,
+                                                         @Field("providertoken") @NonNull String providerToken);
 
     // ------- Editing -------
 
@@ -322,5 +339,19 @@ public interface Service {
     Observable<MwPostResponse> postReviewImageLabels(@NonNull @Field("filename") String fileName,
                                                      @NonNull @Field("token") String token,
                                                      @NonNull @Field("batch") String batchLabels);
+    // ------- Watchlist -------
 
+    @GET(MW_API_PREFIX + "action=query&list=watchlist")
+    @NonNull Observable<MwQueryResponse> getWatchlist(@Nullable @Query("continue") String cont);
+
+    @Headers("Cache-Control: no-cache")
+    @POST(MW_API_PREFIX + "action=watch")
+    @FormUrlEncoded
+    Observable<EntityPostResponse> postWatch(@Nullable @Field("unwatch") Integer unwatch,
+                                             @Field("pageids") String pageIds,
+                                             @NonNull @Field("token") String token);
+
+    @Headers("Cache-Control: no-cache")
+    @GET(MW_API_PREFIX + "action=query&meta=tokens&type=watch")
+    @NonNull Observable<MwQueryResponse> getWatchToken();
 }

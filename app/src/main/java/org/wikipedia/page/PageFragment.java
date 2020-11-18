@@ -1,5 +1,8 @@
 package org.wikipedia.page;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -19,6 +22,7 @@ import android.view.ViewGroup;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -27,6 +31,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -88,6 +93,7 @@ import org.wikipedia.readinglist.database.ReadingListPage;
 import org.wikipedia.search.SearchActivity;
 import org.wikipedia.settings.Prefs;
 import org.wikipedia.suggestededits.PageSummaryForEdit;
+import org.wikipedia.talk.TalkTopicsActivity;
 import org.wikipedia.theme.ThemeChooserDialog;
 import org.wikipedia.util.ActiveTimer;
 import org.wikipedia.util.DimenUtil;
@@ -99,6 +105,7 @@ import org.wikipedia.util.UriUtil;
 import org.wikipedia.util.log.L;
 import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
+import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
 import org.wikipedia.wiktionary.WiktionaryDialog;
 
@@ -148,16 +155,15 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         void onPageRemoveFromReadingLists(@NonNull PageTitle title);
         void onPageLoadError(@NonNull PageTitle title);
         void onPageLoadErrorBackPressed();
-        void onPageHideAllContent();
-        void onPageSetToolbarFadeEnabled(boolean enabled);
         void onPageSetToolbarElevationEnabled(boolean enabled);
         void onPageCloseActionMode();
     }
 
+    private static final String ARG_THEME_CHANGE_SCROLLED = "themeChangeScrolled";
+    private static final int REFRESH_SPINNER_ADDITIONAL_OFFSET = (int) (16 * getDensityScalar());
+
     private boolean pageRefreshed;
     private boolean errorState = false;
-
-    private static final int REFRESH_SPINNER_ADDITIONAL_OFFSET = (int) (16 * getDensityScalar());
 
     private PageFragmentLoadState pageFragmentLoadState;
     private PageViewModel model;
@@ -172,9 +178,11 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
     private SwipeRefreshLayoutWithScroll refreshView;
     private WikiErrorView errorView;
     private PageActionTabLayout tabLayout;
+    private ImageView imageTransitionHolder;
     private ToCHandler tocHandler;
     private WebViewScrollTriggerListener scrollTriggerListener = new WebViewScrollTriggerListener();
     private ExclusiveBottomSheetPresenter bottomSheetPresenter = new ExclusiveBottomSheetPresenter();
+    private boolean scrolledUpForThemeChange;
 
     private CommunicationBridge bridge;
     private LinkHandler linkHandler;
@@ -229,7 +237,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
         @Override
         public void onSearchTabSelected() {
-            openSearchActivity(PAGE_ACTION_TAB);
+            showFindInPage();
         }
 
         @Override
@@ -239,7 +247,25 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
         @Override
         public void onFontAndThemeTabSelected() {
-            showBottomSheet(new ThemeChooserDialog());
+            // If we're looking at the top of the article, then scroll down a bit so that at least
+            // some of the text is shown.
+            if (webView.getScrollY() < DimenUtil.leadImageHeightForDevice(requireActivity())) {
+                scrolledUpForThemeChange = true;
+                final int animDuration = 250;
+                ObjectAnimator anim = ObjectAnimator.ofInt(webView, "scrollY", webView.getScrollY(), DimenUtil.leadImageHeightForDevice(requireActivity()));
+                anim.setDuration(animDuration)
+                        .addListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                super.onAnimationEnd(animation);
+                                showBottomSheet(ThemeChooserDialog.newInstance(PAGE_ACTION_TAB));
+                            }
+                        });
+                anim.start();
+            } else {
+                scrolledUpForThemeChange = false;
+                showBottomSheet(ThemeChooserDialog.newInstance(PAGE_ACTION_TAB));
+            }
         }
 
         @Override
@@ -269,10 +295,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
     public PageTitle getTitle() {
         return model.getTitle();
-    }
-
-    @Nullable public PageTitle getTitleOriginal() {
-        return model.getTitleOriginal();
     }
 
     @NonNull public ShareHandler getShareHandler() {
@@ -321,13 +343,25 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         refreshView.setColorSchemeResources(getThemedAttributeId(requireContext(), R.attr.colorAccent));
         refreshView.setScrollableChild(webView);
         refreshView.setOnRefreshListener(pageRefreshListener);
+        int swipeOffset = getContentTopOffsetPx(requireActivity()) + REFRESH_SPINNER_ADDITIONAL_OFFSET;
+        refreshView.setProgressViewOffset(false, -swipeOffset, swipeOffset);
 
         tabLayout = rootView.findViewById(R.id.page_actions_tab_layout);
         tabLayout.setPageActionTabsCallback(pageActionTabsCallback);
 
         errorView = rootView.findViewById(R.id.page_error);
+        imageTransitionHolder = rootView.findViewById(R.id.page_image_transition_holder);
 
+        if (savedInstanceState != null) {
+            scrolledUpForThemeChange = savedInstanceState.getBoolean(ARG_THEME_CHANGE_SCROLLED, false);
+        }
         return rootView;
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(ARG_THEME_CHANGE_SCROLLED, scrolledUpForThemeChange);
     }
 
     @Override
@@ -409,12 +443,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         }
     }
 
-    void setToolbarFadeEnabled(boolean enabled) {
-        if (callback() != null) {
-            callback().onPageSetToolbarFadeEnabled(enabled);
-        }
-    }
-
     void updateInsets(@NonNull WindowInsetsCompat insets) {
         int swipeOffset = getContentTopOffsetPx(requireActivity()) + insets.getSystemWindowInsetTop() + REFRESH_SPINNER_ADDITIONAL_OFFSET;
         refreshView.setProgressViewOffset(false, -swipeOffset, swipeOffset);
@@ -463,6 +491,8 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
                         bridge.execute(JavaScriptActionHandler.mobileWebChromeShim());
                     }
                 });
+
+                ((PageActivity) requireActivity()).showPageFragmentView();
             }
 
             @Override
@@ -569,6 +599,11 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             return;
         }
 
+        if (title.namespace() == Namespace.USER_TALK) {
+            startActivity(TalkTopicsActivity.newIntent(requireActivity(), title.getWikiSite().languageCode(), title.getText()));
+            return;
+        }
+
         // If it's a Special page, launch it in an external browser, since mobileview
         // doesn't support the Special namespace.
         // TODO: remove when Special pages are properly returned by the server
@@ -615,6 +650,10 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         super.onResume();
         initPageScrollFunnel();
         activeTimer.resume();
+
+        CoordinatorLayout.LayoutParams params = new CoordinatorLayout.LayoutParams(1, 1);
+        imageTransitionHolder.setLayoutParams(params);
+        imageTransitionHolder.setVisibility(View.GONE);
     }
 
     @Override
@@ -708,7 +747,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             }
         }
         if (selectedTabPosition == -1) {
-            loadPage(title, entry, true, true);
+            loadPage(title, entry, true, false);
             return;
         }
         setCurrentTabAndReset(selectedTabPosition);
@@ -761,7 +800,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         errorView.setVisibility(View.GONE);
 
         model.setTitle(title);
-        model.setTitleOriginal(title);
         model.setCurEntry(entry);
         model.setReadingListPage(null);
         model.setForceNetwork(isRefresh);
@@ -824,7 +862,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
                 && resultCode == EditHandler.RESULT_REFRESH_PAGE) {
             FeedbackUtil.showMessage(requireActivity(), R.string.edit_saved_successfully);
             // and reload the page...
-            loadPage(model.getTitleOriginal(), model.getCurEntry(), false, false);
+            loadPage(model.getTitle(), model.getCurEntry(), false, false);
         }
     }
 
@@ -1097,8 +1135,13 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         bridge.addListener("footer_item", (String messageType, JsonObject messagePayload) -> {
             String itemType = messagePayload.get("itemType").getAsString();
             if ("talkPage".equals(itemType) && model.getTitle() != null) {
-                PageTitle talkPageTitle = new PageTitle("Talk", model.getTitle().getPrefixedText(), model.getTitle().getWikiSite());
-                visitInExternalBrowser(requireContext(), Uri.parse(talkPageTitle.getUri()));
+                // If we're currently looking at a User page, then go directly to the corresponding User Talk page.
+                if (model.getTitle().namespace() == Namespace.USER) {
+                    startActivity(TalkTopicsActivity.newIntent(requireActivity(), model.getTitle().getWikiSite().languageCode(), model.getTitle().getText()));
+                } else {
+                    PageTitle talkPageTitle = new PageTitle("Talk", model.getTitle().getPrefixedText(), model.getTitle().getWikiSite());
+                    visitInExternalBrowser(requireContext(), Uri.parse(talkPageTitle.getUri()));
+                }
             } else if ("languages".equals(itemType)) {
                 startLangLinksActivity();
             } else if ("lastEdited".equals(itemType) && model.getTitle() != null) {
@@ -1154,9 +1197,39 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
     private void startGalleryActivity(@NonNull String fileName) {
         if (app.isOnline()) {
-            requireActivity().startActivityForResult(GalleryActivity.newIntent(requireActivity(),
-                    model.getTitle(), fileName,
-                    model.getTitle().getWikiSite(), getRevision(), GalleryFunnel.SOURCE_NON_LEAD_IMAGE), ACTIVITY_REQUEST_GALLERY);
+
+            bridge.evaluate(JavaScriptActionHandler.getElementAtPosition(DimenUtil.roundedPxToDp(webView.getLastTouchX()), DimenUtil.roundedPxToDp(webView.getLastTouchY())), s -> {
+                if (!isAdded()) {
+                    return;
+                }
+
+                ActivityOptionsCompat options = null;
+                JavaScriptActionHandler.ImageHitInfo hitInfo = GsonUtil.getDefaultGson().fromJson(s, JavaScriptActionHandler.ImageHitInfo.class);
+
+                if (hitInfo != null) {
+                    CoordinatorLayout.LayoutParams params = new CoordinatorLayout.LayoutParams(DimenUtil.roundedDpToPx(hitInfo.getWidth()), DimenUtil.roundedDpToPx(hitInfo.getHeight()));
+                    params.topMargin = DimenUtil.roundedDpToPx(hitInfo.getTop());
+                    params.leftMargin = DimenUtil.roundedDpToPx(hitInfo.getLeft());
+                    imageTransitionHolder.setLayoutParams(params);
+                    imageTransitionHolder.setVisibility(View.VISIBLE);
+                    ViewUtil.loadImage(imageTransitionHolder, hitInfo.getSrc());
+
+                    GalleryActivity.setTransitionInfo(hitInfo);
+                    options = ActivityOptionsCompat.
+                            makeSceneTransitionAnimation(requireActivity(), imageTransitionHolder, getString(R.string.transition_page_gallery));
+                }
+                final Bundle bundle = options != null ? options.toBundle() : null;
+
+                webView.post(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    requireActivity().startActivityForResult(GalleryActivity.newIntent(requireActivity(),
+                            model.getTitle(), fileName,
+                            model.getTitle().getWikiSite(), getRevision(), GalleryFunnel.SOURCE_NON_LEAD_IMAGE), ACTIVITY_REQUEST_GALLERY, bundle);
+                });
+            });
+
         } else {
             Snackbar snackbar = FeedbackUtil.makeSnackbar(requireActivity(), getString(R.string.gallery_not_available_offline_snackbar), FeedbackUtil.LENGTH_DEFAULT);
             snackbar.setAction(R.string.gallery_not_available_offline_snackbar_dismiss, view -> snackbar.dismiss());
@@ -1171,9 +1244,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         leadImagesHandler.hide();
         bridge.loadBlankPage();
         webView.setVisibility(View.INVISIBLE);
-        if (callback() != null) {
-            callback().onPageHideAllContent();
-        }
     }
 
     @Override
@@ -1184,6 +1254,11 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         }
         if (pageFragmentLoadState.goBack()) {
             return true;
+        }
+        // if the current tab can no longer go back, then close the tab before exiting
+        if (!app.getTabList().isEmpty()) {
+            int tabIndex = app.getTabList().size() - 1;
+            app.getTabList().remove(tabIndex);
         }
         return false;
     }
@@ -1249,7 +1324,13 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
     }
 
     @Override
-    public void onCancel() {
+    public void onCancelThemeChooser() {
+        if (scrolledUpForThemeChange) {
+            final int animDuration = 250;
+            ObjectAnimator.ofInt(webView, "scrollY", webView.getScrollY(), 0)
+                    .setDuration(animDuration)
+                    .start();
+        }
     }
 
     @Override

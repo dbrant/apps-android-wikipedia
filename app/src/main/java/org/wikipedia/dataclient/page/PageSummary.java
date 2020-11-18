@@ -16,6 +16,7 @@ import org.wikipedia.page.Namespace;
 import org.wikipedia.page.Page;
 import org.wikipedia.page.PageProperties;
 import org.wikipedia.page.PageTitle;
+import org.wikipedia.util.UriUtil;
 
 /**
  * Represents a summary of a page, useful for page previews.
@@ -43,6 +44,17 @@ public class PageSummary {
     @Nullable @JsonAdapter(GeoTypeAdapter.class) private Location coordinates;
     @Nullable private String timestamp;
     @SerializedName("wikibase_item") @Nullable private String wikiBaseItem;
+
+    public PageSummary() { }
+
+    public PageSummary(@NonNull String displayTitle, @NonNull String prefixTitle, @Nullable String description,
+                       @Nullable String extract, @Nullable String thumbnail, @NonNull String lang) {
+        this.titles = new Titles(displayTitle, prefixTitle);
+        this.description = description;
+        this.extract = extract;
+        this.thumbnail = new Thumbnail(thumbnail);
+        this.lang = lang;
+    }
 
     public Page toPage(PageTitle title) {
         return new Page(adjustPageTitle(title), new PageProperties(this));
@@ -92,6 +104,10 @@ public class PageSummary {
         return thumbnail == null ? null : thumbnail.getUrl();
     }
 
+    public void setDescription(@Nullable String description) {
+        this.description = description;
+    }
+
     @Nullable
     public String getDescription() {
         return description;
@@ -109,7 +125,7 @@ public class PageSummary {
 
     @NonNull
     public PageTitle getPageTitle(@NonNull WikiSite wiki) {
-        return new PageTitle(getApiTitle(), wiki, getThumbnailUrl(), getDescription(), getDisplayTitle());
+        return new PageTitle(getApiTitle(), wiki, getThumbnailUrl(), getDescription(), getDisplayTitle(), getExtract());
     }
 
     public int getPageId() {
@@ -123,6 +139,10 @@ public class PageSummary {
 
     private static class Thumbnail {
         private String source;
+
+        Thumbnail(@Nullable String source) {
+            this.source = source;
+        }
 
         public String getUrl() {
             return source;
@@ -141,6 +161,11 @@ public class PageSummary {
     private static class Titles {
         @Nullable private String canonical;
         @Nullable private String display;
+
+        Titles(@Nullable String canonical, @Nullable String display) {
+            this.canonical = canonical;
+            this.display = display;
+        }
     }
 
     @Override @NonNull public String toString() {
@@ -168,10 +193,9 @@ public class PageSummary {
 
     @Nullable
     public String getLeadImageName() {
-        if (getOriginalImageUrl() == null) {
+        if (getThumbnailUrl() == null) {
             return null;
         }
-        String[] originalImageSplitArray = getOriginalImageUrl().split("/");
-        return originalImageSplitArray[originalImageSplitArray.length - 1];
+        return UriUtil.getFilenameFromUploadUrl(getThumbnailUrl());
     }
 }
