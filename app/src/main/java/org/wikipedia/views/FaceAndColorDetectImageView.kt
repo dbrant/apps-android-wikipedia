@@ -21,7 +21,7 @@ import org.wikipedia.util.CenterCropWithFaceTransformation
 import org.wikipedia.util.WhiteBackgroundTransformation
 import java.util.*
 
-class FaceAndColorDetectImageView constructor(context: Context, attrs: AttributeSet? = null) : AppCompatImageView(context, attrs) {
+open class FaceAndColorDetectImageView constructor(context: Context, attrs: AttributeSet? = null) : AppCompatImageView(context, attrs) {
 
     interface OnImageLoadListener {
         fun onImageLoaded(palette: Palette)

@@ -50,6 +50,7 @@ import org.wikipedia.util.ClipboardUtil.setPlainText
 import org.wikipedia.util.log.L
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
+import org.wikipedia.wikidata.WikidataInfoDialog
 import java.nio.charset.StandardCharsets
 
 class ArticleEditDetailsFragment : Fragment(), WatchlistExpiryDialog.Callback, LinkPreviewDialog.Callback {
@@ -530,6 +531,10 @@ class ArticleEditDetailsFragment : Fragment(), WatchlistExpiryDialog.Callback, L
 
     override fun onLinkPreviewShareLink(title: PageTitle) {
         ShareUtil.shareText(requireContext(), title)
+    }
+
+    override fun showWikidataInfoBox(title: PageTitle) {
+        bottomSheetPresenter.show(childFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     private fun copyLink(uri: String?) {

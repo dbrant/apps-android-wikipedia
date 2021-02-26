@@ -41,9 +41,11 @@ import org.wikipedia.util.ResourceUtil.getThemedColor
 import org.wikipedia.util.StringUtil.listToJsonArrayString
 import org.wikipedia.views.LanguageScrollView
 import org.wikipedia.views.ViewUtil.formatLangButton
+import org.wikipedia.wikidata.WikidataInfoDialog
 import java.util.*
 
-class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearchesFragment.Callback, LanguageScrollView.Callback {
+class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearchesFragment.Callback,
+        LanguageScrollView.Callback, WikidataInfoDialog.Callback {
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
     private val disposables = CompositeDisposable()
@@ -379,6 +381,14 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
         onLangButtonClick()
     }
 
+    override fun showWikidataInfoBox(title: PageTitle) {
+        bottomSheetPresenter.show(childFragmentManager, WikidataInfoDialog.newInstance(title))
+    }
+
+    override fun wikidataInfoLinkClicked(title: PageTitle) {
+        navigateToTitle(title, true, 0)
+    }
+
     companion object {
         private const val ARG_QUERY = "lastQuery"
         private const val PANEL_RECENT_SEARCHES = 0
@@ -391,8 +401,8 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
         fun newInstance(source: InvokeSource, query: String?): SearchFragment =
                 SearchFragment().apply {
                     arguments = bundleOf(
-                        Constants.INTENT_EXTRA_INVOKE_SOURCE to source,
-                        ARG_QUERY to query
+                            Constants.INTENT_EXTRA_INVOKE_SOURCE to source,
+                            ARG_QUERY to query
                     )
                 }
     }

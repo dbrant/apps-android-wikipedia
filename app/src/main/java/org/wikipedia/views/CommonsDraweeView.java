@@ -19,19 +19,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class CommonsDraweeView extends FaceAndColorDetectImageView {
     @Nullable private Disposable disposable;
 
-    public CommonsDraweeView(Context context) {
-        super(context);
-        init();
-    }
-
     public CommonsDraweeView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
-    }
-
-    public CommonsDraweeView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init();
     }
 
     public void loadImage(String commonsTitle) {
@@ -54,8 +43,5 @@ public class CommonsDraweeView extends FaceAndColorDetectImageView {
     @Override public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         cancel();
-    }
-
-    private void init() {
     }
 }
