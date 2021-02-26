@@ -48,6 +48,8 @@ public final class Constants {
     public static final String INTENT_EXTRA_GO_TO_SE_TAB = "goToSETab";
     public static final String INTENT_EXTRA_INVOKE_SOURCE = "invokeSource";
     public static final String INTENT_EXTRA_ACTION = "intentAction";
+    public static final String INTENT_EXTRA_HAS_TRANSITION_ANIM = "hasTransitionAnim";
+
 
     public static final int SUGGESTION_REQUEST_ITEMS = 5;
     public static final int API_QUERY_MAX_TITLES = 50;
@@ -96,7 +98,12 @@ public final class Constants {
         SNACKBAR_ACTION("snackbar"),
         PAGE_ACTION_TAB("pageActionTab"),
         TALK_ACTIVITY("talkActivity"),
-        SETTINGS("settings");
+        SETTINGS("settings"),
+        DIFF_ACTIVITY("diffActivity"),
+        WATCHLIST_ACTIVITY("watchlist"),
+        SEARCH("search"),
+        ANNOUNCEMENT("announcement"),
+        LANG_VARIANT_DIALOG("lang_variant_dialog");
 
         private String name;
 

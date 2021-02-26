@@ -25,14 +25,11 @@
 
         <TextView
             android:id="@+id/main_drawer_account_name"
+            style="@android:style/TextAppearance"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginStart="24dp"
-            android:fontFamily="sans-serif-medium"
-            android:textColor="?attr/material_theme_secondary_color"
-            android:textSize="14sp"
-            tools:text="Sample account name" />
+            android:layout_weight="1" />
 
         <Button
             android:id="@+id/main_drawer_login_button"
@@ -104,6 +101,26 @@
             android:layout_marginStart="24dp"
             android:layout_weight="1"
             android:text="@string/talk_title" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/main_drawer_watchlist_container"
+        style="@style/SideDrawerMenuItem">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_star_24"
+            app:tint="?attr/material_theme_secondary_color" />
+
+        <TextView
+            style="@android:style/TextAppearance"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_weight="1"
+            android:text="@string/watchlist_title" />
     </LinearLayout>
 
     <LinearLayout

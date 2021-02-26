@@ -56,6 +56,7 @@ import org.wikipedia.analytics.GalleryFunnel;
 import org.wikipedia.analytics.LoginFunnel;
 import org.wikipedia.analytics.PageScrollFunnel;
 import org.wikipedia.analytics.TabFunnel;
+import org.wikipedia.analytics.WatchlistFunnel;
 import org.wikipedia.auth.AccountUtil;
 import org.wikipedia.bridge.CommunicationBridge;
 import org.wikipedia.bridge.CommunicationBridge.CommunicationBridgeListener;
@@ -66,6 +67,7 @@ import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.dataclient.okhttp.HttpStatusException;
 import org.wikipedia.dataclient.okhttp.OkHttpWebViewClient;
 import org.wikipedia.dataclient.page.Protection;
+import org.wikipedia.dataclient.watch.Watch;
 import org.wikipedia.descriptions.DescriptionEditActivity;
 import org.wikipedia.descriptions.DescriptionEditTutorialActivity;
 import org.wikipedia.edit.EditHandler;
@@ -86,8 +88,8 @@ import org.wikipedia.page.references.PageReferences;
 import org.wikipedia.page.references.ReferenceDialog;
 import org.wikipedia.page.shareafact.ShareHandler;
 import org.wikipedia.page.tabs.Tab;
+import org.wikipedia.readinglist.LongPressMenu;
 import org.wikipedia.readinglist.ReadingListBehaviorsUtil;
-import org.wikipedia.readinglist.ReadingListBookmarkMenu;
 import org.wikipedia.readinglist.database.ReadingListDbHelper;
 import org.wikipedia.readinglist.database.ReadingListPage;
 import org.wikipedia.search.SearchActivity;
@@ -107,6 +109,8 @@ import org.wikipedia.views.ObservableWebView;
 import org.wikipedia.views.SwipeRefreshLayoutWithScroll;
 import org.wikipedia.views.ViewUtil;
 import org.wikipedia.views.WikiErrorView;
+import org.wikipedia.watchlist.WatchlistExpiry;
+import org.wikipedia.watchlist.WatchlistExpiryDialog;
 import org.wikipedia.wiktionary.WiktionaryDialog;
 
 import java.util.ArrayList;
@@ -140,9 +144,11 @@ import static org.wikipedia.util.UriUtil.decodeURL;
 import static org.wikipedia.util.UriUtil.visitInExternalBrowser;
 
 public class PageFragment extends Fragment implements BackPressedHandler, CommunicationBridgeListener,
-        ThemeChooserDialog.Callback, ReferenceDialog.Callback, WiktionaryDialog.Callback {
+        ThemeChooserDialog.Callback, ReferenceDialog.Callback, WiktionaryDialog.Callback, WatchlistExpiryDialog.Callback {
+
     public interface Callback {
         void onPageDismissBottomSheet();
+        void onPageLoadComplete();
         void onPageLoadPage(@NonNull PageTitle title, @NonNull HistoryEntry entry);
         void onPageInitWebView(@NonNull ObservableWebView v);
         void onPageShowLinkPreview(@NonNull HistoryEntry entry);
@@ -152,7 +158,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         void onPageHideSoftKeyboard();
         void onPageAddToReadingList(@NonNull PageTitle title, @NonNull InvokeSource source);
         void onPageMoveToReadingList(long sourceReadingListId, @NonNull PageTitle title, @NonNull InvokeSource source, boolean showDefaultList);
-        void onPageRemoveFromReadingLists(@NonNull PageTitle title);
+        void onPageWatchlistExpirySelect(@NonNull WatchlistExpiry expiry);
         void onPageLoadError(@NonNull PageTitle title);
         void onPageLoadErrorBackPressed();
         void onPageSetToolbarElevationEnabled(boolean enabled);
@@ -164,11 +170,13 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
     private boolean pageRefreshed;
     private boolean errorState = false;
+    private boolean watchlistExpiryChanged;
 
     private PageFragmentLoadState pageFragmentLoadState;
     private PageViewModel model;
 
     @NonNull private TabFunnel tabFunnel = new TabFunnel();
+    @NonNull private WatchlistFunnel watchlistFunnel = new WatchlistFunnel();
 
     private PageScrollFunnel pageScrollFunnel;
     private LeadImagesHandler leadImagesHandler;
@@ -204,34 +212,30 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
     private PageActionTab.Callback pageActionTabsCallback = new PageActionTab.Callback() {
         @Override
         public void onAddToReadingListTabSelected() {
-            Prefs.shouldShowBookmarkToolTip(false);
             if (model.isInReadingList()) {
-                new ReadingListBookmarkMenu(tabLayout, new ReadingListBookmarkMenu.Callback() {
+                new LongPressMenu(tabLayout, new LongPressMenu.Callback() {
                     @Override
-                    public void onAddRequest(boolean addToDefault) {
-                        addToReadingList(getTitle(), BOOKMARK_BUTTON);
-                    }
-
-                    @Override
-                    public void onMoveRequest(@Nullable ReadingListPage page) {
-                        moveToReadingList(page.listId(), getTitle(), BOOKMARK_BUTTON, true);
-                    }
-
-                    @Override
-                    public void onDeleted(@Nullable ReadingListPage page) {
-                        if (callback() != null) {
-                            callback().onPageRemoveFromReadingLists(getTitle());
-                        }
-                    }
-
-                    @Override
-                    public void onShare() {
+                    public void onOpenLink(@NonNull HistoryEntry entry) {
                         // ignore
                     }
-                }).show(getTitle());
+
+                    @Override
+                    public void onOpenInNewTab(@NonNull HistoryEntry entry) {
+                        // ignore
+                    }
+
+                    @Override
+                    public void onAddRequest(@NonNull HistoryEntry entry, boolean addToDefault) {
+                        addToReadingList(getTitle(), BOOKMARK_BUTTON, addToDefault);
+                    }
+
+                    @Override
+                    public void onMoveRequest(@Nullable ReadingListPage page, @NonNull HistoryEntry entry) {
+                        moveToReadingList(page.listId(), getTitle(), BOOKMARK_BUTTON, true);
+                    }
+                }).show(getHistoryEntry());
             } else {
-                ReadingListBehaviorsUtil.INSTANCE.addToDefaultList(requireActivity(), getTitle(), BOOKMARK_BUTTON,
-                        readingListId -> moveToReadingList(readingListId, getTitle(), BOOKMARK_BUTTON, false));
+                addToReadingList(getTitle(), BOOKMARK_BUTTON, true);
             }
         }
 
@@ -402,8 +406,8 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         bridge = new CommunicationBridge(this);
         setupMessageHandlers();
 
-        errorView.setRetryClickListener((v) -> refreshPage());
-        errorView.setBackClickListener((v) -> {
+        errorView.setRetryClickListener(v -> refreshPage());
+        errorView.setBackClickListener(v-> {
             boolean back = onBackPressed();
 
             // Needed if we're coming from another activity or fragment
@@ -491,8 +495,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
                         bridge.execute(JavaScriptActionHandler.mobileWebChromeShim());
                     }
                 });
-
-                ((PageActivity) requireActivity()).showPageFragmentView();
             }
 
             @Override
@@ -528,9 +530,8 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             disposables.add(Completable.fromAction(() -> {
                 if (!TextUtils.equals(page.thumbUrl(), title.getThumbUrl())
                         || !TextUtils.equals(page.description(), title.getDescription())) {
-                    page.thumbUrl(title.getThumbUrl());
-                    page.description(title.getDescription());
-                    ReadingListDbHelper.instance().updatePage(page);
+                    ReadingListDbHelper.instance().updateMetadataByTitle(page,
+                            title.getDescription(), title.getThumbUrl());
                 }
             }).subscribeOn(Schedulers.io()).subscribe());
         }
@@ -540,7 +541,6 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             webView.setVisibility(View.VISIBLE);
         }
 
-        checkAndShowBookmarkOnboarding();
         maybeShowAnnouncement();
 
         bridge.onMetadataReady();
@@ -599,8 +599,8 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             return;
         }
 
-        if (title.namespace() == Namespace.USER_TALK) {
-            startActivity(TalkTopicsActivity.newIntent(requireActivity(), title.getWikiSite().languageCode(), title.getText()));
+        if (title.namespace() == Namespace.USER_TALK || title.namespace() == Namespace.TALK) {
+            startTalkTopicActivity(title);
             return;
         }
 
@@ -609,7 +609,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         // TODO: remove when Special pages are properly returned by the server
         // If this is a Talk page also show in external browser since we don't handle those pages
         // in the app very well at this time.
-        if (title.isSpecial() || title.isTalkPage()) {
+        if (title.isSpecial()) {
             visitInExternalBrowser(requireActivity(), Uri.parse(title.getUri()));
             return;
         }
@@ -795,9 +795,12 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         addTimeSpentReading(activeTimer.getElapsedSec());
         activeTimer.reset();
 
+        setToolbarElevationEnabled(false);
         tocHandler.setEnabled(false);
         errorState = false;
         errorView.setVisibility(View.GONE);
+
+        watchlistExpiryChanged = false;
 
         model.setTitle(title);
         model.setCurEntry(entry);
@@ -974,7 +977,9 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         hidePageContent();
         bridge.onMetadataReady();
 
-        errorView.setError(caught);
+        if (errorView.getVisibility() != View.VISIBLE) {
+            errorView.setError(caught);
+        }
         errorView.setVisibility(View.VISIBLE);
 
         View contentTopOffset = errorView.findViewById(R.id.view_wiki_error_article_content_top_offset);
@@ -1078,6 +1083,21 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
                 return;
             }
             bridge.onPcsReady();
+            callback().onPageLoadComplete();
+
+            // do we have a URL fragment to scroll to?
+            if (model.getTitle() != null && !TextUtils.isEmpty(model.getTitle().getFragment())
+                    && scrollTriggerListener.getStagedScrollY() == 0) {
+                final int scrollDelay = 100;
+                webView.postDelayed(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (model.getTitle() != null && !TextUtils.isEmpty(model.getTitle().getFragment())) {
+                        scrollToSection(model.getTitle().getFragment());
+                    }
+                }, scrollDelay);
+            }
         });
         bridge.addListener("reference", (String messageType, JsonObject messagePayload) -> {
             if (!isAdded()) {
@@ -1092,7 +1112,7 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         });
         bridge.addListener("back_link", (String messageType, JsonObject payload) -> {
             JsonArray backLinks = payload.getAsJsonArray("backLinks");
-            if (backLinks.size() > 0) {
+            if (backLinks != null && backLinks.size() > 0) {
                 List<String> backLinksList = new ArrayList<>();
                 for (int i = 0; i < backLinks.size(); i++) {
                     backLinksList.add(backLinks.get(i).getAsJsonObject().get("id").getAsString());
@@ -1102,11 +1122,14 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             }
         });
         bridge.addListener("scroll_to_anchor", (String messageType, JsonObject payload) -> {
-            int diffY = payload.getAsJsonObject("rect").has("y")
-                    ? DimenUtil.roundedDpToPx(payload.getAsJsonObject("rect").get("y").getAsFloat())
-                    : DimenUtil.roundedDpToPx(payload.getAsJsonObject("rect").get("top").getAsFloat());
-            final int offsetFraction = 3;
-            webView.setScrollY(webView.getScrollY() + diffY - webView.getHeight() / offsetFraction);
+            JsonObject rect = payload.getAsJsonObject("rect");
+            if (rect != null) {
+                int diffY = rect.has("y")
+                        ? DimenUtil.roundedDpToPx(rect.get("y").getAsFloat())
+                        : DimenUtil.roundedDpToPx(rect.get("top").getAsFloat());
+                final int offsetFraction = 3;
+                webView.setScrollY(webView.getScrollY() + diffY - webView.getHeight() / offsetFraction);
+            }
         });
         bridge.addListener("image", (String messageType, JsonObject messagePayload) -> {
             linkHandler.onUrlClick(decodeURL(messagePayload.get("href").getAsString()),
@@ -1135,17 +1158,11 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         bridge.addListener("footer_item", (String messageType, JsonObject messagePayload) -> {
             String itemType = messagePayload.get("itemType").getAsString();
             if ("talkPage".equals(itemType) && model.getTitle() != null) {
-                // If we're currently looking at a User page, then go directly to the corresponding User Talk page.
-                if (model.getTitle().namespace() == Namespace.USER) {
-                    startActivity(TalkTopicsActivity.newIntent(requireActivity(), model.getTitle().getWikiSite().languageCode(), model.getTitle().getText()));
-                } else {
-                    PageTitle talkPageTitle = new PageTitle("Talk", model.getTitle().getPrefixedText(), model.getTitle().getWikiSite());
-                    visitInExternalBrowser(requireContext(), Uri.parse(talkPageTitle.getUri()));
-                }
+                startTalkTopicActivity(model.getTitle());
             } else if ("languages".equals(itemType)) {
                 startLangLinksActivity();
             } else if ("lastEdited".equals(itemType) && model.getTitle() != null) {
-                visitInExternalBrowser(requireContext(), Uri.parse(model.getTitle().getUriForAction("history")));
+                visitInExternalBrowser(requireContext(), Uri.parse(model.getTitle().getWebApiUrl("action=history")));
             } else if ("coordinate".equals(itemType) && model.getPage() != null && model.getPage().getPageProperties().getGeo() != null) {
                 GeoUtil.sendGeoIntent(requireActivity(), model.getPage().getPageProperties().getGeo(), model.getPage().getDisplayTitle());
             } else if ("disambiguation".equals(itemType)) {
@@ -1193,6 +1210,10 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             requireActivity().startActivityForResult(DescriptionEditActivity.newIntent(requireContext(), getTitle(), text, sourceSummary, null, ADD_DESCRIPTION, PAGE_ACTIVITY),
                     Constants.ACTIVITY_REQUEST_DESCRIPTION_EDIT);
         }
+    }
+
+    private void startTalkTopicActivity(@NonNull PageTitle pageTitle) {
+        startActivity(TalkTopicsActivity.newIntent(requireActivity(), pageTitle.pageTitleForTalkPage(), PAGE_ACTIVITY));
     }
 
     private void startGalleryActivity(@NonNull String fileName) {
@@ -1257,23 +1278,14 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         }
         // if the current tab can no longer go back, then close the tab before exiting
         if (!app.getTabList().isEmpty()) {
-            int tabIndex = app.getTabList().size() - 1;
-            app.getTabList().remove(tabIndex);
+            app.getTabList().remove(app.getTabList().size() - 1);
+            app.commitTabState();
         }
         return false;
     }
 
     public void goForward() {
         pageFragmentLoadState.goForward();
-    }
-
-    private void checkAndShowBookmarkOnboarding() {
-        if (Prefs.shouldShowBookmarkToolTip() && Prefs.getOverflowReadingListsOptionClickCount() == 2) {
-            View targetView = tabLayout.getChildAt(PageActionTab.ADD_TO_READING_LIST.code());
-            FeedbackUtil.showTapTargetView(requireActivity(), targetView,
-                    R.string.tool_tip_bookmark_icon_title, R.string.tool_tip_bookmark_icon_text, null);
-            Prefs.shouldShowBookmarkToolTip(false);
-        }
     }
 
     private void initPageScrollFunnel() {
@@ -1338,6 +1350,16 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         shareHandler.showWiktionaryDefinition(term);
     }
 
+
+    @Override
+    public void onExpirySelect(@NonNull WatchlistExpiry expiry) {
+        Callback callback = callback();
+        if (callback != null) {
+            callback.onPageWatchlistExpirySelect(expiry);
+            dismissBottomSheet();
+        }
+    }
+
     public int getToolbarMargin() {
         return ((PageActivity) requireActivity()).toolbarContainerView.getHeight();
     }
@@ -1383,10 +1405,15 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
         }
     }
 
-    public void addToReadingList(@NonNull PageTitle title, @NonNull InvokeSource source) {
-        Callback callback = callback();
-        if (callback != null) {
-            callback.onPageAddToReadingList(title, source);
+    public void addToReadingList(@NonNull PageTitle title, @NonNull InvokeSource source, boolean addToDefault) {
+        if (addToDefault) {
+            ReadingListBehaviorsUtil.INSTANCE.addToDefaultList(requireActivity(), title, source,
+                    readingListId -> moveToReadingList(readingListId, title, source, false));
+        } else {
+            Callback callback = callback();
+            if (callback != null) {
+                callback.onPageAddToReadingList(title, source);
+            }
         }
     }
 
@@ -1475,6 +1502,10 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
             this.stagedScrollY = stagedScrollY;
         }
 
+        int getStagedScrollY() {
+            return stagedScrollY;
+        }
+
         @Override
         public void onContentHeightChanged(int contentHeight) {
             if (stagedScrollY > 0 && (contentHeight * getDensityScalar() - webView.getHeight()) > stagedScrollY) {
@@ -1495,6 +1526,58 @@ public class PageFragment extends Fragment implements BackPressedHandler, Commun
 
     void openImageInGallery(@NonNull String language) {
         leadImagesHandler.openImageInGallery(language);
+    }
+
+    void updateWatchlist(@NonNull WatchlistExpiry expiry, boolean unwatch) {
+        disposables.add(ServiceFactory.get(getTitle().getWikiSite()).getWatchToken()
+                .subscribeOn(Schedulers.io())
+                .flatMap(response -> {
+                    String watchToken = response.query().watchToken();
+                    if (TextUtils.isEmpty(watchToken)) {
+                        throw new RuntimeException("Received empty watch token: " + GsonUtil.getDefaultGson().toJson(response));
+                    }
+                    return ServiceFactory.get(getTitle().getWikiSite()).postWatch(unwatch ? 1 : null, null, getTitle().getPrefixedText(), expiry.getExpiry(), watchToken);
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(watchPostResponse -> {
+                    Watch firstWatch = watchPostResponse.getFirst();
+                    if (firstWatch != null) {
+                        // Reset to make the "Change" button visible.
+                        if (watchlistExpiryChanged && unwatch) {
+                            watchlistExpiryChanged = false;
+                        }
+
+                        if (unwatch) {
+                            watchlistFunnel.logRemoveSuccess();
+                        } else {
+                            watchlistFunnel.logAddSuccess();
+                        }
+
+                        showWatchlistSnackbar(expiry, firstWatch);
+                    }
+                }, L::d));
+    }
+
+    private void showWatchlistSnackbar(@NonNull WatchlistExpiry expiry, @NonNull Watch watch) {
+        model.setWatched(watch.getWatched());
+        model.hasWatchlistExpiry(expiry != WatchlistExpiry.NEVER);
+        if (watch.getUnwatched()) {
+            FeedbackUtil.showMessage(this, getString(R.string.watchlist_page_removed_from_watchlist_snackbar, getTitle().getDisplayText()));
+        } else if (watch.getWatched()) {
+            Snackbar snackbar = FeedbackUtil.makeSnackbar(requireActivity(),
+                    getString(R.string.watchlist_page_add_to_watchlist_snackbar,
+                            getTitle().getDisplayText(),
+                            getString(expiry.getStringId())),
+                    FeedbackUtil.LENGTH_DEFAULT);
+
+            if (!watchlistExpiryChanged) {
+                snackbar.setAction(R.string.watchlist_page_add_to_watchlist_snackbar_action, view -> {
+                    watchlistExpiryChanged = true;
+                    bottomSheetPresenter.show(getChildFragmentManager(), WatchlistExpiryDialog.newInstance(expiry));
+                });
+            }
+            snackbar.show();
+        }
     }
 
     private void maybeShowAnnouncement() {

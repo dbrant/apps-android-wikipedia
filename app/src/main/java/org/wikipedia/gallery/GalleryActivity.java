@@ -262,7 +262,7 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
             transitionReceiver.setLayoutParams(params);
 
             transitionReceiver.setVisibility(View.VISIBLE);
-            ViewUtil.loadImage(transitionReceiver, TRANSITION_INFO.getSrc(), TRANSITION_INFO.getCenterCrop(), false, false);
+            ViewUtil.loadImage(transitionReceiver, TRANSITION_INFO.getSrc(), TRANSITION_INFO.getCenterCrop(), false, false, null);
 
             final int transitionMillis = 500;
             transitionReceiver.postDelayed(() -> {
@@ -334,8 +334,8 @@ public class GalleryActivity extends BaseActivity implements LinkPreviewDialog.C
             funnel.logGalleryShare(pageTitle, item.getImageTitle().getDisplayText());
         }
         if (bitmap != null && item.getMediaInfo() != null) {
-            ShareUtil.shareImage(this, bitmap, new File(ImageUrlUtil.getUrlForPreferredSize(item.getMediaInfo().getThumbUrl(), PREFERRED_GALLERY_IMAGE_SIZE)).getName(),
-                    subject, title.getUri());
+            ShareUtil.shareImage(this, bitmap, new File(ImageUrlUtil.getUrlForPreferredSize(item.getMediaInfo().getThumbUrl(),
+                    PREFERRED_GALLERY_IMAGE_SIZE)).getName(), subject, title.getUri());
         } else {
             ShareUtil.shareText(this, title);
         }

@@ -1,5 +1,6 @@
 package org.wikipedia.feed.news;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 
+import org.wikipedia.Constants;
 import org.wikipedia.R;
 import org.wikipedia.dataclient.WikiSite;
 import org.wikipedia.feed.model.Card;
@@ -39,7 +41,7 @@ import org.wikipedia.util.DimenUtil;
 import org.wikipedia.util.FeedbackUtil;
 import org.wikipedia.util.GradientUtil;
 import org.wikipedia.util.ResourceUtil;
-import org.wikipedia.util.ShareUtil;
+import org.wikipedia.util.TabUtil;
 import org.wikipedia.views.DefaultRecyclerAdapter;
 import org.wikipedia.views.DefaultViewHolder;
 import org.wikipedia.views.DrawableItemDecoration;
@@ -161,16 +163,23 @@ public class NewsFragment extends Fragment {
 
     private class Callback implements ListCardItemView.Callback {
         @Override
-        public void onSelectPage(@NonNull Card card, @NonNull HistoryEntry entry) {
-            startActivity(PageActivity.newIntentForCurrentTab(requireContext(), entry, entry.getTitle()));
+        public void onSelectPage(@NonNull Card card, @NonNull HistoryEntry entry, boolean openInNewBackgroundTab) {
+            if (openInNewBackgroundTab) {
+                TabUtil.openInNewBackgroundTab(entry);
+                FeedbackUtil.showMessage(requireActivity(), R.string.article_opened_in_background_tab);
+            } else {
+                startActivity(PageActivity.newIntentForNewTab(requireContext(), entry, entry.getTitle()));
+            }
         }
 
         @Override
         public void onSelectPage(@NonNull Card card, @NonNull HistoryEntry entry, @NonNull Pair<View, String>[] sharedElements) {
-            ActivityOptionsCompat options = ActivityOptionsCompat.
-                    makeSceneTransitionAnimation(requireActivity(), sharedElements);
-            startActivity(PageActivity.newIntentForCurrentTab(requireContext(), entry, entry.getTitle()),
-                    DimenUtil.isLandscape(requireContext()) || sharedElements.length == 0 ? null : options.toBundle());
+            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(requireActivity(), sharedElements);
+            Intent intent = PageActivity.newIntentForNewTab(requireContext(), entry, entry.getTitle());
+            if (sharedElements.length > 0) {
+                intent.putExtra(Constants.INTENT_EXTRA_HAS_TRANSITION_ANIM, true);
+            }
+            startActivity(intent, DimenUtil.isLandscape(requireContext()) || sharedElements.length == 0 ? null : options.toBundle());
         }
 
         @Override
@@ -188,17 +197,6 @@ public class NewsFragment extends Fragment {
         public void onMovePageToList(long sourceReadingListId, @NonNull HistoryEntry entry) {
             bottomSheetPresenter.show(getChildFragmentManager(),
                     MoveToReadingListDialog.newInstance(sourceReadingListId, entry.getTitle(), NEWS_ACTIVITY));
-        }
-
-        @Override
-        public void onRemovePageFromList(@NonNull HistoryEntry entry) {
-            FeedbackUtil.showMessage(requireActivity(),
-                    getString(R.string.reading_list_item_deleted, entry.getTitle().getDisplayText()));
-        }
-
-        @Override
-        public void onSharePage(@NonNull HistoryEntry entry) {
-            ShareUtil.shareText(requireActivity(), entry.getTitle());
         }
     }
 
