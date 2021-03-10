@@ -21,6 +21,7 @@ import org.wikipedia.feed.random.RandomCardView;
 import org.wikipedia.feed.searchbar.SearchCardView;
 import org.wikipedia.feed.suggestededits.SuggestedEditsCardView;
 import org.wikipedia.feed.view.FeedCardView;
+import org.wikipedia.feed.whodied.WhoDiedCardView;
 import org.wikipedia.model.EnumCode;
 import org.wikipedia.model.EnumCodeMap;
 
@@ -108,6 +109,11 @@ public enum CardType implements EnumCode {
     ACCESSIBILITY(22, FeedContentType.ACCESSIBILITY) {
         @NonNull @Override public FeedCardView<?> newView(@NonNull Context ctx) {
             return new AccessibilityCardView(ctx);
+        }
+    },
+    WHO_DIED(23, FeedContentType.WHO_DIED) {
+        @NonNull @Override public FeedCardView<?> newView(@NonNull Context ctx) {
+            return new WhoDiedCardView(ctx);
         }
     },
     // TODO: refactor this item when the new Modern Event Platform is finished.

@@ -14,6 +14,7 @@ import org.wikipedia.feed.dataclient.FeedClient;
 import org.wikipedia.feed.mainpage.MainPageClient;
 import org.wikipedia.feed.random.RandomClient;
 import org.wikipedia.feed.suggestededits.SuggestedEditsFeedClient;
+import org.wikipedia.feed.whodied.WhoDiedClient;
 import org.wikipedia.model.EnumCode;
 import org.wikipedia.model.EnumCodeMap;
 import org.wikipedia.settings.Prefs;
@@ -96,6 +97,13 @@ public enum FeedContentType implements EnumCode {
         @Override
         public FeedClient newClient(AggregatedFeedContentClient aggregatedClient, int age) {
             return DeviceUtil.isAccessibilityEnabled() ? new AccessibilityCardClient() : null;
+        }
+    },
+    WHO_DIED(11, R.string.view_who_died_card_title, R.string.feed_item_type_who_died, false, true) {
+        @Nullable
+        @Override
+        public FeedClient newClient(AggregatedFeedContentClient client, int age) {
+            return isEnabled() && age == 0 ? new WhoDiedClient() : null;
         }
     };
 

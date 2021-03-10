@@ -23,6 +23,8 @@ import org.wikipedia.login.LoginClient;
 import org.wikipedia.search.PrefixSearchResponse;
 
 import io.reactivex.rxjava3.core.Observable;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
@@ -362,4 +364,9 @@ public interface Service {
     @Headers("Cache-Control: no-cache")
     @GET(MW_API_PREFIX + "action=query&meta=tokens&type=watch")
     @NonNull Observable<MwQueryResponse> getWatchToken();
+
+    // ------- Plain Html -------
+
+    @GET("/wiki/Deaths_in_2021")
+    @NonNull Observable<ResponseBody> getListOfDeaths();
 }
