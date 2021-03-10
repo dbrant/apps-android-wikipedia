@@ -22,6 +22,7 @@ import org.wikipedia.feed.offline.OfflineCard;
 import org.wikipedia.feed.onthisday.OnThisDayCard;
 import org.wikipedia.feed.progress.ProgressCard;
 import org.wikipedia.feed.suggestededits.SuggestedEditsFeedClient;
+import org.wikipedia.feed.whodied.WhoDiedCard;
 import org.wikipedia.settings.Prefs;
 import org.wikipedia.util.DeviceUtil;
 import org.wikipedia.util.ThrowableUtil;
@@ -296,7 +297,7 @@ public abstract class FeedCoordinatorBase {
     private boolean isDailyCardType(@NonNull Card card) {
         return card instanceof NewsCard || card instanceof OnThisDayCard
                 || card instanceof MostReadListCard || card instanceof FeaturedArticleCard
-                || card instanceof FeaturedImageCard;
+                || card instanceof FeaturedImageCard || card instanceof WhoDiedCard;
     }
 
     private boolean shouldShowProgressCard(@NonNull FeedClient pendingClient) {

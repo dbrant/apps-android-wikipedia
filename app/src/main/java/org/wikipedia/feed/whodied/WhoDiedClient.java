@@ -35,8 +35,7 @@ public class WhoDiedClient implements FeedClient {
                     Elements elements = document.select("h3 + ul > li");
 
                     List<PageTitle> titles = new ArrayList<>();
-                    while (elements.size() > 0) {
-                        Element el = elements.remove(0);
+                    for (Element el : elements) {
                         Elements links = el.getElementsByTag("a");
                         if (links.size() > 0) {
                             String title = links.first().attr("title");
@@ -44,6 +43,9 @@ public class WhoDiedClient implements FeedClient {
                             if (!href.contains("&redlink")) {
                                 titles.add(new PageTitle(title, wiki));
                             }
+                        }
+                        if (titles.size() > 10) {
+                            break;
                         }
                     }
                     return titles;
