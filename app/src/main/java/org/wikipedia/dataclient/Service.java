@@ -369,4 +369,8 @@ public interface Service {
 
     @GET("/wiki/Deaths_in_2021")
     @NonNull Observable<ResponseBody> getListOfDeaths();
+
+    @GET(MW_API_PREFIX + "action=query&prop=pageimages|pageprops|pageterms|description")
+    @NonNull Observable<MwQueryResponse> getThumbnailAndDescription(@Query("titles") @NonNull String titles);
+
 }

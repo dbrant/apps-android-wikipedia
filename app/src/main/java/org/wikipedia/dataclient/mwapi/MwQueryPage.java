@@ -48,6 +48,7 @@ public class MwQueryPage extends BaseModel {
     @SerializedName("imagelabels") @Nullable private List<ImageLabel> imageLabels;
     @SerializedName("watchlistexpiry") @Nullable private String watchlistExpiry;
     private boolean watched;
+    @Nullable private Terms terms;
 
 
     @NonNull public String title() {
@@ -104,6 +105,9 @@ public class MwQueryPage extends BaseModel {
     }
 
     @Nullable public String description() {
+        if (TextUtils.isEmpty(description) && terms != null && terms.description != null && terms.description.size() > 0) {
+            return terms.description.get(0);
+        }
         return description;
     }
 
@@ -358,5 +362,8 @@ public class MwQueryPage extends BaseModel {
         }
     }
 
-
+    public static class Terms {
+        private List<String> label;
+        private List<String> description;
+    }
 }
