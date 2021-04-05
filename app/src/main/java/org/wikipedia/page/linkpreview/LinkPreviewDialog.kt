@@ -43,6 +43,7 @@ class LinkPreviewDialog : ExtendedBottomSheetDialogFragment(), LinkPreviewErrorV
         fun onLinkPreviewCopyLink(title: PageTitle)
         fun onLinkPreviewAddToList(title: PageTitle)
         fun onLinkPreviewShareLink(title: PageTitle)
+        fun showWikidataInfoBox(title: PageTitle)
     }
 
     private var _binding: DialogLinkPreviewBinding? = null
@@ -103,6 +104,11 @@ class LinkPreviewDialog : ExtendedBottomSheetDialogFragment(), LinkPreviewErrorV
                 show()
             }
         }
+
+        binding.infoButton.setOnClickListener {
+            callback()?.showWikidataInfoBox(pageTitle)
+        }
+
         L10nUtil.setConditionalLayoutDirection(binding.root, pageTitle.wikiSite.languageCode())
         loadContent()
         funnel = LinkPreviewFunnel(WikipediaApp.getInstance(), historyEntry.source)

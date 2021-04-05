@@ -22,6 +22,7 @@ import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ShareUtil
 import org.wikipedia.views.ImagePreviewDialog
+import org.wikipedia.wikidata.WikidataInfoDialog
 
 class DescriptionEditActivity : SingleFragmentActivity<DescriptionEditFragment>(), DescriptionEditFragment.Callback, LinkPreviewDialog.Callback {
     enum class Action {
@@ -93,6 +94,11 @@ class DescriptionEditActivity : SingleFragmentActivity<DescriptionEditFragment>(
 
     override fun onLinkPreviewShareLink(title: PageTitle) {
         ShareUtil.shareText(this, title)
+    }
+
+    override fun showWikidataInfoBox(title: PageTitle) {
+        bottomSheetPresenter.show(supportFragmentManager,
+                WikidataInfoDialog.newInstance(title))
     }
 
     fun updateStatusBarColor(@ColorInt color: Int) {

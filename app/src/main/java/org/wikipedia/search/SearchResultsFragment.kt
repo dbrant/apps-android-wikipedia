@@ -42,7 +42,6 @@ import org.wikipedia.views.ViewUtil.loadImageWithRoundedCorners
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-
 class SearchResultsFragment : Fragment() {
     interface Callback {
         fun onSearchAddPageToList(entry: HistoryEntry, addToDefault: Boolean)
