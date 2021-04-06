@@ -26,6 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 public enum FeedContentType implements EnumCode {
+    WHO_DIED(11, R.string.view_who_died_card_title, R.string.feed_item_type_who_died, false, true) {
+        @Nullable
+        @Override
+        public FeedClient newClient(AggregatedFeedContentClient client, int age) {
+            return isEnabled() && age == 0 ? new WhoDiedClient() : null;
+        }
+    },
     FEATURED_ARTICLE(6, R.string.view_featured_article_card_title, R.string.feed_item_type_featured_article, true) {
         @Nullable
         @Override
@@ -97,13 +104,6 @@ public enum FeedContentType implements EnumCode {
         @Override
         public FeedClient newClient(AggregatedFeedContentClient aggregatedClient, int age) {
             return DeviceUtil.isAccessibilityEnabled() ? new AccessibilityCardClient() : null;
-        }
-    },
-    WHO_DIED(11, R.string.view_who_died_card_title, R.string.feed_item_type_who_died, false, true) {
-        @Nullable
-        @Override
-        public FeedClient newClient(AggregatedFeedContentClient client, int age) {
-            return isEnabled() && age == 0 ? new WhoDiedClient() : null;
         }
     };
 
