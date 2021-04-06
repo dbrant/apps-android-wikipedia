@@ -200,7 +200,7 @@ public abstract class FeedCoordinatorBase {
 
     private void requestProgressCard() {
         if (!(getLastCard() instanceof ProgressCard)) {
-            appendCard(new ProgressCard());
+            appendCard(progressCard);
         }
     }
 
