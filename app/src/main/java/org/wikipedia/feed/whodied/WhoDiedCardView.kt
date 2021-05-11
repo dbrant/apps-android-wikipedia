@@ -8,18 +8,21 @@ import org.wikipedia.history.HistoryEntry
 import org.wikipedia.views.DefaultViewHolder
 
 class WhoDiedCardView(context: Context) : ListCardView<WhoDiedCard?>(context) {
-    override fun setCard(card: WhoDiedCard) {
-        super.setCard(card)
-        header(card)
-        set(RecyclerAdapter(card.items()))
-        setLayoutDirectionByWikiSite(card.wikiSite(), layoutDirectionView)
-    }
+    override var card: WhoDiedCard? = null
+        set(value) {
+            field = value
+            value?.let {
+                header(it)
+                set(RecyclerAdapter(it.items()))
+                setLayoutDirectionByWikiSite(it.wikiSite(), layoutDirectionView)
+            }
+        }
 
     private fun header(card: WhoDiedCard) {
-        headerView().setTitle(card.title())
-                .setLangCode(card.wikiSite().languageCode())
-                .setCard(card)
-                .setCallback(callback)
+        headerView.setTitle(card.title())
+            .setLangCode(card.wikiSite().languageCode())
+            .setCard(card)
+            .setCallback(callback)
     }
 
     private inner class RecyclerAdapter constructor(items: List<WhoDiedItemCard>) : ListCardRecyclerAdapter<WhoDiedItemCard>(items) {
