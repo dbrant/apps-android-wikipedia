@@ -36,7 +36,7 @@ class WhoDiedClient : FeedClient {
                                 titles.add(title)
                             }
                         }
-                        if (titles.size > 7) {
+                        if (titles.size > 10) {
                             break
                         }
                     }
