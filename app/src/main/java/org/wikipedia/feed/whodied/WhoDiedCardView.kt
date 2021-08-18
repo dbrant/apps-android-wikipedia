@@ -20,7 +20,7 @@ class WhoDiedCardView(context: Context) : ListCardView<WhoDiedCard?>(context) {
 
     private fun header(card: WhoDiedCard) {
         headerView.setTitle(card.title())
-            .setLangCode(card.wikiSite().languageCode())
+            .setLangCode(card.wikiSite().languageCode)
             .setCard(card)
             .setCallback(callback)
     }

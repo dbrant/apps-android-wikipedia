@@ -18,7 +18,7 @@ class WhoDiedCard(itemCards: List<WhoDiedItemCard>, wiki: WikiSite) : ListCard<W
     }
 
     override fun title(): String {
-        return getStringForArticleLanguage(wikiSite().languageCode(), R.string.view_who_died_card_title)
+        return getStringForArticleLanguage(wikiSite().languageCode, R.string.view_who_died_card_title)
     }
 
     override fun type(): CardType {

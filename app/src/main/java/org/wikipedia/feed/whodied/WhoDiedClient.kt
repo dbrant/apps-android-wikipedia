@@ -46,7 +46,7 @@ class WhoDiedClient : FeedClient {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ response: MwQueryResponse ->
                     val itemCards: MutableList<WhoDiedItemCard> = ArrayList()
-                    for (page in response.query()!!.pages()!!) {
+                    for (page in response.query!!.pages()!!) {
                         val title = PageTitle(page.title(), wiki)
                         title.description = page.description()
                         title.thumbUrl = if (page.thumbUrl() != null) getUrlForPreferredSize(page.thumbUrl()!!, Service.PREFERRED_THUMB_SIZE) else null
