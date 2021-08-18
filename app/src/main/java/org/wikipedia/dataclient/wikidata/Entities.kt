@@ -60,7 +60,7 @@ class Entities : MwResponse(), PostProcessable {
         val snaktype: String = ""
         val datatype: String = ""
         val property: String = ""
-        val dataValue: DataValue? = null
+        val datavalue: DataValue? = null
     }
 
     class DataValue {

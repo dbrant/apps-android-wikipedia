@@ -94,16 +94,16 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 .subscribe({ entities ->
                     infoItems.clear()
                     val entitiesToRetrieve = mutableListOf<String>()
-                    val claims = entities.first!!.claims()
+                    val claims = entities.first!!.claims
                     for (key in claims.keys) {
                         val claimList = if (claims[key] != null) claims[key] else emptyList()
                         for (claim in claimList!!) {
-                            if (claim.mainsnak == null || claim.mainsnak!!.dataValue == null) {
+                            if (claim.mainsnak?.datavalue == null) {
                                 continue
                             }
-                            val prop = claim.mainsnak!!.property.replace("P", "").toInt()
-                            val valueType = claim.mainsnak!!.dataValue!!.type
-                            val infoVal = getDataValueString(GsonUtil.getDefaultGson(), claim.mainsnak!!.dataValue!!)
+                            val prop = claim.mainsnak.property.replace("P", "").toInt()
+                            val valueType = claim.mainsnak.datavalue.type
+                            val infoVal = getDataValueString(GsonUtil.getDefaultGson(), claim.mainsnak.datavalue)
                             val maxEntities = 50
                             if (valueType == "wikibase-entityid" && entitiesToRetrieve.size < maxEntities) {
                                 entitiesToRetrieve.add(infoVal)
@@ -126,10 +126,10 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .doAfterTerminate { binding.infoProgress.visibility = View.GONE }
                 .subscribe({ entities ->
-                    for (key in entities.entities().keys) {
+                    for (key in entities.entities.keys) {
                         for (item in infoItems) {
                             if (key == item.value) {
-                                val label = entities.entities()[key]!!.getLabelForLang(WikipediaApp.getInstance().appOrSystemLanguageCode)
+                                val label = entities.entities[key]!!.getLabelForLang(WikipediaApp.getInstance().appOrSystemLanguageCode)
                                 if (label.isNotEmpty()) {
                                     item.value = label
                                 }
@@ -202,12 +202,12 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
             }
 
             // FIXME: HACK
-            if (infoValue.toLowerCase(Locale.ROOT).endsWith(".jpg") ||
-                    infoValue.toLowerCase(Locale.ROOT).endsWith(".png") ||
-                    infoValue.toLowerCase(Locale.ROOT).endsWith(".svg") ||
-                    infoValue.toLowerCase(Locale.ROOT).endsWith(".jpeg") ||
-                    infoValue.toLowerCase(Locale.ROOT).endsWith(".tif") ||
-                    infoValue.toLowerCase(Locale.ROOT).endsWith(".tiff")) {
+            if (infoValue.lowercase(Locale.ROOT).endsWith(".jpg") ||
+                    infoValue.lowercase(Locale.ROOT).endsWith(".png") ||
+                    infoValue.lowercase(Locale.ROOT).endsWith(".svg") ||
+                    infoValue.lowercase(Locale.ROOT).endsWith(".jpeg") ||
+                    infoValue.lowercase(Locale.ROOT).endsWith(".tif") ||
+                    infoValue.lowercase(Locale.ROOT).endsWith(".tiff")) {
                 valueText.visibility = View.GONE
                 valueImage.visibility = View.VISIBLE
                 valueImage.loadImage("File:$infoValue")

@@ -21,7 +21,7 @@ class CommonsDraweeView(context: Context, attrs: AttributeSet?) : FaceAndColorDe
                 .getImageInfo(commonsTitle, WikipediaApp.getInstance().appOrSystemLanguageCode)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({ response -> loadImage(Uri.parse(response.query()!!.firstPage()!!.imageInfo()!!.thumbUrl)) }) { L.e(it) }
+                .subscribe({ response -> loadImage(Uri.parse(response.query!!.firstPage()!!.imageInfo()!!.thumbUrl)) }) { L.e(it) }
     }
 
     private fun cancel() {
