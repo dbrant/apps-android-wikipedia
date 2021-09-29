@@ -114,7 +114,7 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
 
     override fun onStart() {
         super.onStart()
-        setUpLanguageScroll(Prefs.getSelectedLanguagePositionInSearch())
+        setUpLanguageScroll(Prefs.selectedLanguagePositionInSearch)
         startSearch(query, langBtnClicked)
         binding.searchCabView.setCloseButtonVisibility(query)
         if (!query.isNullOrEmpty()) {
@@ -124,7 +124,7 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
 
     override fun onPause() {
         super.onPause()
-        Prefs.setSelectedLanguagePositionInSearch(binding.searchLanguageScrollView.selectedPosition)
+        Prefs.selectedLanguagePositionInSearch = binding.searchLanguageScrollView.selectedPosition
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -141,7 +141,7 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
                 position = app.language().appLanguageCodes.indexOf(searchLanguageCode)
             }
             searchResultsFragment.clearSearchResultsCountCache()
-            Prefs.setSelectedLanguagePositionInSearch(position)
+            Prefs.selectedLanguagePositionInSearch = position
         }
     }
 
@@ -175,14 +175,14 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
     }
 
     private fun showMultiLingualOnboarding() {
-        if (Prefs.isMultilingualSearchTutorialEnabled()) {
+        if (Prefs.isMultilingualSearchTutorialEnabled) {
             binding.searchLangButton.postDelayed({
                 if (isAdded) {
                     showTooltip(requireActivity(), binding.searchLangButton, getString(R.string.tool_tip_lang_button),
                             aboveOrBelow = false, autoDismiss = false)
                 }
             }, 500)
-            Prefs.setMultilingualSearchTutorialEnabled(false)
+            Prefs.isMultilingualSearchTutorialEnabled = false
         }
     }
 

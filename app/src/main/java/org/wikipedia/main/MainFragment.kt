@@ -152,12 +152,12 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
         downloadReceiver.callback = downloadReceiverCallback
         setupNotificationsTest()
         // reset the last-page-viewed timer
-        Prefs.pageLastShown(0)
+        Prefs.pageLastShown = 0
         maybeShowWatchlistTooltip()
     }
 
     override fun onDestroyView() {
-        Prefs.setSuggestedEditsHighestPriorityEnabled(false)
+        Prefs.isSuggestedEditsHighestPriorityEnabled = false
         binding.mainViewPager.adapter = null
         binding.mainViewPager.unregisterOnPageChangeCallback(pageChangeCallback)
         _binding = null
@@ -175,7 +175,7 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
         } else if (requestCode == Constants.ACTIVITY_REQUEST_LOGIN &&
                 resultCode == LoginActivity.RESULT_LOGIN_SUCCESS) {
             refreshContents()
-            if (!Prefs.shouldShowSuggestedEditsTooltip()) {
+            if (!Prefs.showSuggestedEditsTooltip) {
                 FeedbackUtil.showMessage(this, R.string.login_success_toast)
             }
         } else if (requestCode == Constants.ACTIVITY_REQUEST_BROWSE_TABS) {
@@ -258,7 +258,7 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
         val notificationMenuItem = menu.findItem(R.id.menu_notifications)
         if (AccountUtil.isLoggedIn && notificationsABCTestFunnel.aBTestGroup <= 1) {
             notificationMenuItem.isVisible = true
-            notificationButtonView.setUnreadCount(Prefs.getNotificationUnreadCount())
+            notificationButtonView.setUnreadCount(Prefs.notificationUnreadCount)
             notificationButtonView.setOnClickListener {
                 notificationsClick()
             }
@@ -435,7 +435,6 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
 
     override fun notificationsClick() {
         if (AccountUtil.isLoggedIn) {
-            notificationsABCTestFunnel.logSelect()
             startActivity(NotificationActivity.newIntent(requireActivity()))
         }
     }
@@ -496,8 +495,8 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
         // TODO: remove when ABC test is complete.
         when (notificationsABCTestFunnel.aBTestGroup) {
             0, 1 -> {
-                if (AccountUtil.isLoggedIn && Prefs.getNotificationUnreadCount() > 0) {
-                    notificationButtonView.setUnreadCount(Prefs.getNotificationUnreadCount())
+                if (AccountUtil.isLoggedIn && Prefs.notificationUnreadCount > 0) {
+                    notificationButtonView.setUnreadCount(Prefs.notificationUnreadCount)
                     if (animate) {
                         notificationsABCTestFunnel.logShow()
                         notificationButtonView.runAnimation()
@@ -507,8 +506,8 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
                 }
             }
             else -> {
-                if (AccountUtil.isLoggedIn && Prefs.getNotificationUnreadCount() > 0) {
-                    binding.unreadDotView.setUnreadCount(Prefs.getNotificationUnreadCount())
+                if (AccountUtil.isLoggedIn && Prefs.notificationUnreadCount > 0) {
+                    binding.unreadDotView.setUnreadCount(Prefs.notificationUnreadCount)
                     binding.unreadDotView.isVisible = true
                     if (animate) {
                         notificationsABCTestFunnel.logShow()
@@ -529,7 +528,7 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
 
     @Suppress("SameParameterValue")
     private fun lastPageViewedWithin(days: Int): Boolean {
-        return TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Prefs.pageLastShown()) < days
+        return TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Prefs.pageLastShown) < days
     }
 
     private fun download(image: FeaturedImage) {
@@ -577,26 +576,26 @@ class MainFragment : Fragment(), BackPressedHandler, FeedFragment.Callback, Hist
     }
 
     private fun maybeShowEditsTooltip() {
-        if (currentFragment !is SuggestedEditsTasksFragment && Prefs.shouldShowSuggestedEditsTooltip() &&
-                Prefs.getExploreFeedVisitCount() >= SHOW_EDITS_SNACKBAR_COUNT) {
+        if (currentFragment !is SuggestedEditsTasksFragment && Prefs.showSuggestedEditsTooltip &&
+                Prefs.exploreFeedVisitCount >= SHOW_EDITS_SNACKBAR_COUNT) {
             enqueueTooltip {
                 FeedbackUtil.showTooltip(requireActivity(), binding.mainNavTabLayout.findViewById(NavTab.EDITS.id()),
                     if (AccountUtil.isLoggedIn) getString(R.string.main_tooltip_text, AccountUtil.userName)
                     else getString(R.string.main_tooltip_text_v2), aboveOrBelow = true, autoDismiss = false).setOnBalloonDismissListener {
-                            Prefs.setShouldShowSuggestedEditsTooltip(false)
+                            Prefs.showSuggestedEditsTooltip = false
                     }
             }
         }
     }
 
     private fun maybeShowWatchlistTooltip() {
-        if (Prefs.isWatchlistPageOnboardingTooltipShown() &&
-                !Prefs.isWatchlistMainOnboardingTooltipShown() && AccountUtil.isLoggedIn) {
+        if (Prefs.isWatchlistPageOnboardingTooltipShown &&
+                !Prefs.isWatchlistMainOnboardingTooltipShown && AccountUtil.isLoggedIn) {
             enqueueTooltip {
                 FeedbackUtil.showTooltip(requireActivity(), binding.navMoreContainer, R.layout.view_watchlist_main_tooltip, 0, 0, aboveOrBelow = true, autoDismiss = false)
                         .setOnBalloonDismissListener {
                             WatchlistFunnel().logShowTooltipMore()
-                            Prefs.setWatchlistMainOnboardingTooltipShown(true)
+                            Prefs.isWatchlistMainOnboardingTooltipShown = true
                         }
             }
         }
