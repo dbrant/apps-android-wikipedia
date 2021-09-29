@@ -39,8 +39,8 @@ abstract class FeedCoordinatorBase(private val context: Context) {
     private var updateListener: FeedUpdateListener? = null
     private var currentDayCardAge = -1
     private val hiddenCards =
-        Collections.newSetFromMap(object : LinkedHashMap<String?, Boolean?>() {
-            public override fun removeEldestEntry(eldest: Map.Entry<String?, Boolean?>): Boolean {
+        Collections.newSetFromMap(object : LinkedHashMap<String, Boolean>() {
+            public override fun removeEldestEntry(eldest: Map.Entry<String, Boolean>): Boolean {
                 return size > MAX_HIDDEN_CARDS
             }
         })
@@ -53,7 +53,7 @@ abstract class FeedCoordinatorBase(private val context: Context) {
 
     fun updateHiddenCards() {
         hiddenCards.clear()
-        hiddenCards.addAll(Prefs.getHiddenCards())
+        hiddenCards.addAll(Prefs.hiddenCards)
     }
 
     fun setFeedUpdateListener(listener: FeedUpdateListener?) {
@@ -250,7 +250,7 @@ abstract class FeedCoordinatorBase(private val context: Context) {
 
     private fun addHiddenCard(card: Card) {
         hiddenCards.add(card.hideKey)
-        Prefs.setHiddenCards(hiddenCards)
+        Prefs.hiddenCards = hiddenCards
     }
 
     private fun isCardHidden(card: Card): Boolean {
@@ -259,7 +259,7 @@ abstract class FeedCoordinatorBase(private val context: Context) {
 
     private fun unHideCard(card: Card) {
         hiddenCards.remove(card.hideKey)
-        Prefs.setHiddenCards(hiddenCards)
+        Prefs.hiddenCards = hiddenCards
     }
 
     private fun isDailyCardType(card: Card): Boolean {
