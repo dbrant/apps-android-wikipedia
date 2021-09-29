@@ -2,6 +2,7 @@ package org.wikipedia.dataclient
 
 import com.google.gson.JsonElement
 import io.reactivex.rxjava3.core.Observable
+import okhttp3.ResponseBody
 import org.wikipedia.captcha.Captcha
 import org.wikipedia.dataclient.mwapi.*
 import org.wikipedia.dataclient.watch.WatchPostResponse
@@ -416,6 +417,14 @@ interface Service {
     @get:GET(MW_API_PREFIX + "action=query&meta=tokens&type=watch")
     @get:Headers("Cache-Control: no-cache")
     val watchToken: Observable<MwQueryResponse>
+
+    // ------- Plain Html -------
+
+    @get:GET("/wiki/Deaths_in_2021")
+    val listOfDeaths: Observable<ResponseBody>
+
+    @GET(MW_API_PREFIX + "action=query&prop=pageimages|pageprops|pageterms|description")
+    fun getThumbnailAndDescription(@Query("titles") titles: String): Observable<MwQueryResponse>
 
     companion object {
         const val WIKIPEDIA_URL = "https://wikipedia.org/"
