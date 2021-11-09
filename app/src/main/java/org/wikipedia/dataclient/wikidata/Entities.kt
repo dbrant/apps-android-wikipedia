@@ -1,35 +1,32 @@
 package org.wikipedia.dataclient.wikidata
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import org.wikipedia.dataclient.mwapi.MwResponse
-import org.wikipedia.json.PostProcessingTypeAdapter.PostProcessable
-import com.google.gson.JsonElement
 
+@Serializable
+class Entities : MwResponse() {
 
-
-
-class Entities : MwResponse(), PostProcessable {
-
-    val entities: Map<String, Entity> = emptyMap()
+    var entities: Map<String, Entity> = emptyMap()
+        private set
     val first: Entity?
-        get() = if (entities.isEmpty()) null else entities.values.iterator().next()
+        get() = if (entities.isEmpty()) null else entities.values.first()
 
-    override fun postProcess() {
-        if (first?.isMissing == true) {
-            throw RuntimeException("The requested entity was not found.")
-        }
+    init {
+        entities = entities.filter { it.key != "-1" && it.value.missing == null }
     }
 
+    @Serializable
     class Entity {
 
-        private val id: String = ""
+        val id: String = ""
         val labels: Map<String, Label> = emptyMap()
         val descriptions: Map<String, Label> = emptyMap()
         val sitelinks: Map<String, SiteLink> = emptyMap()
         val claims: Map<String, List<Claim>> = emptyMap()
-        @SerializedName("missing")
-        val isMissing: Boolean? = null
-            get() = "-1" == id && field != null
+
+        val missing: JsonElement? = null
         val lastRevId: Long = 0
 
         fun getLabelForLang(lang: String): String {
@@ -37,16 +34,19 @@ class Entities : MwResponse(), PostProcessable {
         }
     }
 
+    @Serializable
     class Label {
         val language: String = ""
         val value: String = ""
     }
 
+    @Serializable
     class SiteLink {
         val site: String = ""
         val title: String = ""
     }
 
+    @Serializable
     class Claim {
         val type: String? = null
             get() = field.orEmpty()
@@ -56,6 +56,7 @@ class Entities : MwResponse(), PostProcessable {
         val mainsnak: Mainsnak? = null
     }
 
+    @Serializable
     class Mainsnak {
         val snaktype: String = ""
         val datatype: String = ""
@@ -63,18 +64,21 @@ class Entities : MwResponse(), PostProcessable {
         val datavalue: DataValue? = null
     }
 
+    @Serializable
     class DataValue {
         val type: String = ""
         val value: JsonElement? = null
     }
 
+    @Serializable
     class EntityIdValue {
-        @SerializedName("entity-type")
+        @SerialName("entity-type")
         val entityType: String = ""
-        @SerializedName("numeric-id")
+        @SerialName("numeric-id")
         val numericId = 0
     }
 
+    @Serializable
     class QuantityValue {
         val amount: String = ""
         val unit: String = ""
@@ -82,6 +86,7 @@ class Entities : MwResponse(), PostProcessable {
         val upperBound: String = ""
     }
 
+    @Serializable
     class TimeValue {
         val time: String = ""
         private val timezone = 0
@@ -91,6 +96,7 @@ class Entities : MwResponse(), PostProcessable {
         val calendarModel: String = ""
     }
 
+    @Serializable
     class LocationValue {
         val latitude = 0f
         val longitude = 0f
@@ -98,6 +104,7 @@ class Entities : MwResponse(), PostProcessable {
         private val precision = 0f
     }
 
+    @Serializable
     class MonolingualTextValue {
         private val language: String? = null
         val text: String = ""

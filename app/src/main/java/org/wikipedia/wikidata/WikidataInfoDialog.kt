@@ -9,10 +9,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.Gson
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonPrimitive
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil.getCallback
@@ -21,9 +22,7 @@ import org.wikipedia.dataclient.Service
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.wikidata.Entities
-import org.wikipedia.dataclient.wikidata.Entities.LocationValue
-import org.wikipedia.dataclient.wikidata.Entities.QuantityValue
-import org.wikipedia.json.GsonUtil
+import org.wikipedia.json.JsonUtil
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.DateUtil
@@ -103,7 +102,9 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                             }
                             val prop = claim.mainsnak.property.replace("P", "").toInt()
                             val valueType = claim.mainsnak.datavalue.type
-                            val infoVal = getDataValueString(GsonUtil.getDefaultGson(), claim.mainsnak.datavalue)
+
+                            val infoVal = getDataValueString(claim.mainsnak.datavalue)
+
                             val maxEntities = 50
                             if (valueType == "wikibase-entityid" && entitiesToRetrieve.size < maxEntities) {
                                 entitiesToRetrieve.add(infoVal)
@@ -140,17 +141,20 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 }) { L.e(it) })
     }
 
-    private fun getDataValueString(gson: Gson, dataValue: Entities.DataValue): String {
+    private fun getDataValueString(dataValue: Entities.DataValue): String {
+        if (dataValue.value == null) {
+            return ""
+        }
         val value = dataValue.value
         val valueType = dataValue.type
         var infoVal: String
         when (valueType) {
             "wikibase-entityid" -> {
-                val entityVal = gson.fromJson(value, Entities.EntityIdValue::class.java)
+                val entityVal = JsonUtil.json.decodeFromJsonElement<Entities.EntityIdValue>(value)
                 infoVal = "Q" + entityVal.numericId
             }
             "quantity" -> {
-                val quantityVal = gson.fromJson(value, QuantityValue::class.java)
+                val quantityVal = JsonUtil.json.decodeFromJsonElement<Entities.QuantityValue>(value)
                 infoVal = quantityVal.amount
                 try {
                     infoVal = infoVal.toLong().toString()
@@ -159,7 +163,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 }
             }
             "time" -> {
-                val timeVal = gson.fromJson(value, Entities.TimeValue::class.java)
+                val timeVal = JsonUtil.json.decodeFromJsonElement<Entities.TimeValue>(value)
                 infoVal = timeVal.time.replace("+", "")
                 try {
                     infoVal = DateUtil.getShortDateString(DateUtil.iso8601DateParse(infoVal))
@@ -168,14 +172,14 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 }
             }
             "globecoordinate" -> {
-                val locationVal = gson.fromJson(value, LocationValue::class.java)
+                val locationVal = JsonUtil.json.decodeFromJsonElement<Entities.LocationValue>(value)
                 infoVal = locationVal.latitude.toString() + ", " + locationVal.longitude
             }
             "monolingualtext" -> {
-                val textVal = gson.fromJson(value, Entities.MonolingualTextValue::class.java)
+                val textVal = JsonUtil.json.decodeFromJsonElement<Entities.MonolingualTextValue>(value)
                 infoVal = textVal.text
             }
-            "string" -> infoVal = gson.fromJson(value, String::class.java)
+            "string" -> infoVal = value.jsonPrimitive.content
             else -> infoVal = value.toString()
         }
         return infoVal
@@ -245,7 +249,6 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     companion object {
-        @JvmStatic
         fun newInstance(title: PageTitle?): WikidataInfoDialog {
             return WikidataInfoDialog().apply { arguments = bundleOf("title" to title) }
         }
