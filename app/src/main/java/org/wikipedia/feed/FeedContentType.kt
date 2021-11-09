@@ -122,8 +122,8 @@ enum class FeedContentType(private val code: Int,
             }
             Prefs.feedCardsEnabled = enabledList
             Prefs.feedCardsOrder = orderList
-            Prefs.setFeedCardsLangSupported(langSupportedMap)
-            Prefs.setFeedCardsLangDisabled(langDisabledMap)
+            Prefs.feedCardsLangSupported = langSupportedMap
+            Prefs.feedCardsLangDisabled = langDisabledMap
         }
 
         fun restoreState() {

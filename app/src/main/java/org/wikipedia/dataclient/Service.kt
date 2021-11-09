@@ -1,6 +1,5 @@
 package org.wikipedia.dataclient
 
-import com.google.gson.JsonElement
 import io.reactivex.rxjava3.core.Observable
 import okhttp3.ResponseBody
 import org.wikipedia.captcha.Captcha
@@ -160,7 +159,7 @@ interface Service {
 
     @get:GET(MW_API_PREFIX + "action=query&meta=tokens&type=login")
     @get:Headers("Cache-Control: no-cache")
-    val loginToken: Observable<JsonElement>
+    val loginToken: Observable<MwQueryResponse>
 
     @FormUrlEncoded
     @POST(MW_API_PREFIX + "action=clientlogin&rememberMe=")
