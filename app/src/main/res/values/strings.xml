@@ -1126,6 +1126,9 @@
     <string name="thank_dialog_positive_button_text">Send thanks</string>
     <string name="thank_dialog_negative_button_text">Cancel</string>
     <string name="thank_success_message">Your \'Thanks\' was sent to %s 👍</string>
+    <string name="view_sub_pages">View archives / subpages…</string>
+    <string name="sub_pages_dialog_title">Subpages of %s</string>
+    <string name="sub_pages_none_found">No subpages found.</string>
 
     <!-- Watchlist -->
     <string name="watchlist_page_add_to_watchlist_snackbar">%1$s and its talk page have been added to your watchlist %2$s.</string>

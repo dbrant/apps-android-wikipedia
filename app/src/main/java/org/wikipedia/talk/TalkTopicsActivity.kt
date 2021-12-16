@@ -33,6 +33,7 @@ import org.wikipedia.dataclient.page.TalkPage
 import org.wikipedia.diff.ArticleEditDetailsActivity
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.notifications.NotificationActivity
+import org.wikipedia.page.ExclusiveBottomSheetPresenter
 import org.wikipedia.page.Namespace
 import org.wikipedia.page.PageActivity
 import org.wikipedia.page.PageTitle
@@ -57,6 +58,7 @@ class TalkTopicsActivity : BaseActivity() {
     private lateinit var funnel: TalkFunnel
     private lateinit var notificationButtonView: NotificationButtonView
     private val disposables = CompositeDisposable()
+    private val bottomSheetPresenter = ExclusiveBottomSheetPresenter()
     private val topics = mutableListOf<TalkPage.Topic>()
     private val unreadTypeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
     private var revisionForLastEdit: MwQueryPage.Revision? = null
@@ -228,6 +230,10 @@ class TalkTopicsActivity : BaseActivity() {
                 ShareUtil.shareText(this, getString(R.string.talk_share_talk_page), pageTitle.uri)
                 return true
             }
+            R.id.menu_view_sub_pages -> {
+                showSubPages()
+                return true
+            }
             else -> return super.onOptionsItemSelected(item)
         }
     }
@@ -373,6 +379,10 @@ class TalkTopicsActivity : BaseActivity() {
         } else {
             notificationButtonView.setUnreadCount(0)
         }
+    }
+
+    private fun showSubPages() {
+        bottomSheetPresenter.show(supportFragmentManager, SubPagesDialog.newInstance(pageTitle))
     }
 
     internal inner class TalkTopicHolder internal constructor(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
