@@ -3,9 +3,9 @@ package org.wikipedia.dataclient.mwapi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.wikipedia.dataclient.WikiSite
-import org.wikipedia.notifications.Notification
-import org.wikipedia.notifications.Notification.SeenTime
-import org.wikipedia.notifications.Notification.UnreadNotificationWikiItem
+import org.wikipedia.notifications.db.Notification
+import org.wikipedia.notifications.db.Notification.SeenTime
+import org.wikipedia.notifications.db.Notification.UnreadNotificationWikiItem
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.SiteInfo
 import org.wikipedia.util.DateUtil
@@ -30,6 +30,7 @@ class MwQueryResult {
     val echomarkseen: MarkReadResponse? = null
     val notifications: NotificationList? = null
     val watchlist: List<WatchlistItem> = emptyList()
+    val namespaces: Map<String, Namespace>? = null
 
     init {
         resolveConvertedTitles()
@@ -37,9 +38,7 @@ class MwQueryResult {
     }
 
     fun firstPage(): MwQueryPage? {
-        return if (pages != null && pages.size > 0) {
-            pages[0]
-        } else null
+        return pages?.firstOrNull()
     }
 
     fun csrfToken(): String? {
@@ -170,5 +169,11 @@ class MwQueryResult {
         @SerialName("parsedcomment") val parsedComment: String = ""
         val date: Date
             get() = DateUtil.iso8601DateParse(timestamp.orEmpty())
+    }
+
+    @Serializable
+    class Namespace {
+        val id: Int = 0
+        val name: String = ""
     }
 }
