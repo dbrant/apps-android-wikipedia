@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 import org.wikipedia.R
 import org.wikipedia.databinding.ItemEditHistoryBinding
 import org.wikipedia.dataclient.mwapi.MwQueryPage.Revision
-import org.wikipedia.page.EditHistoryListViewModel
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.DateUtil
 import org.wikipedia.util.ResourceUtil
@@ -30,14 +29,11 @@ class EditHistoryItemView(context: Context) : FrameLayout(context) {
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
-    fun setContents(oldRevision: Revision?,
-                    itemRevision: Revision,
-                    viewModel: EditHistoryListViewModel,
-                    pageTitle: PageTitle) {
+    fun setContents(itemRevision: Revision, pageTitle: PageTitle) {
         this.pageTitle = pageTitle
         this.revision = itemRevision
         CoroutineScope(Dispatchers.IO).launch(CoroutineExceptionHandler { _, msg -> run { L.e(msg) } }) {
-            val diffSize: Int = viewModel.fetchDiffSize(pageTitle.wikiSite.languageCode, oldRevision?.revId ?: 0, itemRevision.revId)
+            val diffSize: Int = 0 //viewModel.fetchDiffSize(pageTitle.wikiSite.languageCode, oldRevision?.revId ?: 0, itemRevision.revId)
             (context as Activity).runOnUiThread {
                 binding.diffText.text = String.format(if (diffSize != 0) "%+d" else "%d", diffSize)
                 if (diffSize >= 0) {
