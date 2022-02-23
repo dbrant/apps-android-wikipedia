@@ -2,6 +2,7 @@ package org.wikipedia.dataclient.mwapi
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import org.wikipedia.dataclient.page.Protection
 import org.wikipedia.gallery.ImageInfo
 import org.wikipedia.page.Namespace
@@ -92,6 +93,10 @@ class MwQueryPage {
         val user: String = ""
         val content: String = ""
         val comment: String = ""
+        val size = 0
+
+        @Transient var diffSize = 0
+        @Transient var selected = false
 
         fun getContentFromSlot(slot: String): String {
             return slots?.get(slot)?.content.orEmpty()

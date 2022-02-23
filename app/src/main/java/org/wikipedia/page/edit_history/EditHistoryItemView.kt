@@ -8,7 +8,6 @@ import androidx.core.content.ContextCompat
 import org.wikipedia.R
 import org.wikipedia.databinding.ItemEditHistoryBinding
 import org.wikipedia.dataclient.mwapi.MwQueryPage.Revision
-import org.wikipedia.page.PageTitle
 import org.wikipedia.util.DateUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.StringUtil
@@ -16,17 +15,18 @@ import org.wikipedia.util.StringUtil
 class EditHistoryItemView(context: Context) : FrameLayout(context) {
 
     private val binding = ItemEditHistoryBinding.inflate(LayoutInflater.from(context), this, true)
-    private lateinit var pageTitle: PageTitle
-    private lateinit var revision: Revision
 
     init {
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        //setBackgroundResource(ResourceUtil.getThemedAttributeId(context, R.attr.selectableItemBackground))
     }
 
-    fun setContents(itemRevision: Revision, pageTitle: PageTitle) {
-        this.pageTitle = pageTitle
-        this.revision = itemRevision
-        val diffSize: Int = 0 //viewModel.fetchDiffSize(pageTitle.wikiSite.languageCode, oldRevision?.revId ?: 0, itemRevision.revId)
+    override fun setOnClickListener(listener: OnClickListener?) {
+        binding.containerView.setOnClickListener(listener)
+    }
+
+    fun setContents(itemRevision: Revision) {
+        val diffSize = itemRevision.diffSize
         binding.diffText.text = String.format(if (diffSize != 0) "%+d" else "%d", diffSize)
         if (diffSize >= 0) {
             binding.diffText.setTextColor(if (diffSize > 0) ContextCompat.getColor(context, R.color.green50)

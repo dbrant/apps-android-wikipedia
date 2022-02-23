@@ -140,7 +140,7 @@ class EditHistoryListActivity : BaseActivity() {
         private lateinit var revision: Revision
 
         fun bindItem(revision: Revision) {
-            (itemView as EditHistoryItemView).setContents(revision, pageTitle)
+            (itemView as EditHistoryItemView).setContents(revision)
             itemView.setOnClickListener(this)
             this.revision = revision
         }

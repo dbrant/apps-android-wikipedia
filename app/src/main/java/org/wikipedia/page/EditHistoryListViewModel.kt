@@ -20,6 +20,9 @@ class EditHistoryListViewModel(bundle: Bundle) : ViewModel() {
         pagingData.map {
             EditHistoryItem(it)
         }.insertSeparators { before, after ->
+            if (before != null && after != null) {
+                before.item.diffSize = before.item.size - after.item.size
+            }
             val dateBefore = if (before != null) DateUtil.getMonthOnlyDateString(DateUtil.iso8601DateParse(before.item.timeStamp)) else ""
             val dateAfter = if (after != null) DateUtil.getMonthOnlyDateString(DateUtil.iso8601DateParse(after.item.timeStamp)) else ""
             if (dateAfter.isNotEmpty() && dateAfter != dateBefore) {

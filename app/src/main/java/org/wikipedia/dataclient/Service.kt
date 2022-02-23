@@ -438,7 +438,7 @@ interface Service {
         @Query("rvstartid") revisionStartId: Long
     ): Observable<MwQueryResponse>
 
-    @GET(MW_API_PREFIX + "action=query&prop=revisions&rvprop=ids|timestamp|flags|comment|user&rvdir=older")
+    @GET(MW_API_PREFIX + "action=query&prop=revisions&rvprop=ids|timestamp|flags|comment|user|size&rvdir=older")
     suspend fun getEditHistoryDetails(
         @Query("titles") titles: String,
         @Query("rvlimit") count: Int,
