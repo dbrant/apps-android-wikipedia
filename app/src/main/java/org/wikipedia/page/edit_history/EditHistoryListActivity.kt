@@ -27,46 +27,24 @@ import org.wikipedia.dataclient.mwapi.MwQueryPage.Revision
 import org.wikipedia.diff.ArticleEditDetailsActivity
 import org.wikipedia.page.EditHistoryListViewModel
 import org.wikipedia.page.PageTitle
+import org.wikipedia.views.WikiErrorView
 
 class EditHistoryListActivity : BaseActivity() {
 
     private lateinit var binding: ActivityEditHistoryBinding
-    private lateinit var editHistoryListAdapter: EditHistoryListAdapter
-    private lateinit var pageTitle: PageTitle
+    private val editHistoryListAdapter = EditHistoryListAdapter()
+    private val loadHeader = LoadingItemAdapter { editHistoryListAdapter.retry() }
+    private val loadFooter = LoadingItemAdapter { editHistoryListAdapter.retry() }
     private val viewModel: EditHistoryListViewModel by viewModels { EditHistoryListViewModel.Factory(intent.extras!!) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEditHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        pageTitle = intent.getParcelableExtra(INTENT_EXTRA_PAGE_TITLE)!!
-
-
-        editHistoryListAdapter = EditHistoryListAdapter(object : DiffUtil.ItemCallback<EditHistoryListViewModel.EditHistoryItemModel>() {
-            override fun areItemsTheSame(oldItem: EditHistoryListViewModel.EditHistoryItemModel, newItem: EditHistoryListViewModel.EditHistoryItemModel): Boolean {
-                if (oldItem is EditHistoryListViewModel.EditHistorySeparator && newItem is EditHistoryListViewModel.EditHistorySeparator) {
-                    return oldItem.date == newItem.date
-                } else if (oldItem is EditHistoryListViewModel.EditHistoryItem && newItem is EditHistoryListViewModel.EditHistoryItem) {
-                    return oldItem.item.revId == oldItem.item.revId
-                }
-                return false
-            }
-
-            override fun areContentsTheSame(oldItem: EditHistoryListViewModel.EditHistoryItemModel, newItem: EditHistoryListViewModel.EditHistoryItemModel): Boolean {
-                return areItemsTheSame(oldItem, newItem)
-            }
-        })
-
-
-
-        val header = LoadingFooterAdapter { editHistoryListAdapter.retry() }
-
-
-        binding.editHistoryRecycler.adapter = editHistoryListAdapter
-                .withLoadStateHeader(header)
 
         binding.editHistoryRecycler.layoutManager = LinearLayoutManager(this)
-
+        binding.editHistoryRecycler.adapter = editHistoryListAdapter
+                .withLoadStateHeaderAndFooter(loadHeader, loadFooter)
 
         lifecycleScope.launch {
             viewModel.editHistoryFlow.collectLatest {
@@ -75,18 +53,18 @@ class EditHistoryListActivity : BaseActivity() {
         }
 
         lifecycleScope.launch {
-            editHistoryListAdapter.loadStateFlow.collect { loadState ->
-                header.loadState = loadState.refresh
+            editHistoryListAdapter.loadStateFlow.collect {
+                loadHeader.loadState = it.refresh
+                loadFooter.loadState = it.append
             }
         }
-
     }
 
-    private inner class LoadingFooterAdapter(
+    private inner class LoadingItemAdapter(
             private val retry: () -> Unit
     ) : LoadStateAdapter<LoadingViewHolder>() {
         override fun onBindViewHolder(holder: LoadingViewHolder, loadState: LoadState) {
-            holder.bindItem(loadState)
+            holder.bindItem(loadState, retry)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): LoadingViewHolder {
@@ -94,8 +72,23 @@ class EditHistoryListActivity : BaseActivity() {
         }
     }
 
-    private inner class EditHistoryListAdapter(diffCallback: DiffUtil.ItemCallback<EditHistoryListViewModel.EditHistoryItemModel>) :
-        PagingDataAdapter<EditHistoryListViewModel.EditHistoryItemModel, RecyclerView.ViewHolder>(diffCallback) {
+    private inner class EditHistoryDiffCallback : DiffUtil.ItemCallback<EditHistoryListViewModel.EditHistoryItemModel>() {
+        override fun areItemsTheSame(oldItem: EditHistoryListViewModel.EditHistoryItemModel, newItem: EditHistoryListViewModel.EditHistoryItemModel): Boolean {
+            if (oldItem is EditHistoryListViewModel.EditHistorySeparator && newItem is EditHistoryListViewModel.EditHistorySeparator) {
+                return oldItem.date == newItem.date
+            } else if (oldItem is EditHistoryListViewModel.EditHistoryItem && newItem is EditHistoryListViewModel.EditHistoryItem) {
+                return oldItem.item.revId == oldItem.item.revId
+            }
+            return false
+        }
+
+        override fun areContentsTheSame(oldItem: EditHistoryListViewModel.EditHistoryItemModel, newItem: EditHistoryListViewModel.EditHistoryItemModel): Boolean {
+            return areItemsTheSame(oldItem, newItem)
+        }
+    }
+
+    private inner class EditHistoryListAdapter :
+        PagingDataAdapter<EditHistoryListViewModel.EditHistoryItemModel, RecyclerView.ViewHolder>(EditHistoryDiffCallback()) {
 
         override fun getItemViewType(position: Int): Int {
             return if (getItem(position) is EditHistoryListViewModel.EditHistorySeparator) {
@@ -124,8 +117,14 @@ class EditHistoryListActivity : BaseActivity() {
     }
 
     private inner class LoadingViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bindItem(loadState: LoadState) {
-            itemView.findViewById<TextView>(R.id.progress_bar).isVisible = loadState == LoadState.Loading
+        fun bindItem(loadState: LoadState, retry: () -> Unit) {
+            val errorView = itemView.findViewById<WikiErrorView>(R.id.errorView)
+            itemView.findViewById<TextView>(R.id.progressBar).isVisible = loadState is LoadState.Loading
+            errorView.isVisible = loadState is LoadState.Error
+            errorView.retryClickListener = OnClickListener { retry() }
+            if (loadState is LoadState.Error) {
+                errorView.setError(loadState.error, viewModel.pageTitle)
+            }
         }
     }
 
@@ -146,12 +145,12 @@ class EditHistoryListActivity : BaseActivity() {
         }
 
         override fun onClick(v: View?) {
-            startActivity(ArticleEditDetailsActivity.newIntent(this@EditHistoryListActivity, pageTitle.prefixedText, revision.revId, pageTitle.wikiSite.languageCode))
+            startActivity(ArticleEditDetailsActivity.newIntent(this@EditHistoryListActivity,
+                    viewModel.pageTitle.prefixedText, revision.revId, viewModel.pageTitle.wikiSite.languageCode))
         }
     }
 
     companion object {
-
         private const val VIEW_TYPE_SEPARATOR = 0
         private const val VIEW_TYPE_ITEM = 1
         const val INTENT_EXTRA_PAGE_TITLE = "pageTitle"

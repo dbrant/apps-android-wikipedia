@@ -18,7 +18,6 @@ class EditHistoryItemView(context: Context) : FrameLayout(context) {
 
     init {
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        //setBackgroundResource(ResourceUtil.getThemedAttributeId(context, R.attr.selectableItemBackground))
     }
 
     override fun setOnClickListener(listener: OnClickListener?) {
