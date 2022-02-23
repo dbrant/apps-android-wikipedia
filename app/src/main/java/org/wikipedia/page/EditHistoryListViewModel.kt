@@ -3,21 +3,18 @@ package org.wikipedia.page
 import android.os.Bundle
 import androidx.lifecycle.*
 import androidx.paging.*
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.mwapi.MwQueryPage
 import org.wikipedia.page.edit_history.EditHistoryListActivity
 import org.wikipedia.util.DateUtil
-import kotlin.coroutines.coroutineContext
 
 class EditHistoryListViewModel(bundle: Bundle) : ViewModel() {
 
     var pageTitle: PageTitle = bundle.getParcelable(EditHistoryListActivity.INTENT_EXTRA_PAGE_TITLE)!!
 
-    val editHistoryFlow = Pager(PagingConfig(pageSize = 100)) {
+    val editHistoryFlow = Pager(PagingConfig(pageSize = 10)) {
         EditHistoryPagingSource(pageTitle)
     }.flow.map { pagingData ->
         pagingData.map {
@@ -39,10 +36,9 @@ class EditHistoryListViewModel(bundle: Bundle) : ViewModel() {
     ) : PagingSource<String, MwQueryPage.Revision>() {
         override suspend fun load(params: LoadParams<String>): LoadResult<String, MwQueryPage.Revision> {
             return try {
-
                 val response = ServiceFactory.get(WikiSite.forLanguageCode(pageTitle.wikiSite.languageCode))
-                        .getEditHistoryDetails(pageTitle.prefixedText)
-                LoadResult.Page(response.query!!.pages?.get(0)?.revisions!!, null, response.continuation?.continuation)
+                        .getEditHistoryDetails(pageTitle.prefixedText, params.loadSize, params.key)
+                LoadResult.Page(response.query!!.pages?.get(0)?.revisions!!, null, response.continuation?.rvContinuation)
             } catch (e: Exception) {
                 LoadResult.Error(e)
             }
@@ -52,7 +48,6 @@ class EditHistoryListViewModel(bundle: Bundle) : ViewModel() {
             return null
         }
     }
-
 
     open class EditHistoryItemModel
     class EditHistoryItem(val item: MwQueryPage.Revision) : EditHistoryItemModel()
