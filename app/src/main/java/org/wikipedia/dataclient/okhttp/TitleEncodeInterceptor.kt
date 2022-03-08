@@ -8,9 +8,9 @@ import java.io.IOException
 internal class TitleEncodeInterceptor : Interceptor {
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
-        return if (chain.request().url.pathSize > 2) {
-            val pathSegments = chain.request().url.pathSegments
-            val builder = chain.request().url.newBuilder()
+        return if (chain.request().url().pathSize() > 2) {
+            val pathSegments = chain.request().url().pathSegments()
+            val builder = chain.request().url().newBuilder()
             for (i in pathSegments.indices) {
                 builder.setEncodedPathSegment(i, UriUtil.encodeURL(pathSegments[i]))
             }

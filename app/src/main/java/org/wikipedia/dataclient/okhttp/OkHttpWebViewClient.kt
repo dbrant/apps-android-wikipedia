@@ -1,10 +1,12 @@
 package org.wikipedia.dataclient.okhttp
 
+import android.os.Build
 import android.view.KeyEvent
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.annotation.RequiresApi
 import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
@@ -37,6 +39,27 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         return false
     }
 
+    override fun shouldInterceptRequest(view: WebView?, url: String?): WebResourceResponse? {
+        if (url == null) {
+            return super.shouldInterceptRequest(view, url as String?)
+        }
+        if (url.contains(RestService.PAGE_HTML_PREVIEW_ENDPOINT)) {
+            return null
+        }
+        var response: WebResourceResponse
+        try {
+            val rsp = request(url)
+            response = WebResourceResponse(rsp.body()!!.contentType()!!.type() + "/" + rsp.body()!!.contentType()!!.subtype(),
+                        rsp.body()!!.contentType()!!.charset(Charset.defaultCharset())!!.name(),
+                        getInputStream(rsp))
+        } catch (e: Exception) {
+            response = WebResourceResponse(null, null, null)
+            L.e(e)
+        }
+        return response
+    }
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         if (!SUPPORTED_SCHEMES.contains(request.url.scheme)) {
             return null
@@ -52,11 +75,11 @@ abstract class OkHttpWebViewClient : WebViewClient() {
                 return super.shouldInterceptRequest(view, request)
             } else {
                 // noinspection ConstantConditions
-                WebResourceResponse(rsp.body!!.contentType()!!.type + "/" + rsp.body!!.contentType()!!.subtype,
-                    rsp.body!!.contentType()!!.charset(Charset.defaultCharset())!!.name(),
-                    rsp.code,
-                    rsp.message.ifBlank { "Unknown error" },
-                    addResponseHeaders(rsp.headers).toMap(),
+                WebResourceResponse(rsp.body()!!.contentType()!!.type() + "/" + rsp.body()!!.contentType()!!.subtype(),
+                    rsp.body()!!.contentType()!!.charset(Charset.defaultCharset())!!.name(),
+                    rsp.code(),
+                    rsp.message().ifBlank { "Unknown error" },
+                    addResponseHeaders(rsp.headers()).toMap(),
                     getInputStream(rsp))
             }
         } catch (e: Exception) {
@@ -77,6 +100,13 @@ abstract class OkHttpWebViewClient : WebViewClient() {
     }
 
     @Throws(IOException::class)
+    private fun request(url: String): Response {
+        val builder = Request.Builder().url(url).cacheControl(model.cacheControl)
+        return OkHttpConnectionFactory.client.newCall(addHeaders(null, builder).build()).execute()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @Throws(IOException::class)
     private fun request(request: WebResourceRequest): Response {
         val builder = Request.Builder().url(request.url.toString()).cacheControl(model.cacheControl)
         for ((header, value) in request.requestHeaders) {
@@ -92,7 +122,7 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         return OkHttpConnectionFactory.client.newCall(addHeaders(request, builder).build()).execute()
     }
 
-    private fun addHeaders(request: WebResourceRequest, builder: Request.Builder): Request.Builder {
+    private fun addHeaders(request: WebResourceRequest?, builder: Request.Builder): Request.Builder {
         model.title?.let { title ->
             // TODO: Find a common way to set this header between here and RetrofitFactory.
             builder.header("Accept-Language", WikipediaApp.getInstance().getAcceptLanguage(title.wikiSite))
@@ -106,22 +136,29 @@ abstract class OkHttpWebViewClient : WebViewClient() {
                     builder.header("Referer", referrer)
                 }
             }
-            request.url.path?.let {
-                if (it.contains(RestService.PAGE_HTML_ENDPOINT)) {
-                    builder.header("X-Analytics", "pageview=1")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                request?.url?.path?.let {
+                    if (it.contains(RestService.PAGE_HTML_ENDPOINT)) {
+                        builder.header("X-Analytics", "pageview=1")
+                    }
                 }
             }
         }
         return builder
     }
 
-    private fun addResponseHeaders(headers: Headers): Headers {
+    private fun addResponseHeaders(headers: Headers): Map<String, String> {
+        val map = mutableMapOf<String, String>()
         // add CORS header to allow requests from all domains.
-        return headers.newBuilder().set("Access-Control-Allow-Origin", "*").build()
+        val headers = headers.newBuilder().set("Access-Control-Allow-Origin", "*").build()
+        headers.names().forEach {
+            map[it] = headers[it].orEmpty()
+        }
+        return map
     }
 
     private fun getInputStream(rsp: Response): InputStream? {
-        return rsp.body?.let {
+        return rsp.body()?.let {
             var inputStream = it.byteStream()
             if (CONTENT_TYPE_OGG == rsp.header(HEADER_CONTENT_TYPE)) {
                 inputStream = AvailableInputStream(it.byteStream(), it.contentLength())

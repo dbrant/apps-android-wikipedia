@@ -3,7 +3,7 @@ package org.wikipedia.dataclient
 import androidx.collection.lruCache
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.Interceptor
-import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType
 import okhttp3.Response
 import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.eventplatform.DestinationEventService
@@ -80,7 +80,7 @@ object ServiceFactory {
             .baseUrl(baseUrl)
             .client(OkHttpConnectionFactory.client.newBuilder().addInterceptor(LanguageVariantHeaderInterceptor(wiki)).build())
             .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
-            .addConverterFactory(JsonUtil.json.asConverterFactory("application/json".toMediaType()))
+            .addConverterFactory(JsonUtil.json.asConverterFactory(MediaType.get("application/json")))
             .build()
     }
 
@@ -90,7 +90,7 @@ object ServiceFactory {
             var request = chain.request()
 
             // TODO: remove when the https://phabricator.wikimedia.org/T271145 is resolved.
-            if (!request.url.encodedPath.contains("/page/related")) {
+            if (!request.url().encodedPath().contains("/page/related")) {
                 request = request.newBuilder()
                     .header("Accept-Language", WikipediaApp.getInstance().getAcceptLanguage(wiki))
                     .build()

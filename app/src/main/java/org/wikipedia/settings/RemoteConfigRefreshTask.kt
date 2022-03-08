@@ -22,7 +22,7 @@ class RemoteConfigRefreshTask : RecurringTask() {
         try {
             val request = Request.Builder().url(REMOTE_CONFIG_URL).build()
             response = client.newCall(request).execute()
-            val config = JSONObject(response.body!!.string())
+            val config = JSONObject(response.body()!!.string())
             WikipediaApp.getInstance().remoteConfig.updateConfig(config)
             L.d(config.toString())
         } catch (e: Exception) {

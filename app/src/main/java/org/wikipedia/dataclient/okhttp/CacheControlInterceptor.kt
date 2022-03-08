@@ -14,7 +14,7 @@ internal class CacheControlInterceptor : Interceptor {
         val rsp = chain.proceed(chain.request())
         val builder = rsp.newBuilder()
 
-        if (rsp.cacheControl.mustRevalidate) {
+        if (rsp.cacheControl().mustRevalidate()) {
             // Override the Cache-Control header with just a max-age directive.
             // Usually the server gives us a "must-revalidate" directive, which forces us to attempt
             // revalidating from the network even when we're offline, which will cause offline access
@@ -22,7 +22,7 @@ internal class CacheControlInterceptor : Interceptor {
             // cached data will be available offline, given that we provide a "max-stale" directive
             // when requesting it.
             builder.header("Cache-Control", "max-age=" +
-                    (if (rsp.cacheControl.maxAgeSeconds > 0) rsp.cacheControl.maxAgeSeconds else 0))
+                    (if (rsp.cacheControl().maxAgeSeconds() > 0) rsp.cacheControl().maxAgeSeconds() else 0))
         }
 
         // If we're saving the current response to the offline cache, then strip away the Vary header.

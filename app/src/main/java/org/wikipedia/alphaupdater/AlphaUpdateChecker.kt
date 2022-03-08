@@ -31,7 +31,7 @@ class AlphaUpdateChecker(private val context: Context) : RecurringTask() {
         try {
             val request: Request = Request.Builder().url(ALPHA_BUILD_DATA_URL).build()
             response = client.newCall(request).execute()
-            hashString = response.body!!.string()
+            hashString = response.body()!!.string()
         } catch (e: IOException) {
             // It's ok, we can do nothing.
             return

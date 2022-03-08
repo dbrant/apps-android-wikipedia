@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.math.MathUtils;
+import androidx.multidex.MultiDexApplication;
 
 import org.wikipedia.analytics.FunnelManager;
 import org.wikipedia.analytics.InstallReferrerListener;
@@ -54,7 +55,7 @@ import static org.apache.commons.lang3.StringUtils.defaultString;
 import static org.wikipedia.util.DimenUtil.getFontSizeFromSp;
 import static org.wikipedia.util.ReleaseUtil.getChannel;
 
-public class WikipediaApp extends Application {
+public class WikipediaApp extends MultiDexApplication {
     private final RemoteConfig remoteConfig = new RemoteConfig();
     private Handler mainThreadHandler;
     private AppLanguageState appLanguageState;

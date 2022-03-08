@@ -230,8 +230,8 @@ class PageFragmentLoadState(private var model: PageViewModel,
         model.hasWatchlistExpiry = hasWatchlistExpiry
         model.title = page?.title
         model.title?.let { title ->
-            if (!response.raw().request.url.fragment.isNullOrEmpty()) {
-                title.fragment = response.raw().request.url.fragment
+            if (!response.raw().request().url().fragment().isNullOrEmpty()) {
+                title.fragment = response.raw().request().url().fragment()
             }
             if (title.description.isNullOrEmpty()) {
                 app.sessionFunnel.noDescription()

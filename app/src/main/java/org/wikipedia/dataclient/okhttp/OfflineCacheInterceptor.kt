@@ -1,7 +1,6 @@
 package org.wikipedia.dataclient.okhttp
 
 import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okio.*
 import org.wikipedia.WikipediaApp
 import org.wikipedia.database.AppDatabase
@@ -27,7 +26,7 @@ class OfflineCacheInterceptor : Interceptor {
         try {
             response = chain.proceed(request)
             // is this response worthy of caching offline?
-            return if (response.isSuccessful && response.networkResponse != null &&
+            return if (response.isSuccessful && response.networkResponse() != null &&
                 shouldSave(request) && !lang.isNullOrEmpty() && title.isNotEmpty()) {
                 // Cache (or re-cache) the response, overwriting any previous version.
                 getCacheWritingResponse(request, response, lang, title)
@@ -38,7 +37,7 @@ class OfflineCacheInterceptor : Interceptor {
 
         // If we're here, then the network call failed.
         // Time to see if we can load this content from offline storage.
-        val url = request.url.toString()
+        val url = request.url().toString()
 
         // If we don't have the correct headers to retrieve this item, then bail.
         if (lang.isNullOrEmpty()) {
@@ -103,17 +102,17 @@ class OfflineCacheInterceptor : Interceptor {
 
         File(cachePath).mkdirs()
 
-        val filePath = cachePath + File.separator + getObjectFileName(request.url.toString(), lang, contentType)
+        val filePath = cachePath + File.separator + getObjectFileName(request.url().toString(), lang, contentType)
         val metadataFile = File("$filePath.0")
         val contentsFile = File("$filePath.1")
         try {
             OutputStreamWriter(FileOutputStream(metadataFile)).use { writer ->
-                writer.write(request.url.toString() + "\n")
-                writer.write(request.method + "\n")
-                writer.write(response.protocol.toString() + "\n")
-                writer.write(response.code.toString() + "\n")
-                writer.write(response.message + "\n")
-                response.headers.names().forEach { header ->
+                writer.write(request.url().toString() + "\n")
+                writer.write(request.method() + "\n")
+                writer.write(response.protocol().toString() + "\n")
+                writer.write(response.code().toString() + "\n")
+                writer.write(response.message() + "\n")
+                response.headers().names().forEach { header ->
                     writer.write(header + ": " + response.header(header) + "\n")
                 }
                 writer.flush()
@@ -130,8 +129,8 @@ class OfflineCacheInterceptor : Interceptor {
             return response
         }
 
-        return response.body?.let {
-            val obj = OfflineObject(url = request.url.toString(), lang = lang, path = filePath, status = 0)
+        return response.body()?.let {
+            val obj = OfflineObject(url = request.url().toString(), lang = lang, path = filePath, status = 0)
             val cacheWritingSource = CacheWritingSource(it.source(), sink, obj, title)
             response.newBuilder()
                 .body(CacheWritingResponseBody(cacheWritingSource, contentType, contentLength))
@@ -196,7 +195,7 @@ class OfflineCacheInterceptor : Interceptor {
                                                              private val contentType: String?,
                                                              private val contentLength: Long) : ResponseBody() {
         override fun contentType(): MediaType? {
-            return contentType?.toMediaTypeOrNull()
+            return MediaType.parse(contentType.orEmpty())
         }
 
         override fun contentLength(): Long {
@@ -211,7 +210,7 @@ class OfflineCacheInterceptor : Interceptor {
     private inner class CachedResponseBody constructor(private val file: File,
                                                        private val contentType: String?) : ResponseBody() {
         override fun contentType(): MediaType? {
-            return contentType?.toMediaTypeOrNull()
+            return MediaType.parse(contentType.orEmpty())
         }
 
         override fun contentLength(): Long {
@@ -232,7 +231,7 @@ class OfflineCacheInterceptor : Interceptor {
 
         @JvmStatic
         fun shouldSave(request: Request): Boolean {
-            return "GET" == request.method && SAVE_HEADER_SAVE == request.header(SAVE_HEADER)
+            return "GET" == request.method() && SAVE_HEADER_SAVE == request.header(SAVE_HEADER)
         }
 
         private fun getObjectFileName(url: String, lang: String, mimeType: String): String {

@@ -1,7 +1,7 @@
 package org.wikipedia.settings
 
 import okhttp3.Cookie
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.HttpUrl
 import okhttp3.logging.HttpLoggingInterceptor
 import org.wikipedia.BuildConfig
 import org.wikipedia.R
@@ -56,7 +56,7 @@ object Prefs {
             val map = JsonUtil.decodeFromString<Map<String, List<String>>>(PrefsIoUtil
                 .getString(R.string.preference_key_cookie_map, "").orEmpty()).orEmpty()
             map.mapValues { (key, values) ->
-                val url = "${WikiSite.DEFAULT_SCHEME}://$key".toHttpUrlOrNull()
+                val url = HttpUrl.parse("${WikiSite.DEFAULT_SCHEME}://$key")
                 url?.let { values.mapNotNull { value -> Cookie.parse(url, value) } }.orEmpty()
             }
         }

@@ -172,7 +172,7 @@ class SavedPageSyncService : JobIntentService() {
                         val fileUrls = mutableSetOf<String>()
 
                         // download css and javascript assets
-                        mobileHTMLRsp.body?.let {
+                        mobileHTMLRsp.body()?.let {
                             fileUrls.addAll(PageComponentsUrlParser.parse(it.string(),
                                     pageTitle.wikiSite).filter { url -> url.isNotEmpty() })
                         }
@@ -274,7 +274,7 @@ class SavedPageSyncService : JobIntentService() {
         val rsp = client.newCall(request).execute()
 
         // Read the entirety of the response, so that it's written to cache by the interceptor.
-        rsp.body!!.source().readAll(object : Sink {
+        rsp.body()!!.source().readAll(object : Sink {
             override fun write(source: Buffer, byteCount: Long) {}
             override fun flush() {}
             override fun timeout(): Timeout {
@@ -283,7 +283,7 @@ class SavedPageSyncService : JobIntentService() {
 
             override fun close() {}
         })
-        rsp.body!!.close()
+        rsp.body()!!.close()
     }
 
     private fun makeUrlRequest(wiki: WikiSite, url: String, pageTitle: PageTitle): Request.Builder {

@@ -24,10 +24,10 @@ class HttpStatusException : IOException {
             }
 
     constructor(rsp: Response) {
-        this.code = rsp.code
-        url = rsp.request.url.toUri().toString()
+        this.code = rsp.code()
+        url = rsp.request().url().uri().toString()
         try {
-            rsp.body?.let {
+            rsp.body()?.let {
                 if (it.contentType().toString().contains("json")) {
                     serviceError = RbServiceError.create(it.string())
                 }

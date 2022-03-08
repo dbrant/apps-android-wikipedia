@@ -3,6 +3,7 @@ package org.wikipedia.page.linkpreview
 import android.content.DialogInterface
 import android.content.Intent
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -80,7 +81,9 @@ class LinkPreviewDialog : ExtendedBottomSheetDialogFragment(), LinkPreviewErrorV
         view.drawable?.let {
             val hitInfo = JavaScriptActionHandler.ImageHitInfo(0f, 0f, it.intrinsicWidth.toFloat(), it.intrinsicHeight.toFloat(), thumbUrl, false)
             GalleryActivity.setTransitionInfo(hitInfo)
-            view.transitionName = requireActivity().getString(R.string.transition_page_gallery)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                view.transitionName = requireActivity().getString(R.string.transition_page_gallery)
+            }
             options = ActivityOptionsCompat.makeSceneTransitionAnimation(requireActivity(), view, requireActivity().getString(R.string.transition_page_gallery))
         }
         startActivityForResult(GalleryActivity.newIntent(requireContext(), pageTitle, imageName,
@@ -179,8 +182,8 @@ class LinkPreviewDialog : ExtendedBottomSheetDialogFragment(), LinkPreviewErrorV
 
                     // check if our URL was redirected, which might include a URL fragment that leads
                     // to a specific section in the target article.
-                    if (!response.raw().request.url.fragment.isNullOrEmpty()) {
-                        pageTitle.fragment = response.raw().request.url.fragment
+                    if (!response.raw().request().url().fragment().isNullOrEmpty()) {
+                        pageTitle.fragment = response.raw().request().url().fragment()
                     } else if (!oldFragment.isNullOrEmpty()) {
                         pageTitle.fragment = oldFragment
                     }
