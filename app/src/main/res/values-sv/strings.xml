@@ -52,6 +52,7 @@
   <string name="search_tab_tooltip">Tryck på ikonen igen för att börja skriva en sökterm.</string>
   <string name="history_list_title">Historik</string>
   <string name="image_content_description">Bild: %s</string>
+  <string name="page_content_description">Sida: %s</string>
   <string name="wikimedia_commons">Wikimedia Commons</string>
   <string name="wikidata">Wikidata</string>
   <string name="dialog_title_clear_history">Rensa läsarhistoriken</string>
@@ -61,13 +62,20 @@
   <string name="share_via">Dela via</string>
   <string name="image_share_via">Dela via</string>
   <string name="search_redirect_from">Omdirigerad från %s</string>
+  <string name="page_edit_history_activity_label">Versionshistorik</string>
+  <string name="page_edit_history_minor_edit">&lt;b&gt;m&lt;/b&gt; %s</string>
+  <string name="page_edit_history_comment_placeholder">Tom redigeringssammanfattning</string>
   <string name="menu_page_show_tabs">Visa flikar</string>
   <string name="menu_page_other_languages">Byt språk</string>
   <string name="menu_page_find_in_page">Hitta i artikeln</string>
   <string name="menu_page_add_to_watchlist">Lägg till i bevakningslistan</string>
+  <string name="menu_page_watch">Bevaka</string>
   <string name="menu_page_view_talk">Visa diskussionssida</string>
+  <string name="menu_page_talk_page">Diskussionssida</string>
   <string name="menu_page_view_edit_history">Visa redigeringshistorik</string>
+  <string name="menu_page_edit_history">Redigeringshistorik</string>
   <string name="menu_page_remove_from_watchlist">Ta bort från bevakningslistan</string>
+  <string name="menu_page_watched">Bevakas</string>
   <string name="edit_section_find_in_page">Hitta på sidan</string>
   <string name="menu_page_font_and_theme">Teckensnitt och tema</string>
   <string name="menu_page_add_to_list">Lägg till i läslista</string>
@@ -75,6 +83,8 @@
   <string name="feed_card_add_to_list">Lägg till i läslista</string>
   <string name="feed_card_add_to_default_list">Spara</string>
   <string name="menu_page_share">Dela länk</string>
+  <string name="menu_article_share">Dela artikel</string>
+  <string name="menu_page_article_share">Dela</string>
   <string name="menu_page_open_a_new_tab">Öppna en ny flik</string>
   <string name="menu_page_new_tab">Ny flik</string>
   <string name="menu_page_reading_lists">Läslistor</string>
@@ -161,6 +171,7 @@
   <string name="dialog_create_account_checking_progress">Verifierar</string>
   <string name="create_account_email_hint">E-post (valfritt)</string>
   <string name="create_account_password_repeat_hint">Upprepa lösenord</string>
+  <string name="create_account_password_is_username">Lösenordet kan inte vara likadant som användarnamnet</string>
   <string name="create_account_passwords_mismatch_error">Lösenorden matchar inte</string>
   <string name="create_account_email_error">Ogiltig e-postadress</string>
   <string name="create_account_username_error">Ogiltiga tecken i användarnamnet</string>
@@ -306,6 +317,7 @@
   <string name="gallery_save_success">Filen har sparats.</string>
   <string name="gallery_error_video_failed">Kan inte spela upp video.</string>
   <string name="gallery_save_image_write_permission_rationale">Behörighet för att skriva till lagringsutrymmet på din enhet krävs för att spara bilder.</string>
+  <string name="gallery_edit_button_content_description">Redigera bildtext</string>
   <string name="gallery_add_image_caption_button">Lägg till bildtext</string>
   <string name="gallery_add_image_caption_in_language_button">Lägg till bildtexter %s</string>
   <string name="err_cannot_save_file">Kan inte spara filen</string>
@@ -386,6 +398,7 @@
   <string name="error_blocked_expiry">Blockeringens slut: %s</string>
   <string name="error_blocked_id">Blockerings-ID: %s</string>
   <string name="error_blocked_footer">Du kan kontakta &lt;a href=\"%2$s\"&gt;%1$s&lt;/a&gt; eller en annan &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Administrators\"&gt;administratör&lt;/a&gt; för att diskutera blockeringen.</string>
+  <string name="theme_chooser_menu_item_tooltip">Anpassa ditt verktygsfält och prova fokusläget för läsning</string>
   <string name="error_blocked_footer_no_blocker">Du kan kontakta en &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Administrators\"&gt;administratör&lt;/a&gt; för att diskutera blockeringen.</string>
   <string name="crash_report_activity_title">Applikationsfel</string>
   <string name="crash_report_relaunch_or_quit">Tyvärr stötte Wikipedia-appen på ett fel och avslutades.\n\nVill du starta om eller avsluta?</string>
@@ -412,6 +425,11 @@
   <string name="text_size_decrease">Minska textstorlek</string>
   <string name="text_size_percent_default">%s (standard)</string>
   <string name="text_style_title">Typsnitt</string>
+  <string name="theme_category_reading">Läsning</string>
+  <string name="reading_focus_mode">Fokusläge för läsning</string>
+  <string name="reading_focus_mode_detail">Döljer redigeringsfunktioner och verktygsfältet längst ned vid rullning</string>
+  <string name="theme_category_toolbar">Verktygsfält</string>
+  <string name="theme_customize_toolbar">Anpassa verktygsfält</string>
   <string name="nav_item_saved">Sparade</string>
   <string name="reading_list_save_to">Spara i läslista</string>
   <string name="reading_list_move_to">Flytta till läslista</string>
@@ -540,6 +558,7 @@
   <string name="reading_list_remove_from_offline_cancel_button_text">Avbryt</string>
   <string name="reading_list_download_using_mobile_data_cancel_button_text">Avbryt</string>
   <string name="reading_list_split_dialog_ok_button_text">OK</string>
+  <string name="reading_list_activity_title">Läslista: %s</string>
   <string name="user_option_sync_label">Inställningar</string>
   <string name="notification_reverted_title">Ogjord redigering</string>
   <string name="notification_channel_title">Laddar ned artiklar</string>
@@ -642,6 +661,7 @@
   <string name="notifications_channel_group_other_description">Andra aviseringar från appen</string>
   <string name="notifications_filter_label">Filtrera aviseringar</string>
   <string name="notifications_filter_icon_content_description">Filtrera aviseringar</string>
+  <string name="notifications_filter_update_app_languages">Uppdatera appspråk</string>
   <string name="notifications_empty_search_message">Försök att ta bort %s för att se fler aviseringar</string>
   <plurals name="notifications_number_of_filters">
     <item quantity="one">%d filter</item>
@@ -721,6 +741,7 @@
   <string name="feed_accessibility_card_text">Du är nu längst ned i flödet.</string>
   <string name="feed_accessibility_card_load_more_button">Läs in fler</string>
   <string name="top_read_activity_title">Mest lästa den %s</string>
+  <string name="tabs_activity_title">Flikar</string>
   <string name="description_edit_text_hint">Titelbeskrivning</string>
   <string name="description_edit_article_description_label">Artikel</string>
   <string name="description_edit_translate_article_description_label_per_language">Artikelbeskrivning (%s)</string>
@@ -752,6 +773,7 @@
   <string name="description_starts_with_uppercase">Börja med liten bokstav om det första ordet inte är ett egennamn.</string>
   <string name="description_starts_with_lowercase">Undvik att börja med en liten bokstav.</string>
   <string name="description_is_in_different_language">Texten verkar vara på ett oväntat språk. Språket bör vara %s.</string>
+  <string name="description_verification_notice">Var god verifiera att din beskrivning är på %1$s. Stäng gärna denna avisering om beskrivningen du skrev är på %2$s.</string>
   <string name="description_edit_success_saved">Artikelbeskrivningen har publicerats!</string>
   <string name="description_edit_success_saved_snackbar">Artikelbeskrivningen har publicerats!</string>
   <string name="description_edit_success_saved_in_lang_snackbar">Artikelbeskrivningen har publicerats! (%s)</string>
@@ -769,6 +791,12 @@
   <string name="description_edit_tutorial_keep_it_short_instructions">Helst en rad, mellan två till tolv ord</string>
   <string name="description_edit_tutorial_button_label_start_editing">Börja redigera</string>
   <string name="description_edit_tutorial_promise">Genom att börja, lovar jag att inte missbruka denna funktion.</string>
+  <string name="customize_toolbar_title">Anpassa verktygsfält</string>
+  <string name="customize_toolbar_description">Anpassa det nedre navigeringsfältet med åtgärder och destination du finner mest hjälpsamma.</string>
+  <string name="customize_toolbar_category_toolbar">Verktygsfält</string>
+  <string name="customize_toolbar_category_menu">Meny</string>
+  <string name="customize_toolbar_drag_and_drop_placeholder">Dra och släpp dina favoritobjekt här 👋</string>
+  <string name="customize_toolbar_reset_to_default_button">Återställ till standardvärden</string>
   <string name="suggested_edits_describe_articles">Beskriv artiklar</string>
   <string name="suggested_edits_caption_images">Skriv bildtexter</string>
   <string name="suggested_edits_tag_images">Tagga bilder</string>
@@ -938,6 +966,7 @@
   <string name="file_page_add_image_caption_button">Lägg till bildtext</string>
   <string name="file_page_add_image_tags_button">Lägg till bildtaggar</string>
   <string name="file_page_suggestion_reason">Förslagsanledning</string>
+  <string name="file_page_edit_button_content_description">Redigera %s</string>
   <string name="description_edit_revert_subtitle">Tack för att du redigerar på Wikipedia!</string>
   <string name="description_edit_revert_intro">Vi vet att du försökte ditt bästa men en av korrekturläsarna hade en invändning. Möjliga anledningar till att din redigering gjordes om inkluderar:</string>
   <string name="description_edit_revert_reason1">ditt bidrag följde inte en av &lt;a href=\"%1$s\"&gt;riktlinjerna&lt;/a&gt;.</string>
@@ -1048,21 +1077,30 @@
   <string name="talk_snackbar_survey_action_text">Kom igång</string>
   <string name="talk_share_discussion_subject">Wikipedia - diskussion på diskussionssidans ämne \"%s\"</string>
   <string name="talk_share_talk_page">Wikipedia - diskussion på diskussionssida</string>
+  <string name="talk_edit_disclaimer">Detta är en diskussionssida. Var god respektera riktlinjerna för diskussionssidor och kom ihåg att signera dina inlägg genom att skriva fyra tildetecken: ~~~~ när du skriver med wikitext.&lt;br&gt;&lt;br&gt;&lt;a href=\"https://sv.wikipedia.org/wiki/Wikipedia:Diskussionssidor\"&gt;Wikipedia:Diskussionssidor&lt;/a&gt;</string>
+  <string name="talk_search_hint">Sök efter meddelanden</string>
+  <string name="talk_overflow_sort_by">Sortera efter</string>
+  <string name="talk_overflow_sort_date_published">Datum publicerad</string>
+  <string name="talk_overflow_sort_topic_name">Ämnesnamn</string>
   <string name="menu_option_share_talk_discussion">Dela diskussion</string>
   <string name="menu_option_share_talk_page">Dela diskussionssida</string>
   <string name="menu_option_share_edit">Dela redigering</string>
   <string name="menu_option_user_profile">%ss profil</string>
   <string name="menu_option_user_contributions">%ss bidrag</string>
+  <string name="menu_option_edit_source">Redigera källa</string>
   <string name="watchlist_details_watching_label">Bevakar</string>
   <string name="watchlist_details_watch_label">Bevaka</string>
   <string name="watchlist_details_next_edit">Nästa redigering</string>
   <string name="watchlist_details_prev_edit">Föregående redigering</string>
   <string name="thank_label">Tacka</string>
+  <string name="view_user_page">Visa användarsida</string>
   <string name="thank_dialog_title_text">Skicka offentligt tack</string>
   <string name="thank_dialog_text">\"Tack\" är ett enkelt sätt att visa sin uppskattning för en redigerares arbete på Wikipedia. Man kan inte ångra ett tack och de är offentliga.</string>
   <string name="thank_dialog_positive_button_text">Skicka tack</string>
   <string name="thank_dialog_negative_button_text">Avbryt</string>
   <string name="thank_success_message">Ditt tack skickades till %s 👍</string>
+  <string name="menu_option_view_user_profile">Visa användarens profilsida</string>
+  <string name="menu_option_view_user_talk">Visa diskussionssida</string>
   <string name="watchlist_page_add_to_watchlist_snackbar">%1$s och dess diskussionssida har lagts till i din bevakningslista %2$s.</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_action">Ändra</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_period_permanently">permanent</string>
