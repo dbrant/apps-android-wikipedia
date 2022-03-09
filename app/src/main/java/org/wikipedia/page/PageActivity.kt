@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -382,7 +383,9 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
     }
 
     override fun onPageSetToolbarElevationEnabled(enabled: Boolean) {
-        binding.pageToolbarContainer.elevation = DimenUtil.dpToPx(if (enabled) DimenUtil.getDimension(R.dimen.toolbar_default_elevation) else 0F)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            binding.pageToolbarContainer.elevation = DimenUtil.dpToPx(if (enabled) DimenUtil.getDimension(R.dimen.toolbar_default_elevation) else 0F)
+        }
     }
 
     override fun onPageCloseActionMode() {

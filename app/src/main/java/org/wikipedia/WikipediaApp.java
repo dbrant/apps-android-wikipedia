@@ -55,6 +55,8 @@ import static org.apache.commons.lang3.StringUtils.defaultString;
 import static org.wikipedia.util.DimenUtil.getFontSizeFromSp;
 import static org.wikipedia.util.ReleaseUtil.getChannel;
 
+import com.google.android.gms.security.ProviderInstaller;
+
 public class WikipediaApp extends MultiDexApplication {
     private final RemoteConfig remoteConfig = new RemoteConfig();
     private Handler mainThreadHandler;
@@ -121,6 +123,12 @@ public class WikipediaApp extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        try {
+            ProviderInstaller.installIfNeeded(this);
+        } catch (Exception e) {
+            L.e(e);
+        }
 
         WikiSite.setDefaultBaseUrl(Prefs.INSTANCE.getMediaWikiBaseUrl());
 

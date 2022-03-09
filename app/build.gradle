@@ -191,6 +191,9 @@ dependencies {
 
     implementation "androidx.multidex:multidex:2.0.1"
 
+    // Necessary for getting updated Root Certificates on older devices:
+    implementation "com.google.android.gms:play-services-base:18.0.1"
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinCoroutinesVersion"

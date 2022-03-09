@@ -1,5 +1,6 @@
 package org.wikipedia.page
 
+import android.os.Build
 import android.view.Gravity
 import android.view.View
 import org.wikipedia.R
@@ -59,7 +60,7 @@ class ViewHideHandler(private val hideableView: View,
         hideableView.translationY = animMargin.toFloat()
         anchoredView?.translationY = animMargin.toFloat()
 
-        if (updateElevation) {
+        if (updateElevation && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val elevation = if (scrollY == 0 && oldScrollY != 0) 0F else dpToPx(getDimension(R.dimen.toolbar_default_elevation))
             if (elevation != hideableView.elevation) {
                 hideableView.elevation = elevation
