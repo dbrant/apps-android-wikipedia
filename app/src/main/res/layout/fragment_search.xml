@@ -40,6 +40,16 @@
                     android:inputType="text"
                     app:defaultQueryHint="@string/search_hint" />
 
+                <ImageView
+                    android:id="@+id/searchNamespaceButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="12dp"
+                    app:srcCompat="@drawable/ic_manage_search_24"
+                    app:tint="?attr/material_theme_secondary_color"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@null"/>
+
                 <FrameLayout
                     android:id="@+id/search_lang_button_container"
                     android:layout_width="wrap_content"
