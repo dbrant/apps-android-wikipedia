@@ -1,12 +1,13 @@
 package org.wikipedia.search
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import androidx.appcompat.view.menu.MenuBuilder
+import androidx.appcompat.view.menu.MenuPopupHelper
 import androidx.appcompat.widget.SearchView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -26,6 +27,7 @@ import org.wikipedia.databinding.FragmentSearchBinding
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.json.JsonUtil
 import org.wikipedia.page.ExclusiveBottomSheetPresenter
+import org.wikipedia.page.Namespace
 import org.wikipedia.page.PageActivity
 import org.wikipedia.page.PageTitle
 import org.wikipedia.readinglist.AddToReadingListDialog
@@ -35,6 +37,7 @@ import org.wikipedia.search.db.RecentSearch
 import org.wikipedia.settings.Prefs
 import org.wikipedia.settings.languages.WikipediaLanguagesActivity
 import org.wikipedia.settings.languages.WikipediaLanguagesFragment
+import org.wikipedia.staticdata.UserAliasData
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ResourceUtil
@@ -93,6 +96,7 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
         setHasOptionsMenu(true)
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSearchBinding.inflate(inflater, container, false)
         val childFragmentManager = childFragmentManager
@@ -106,6 +110,37 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
         binding.searchContainer.setOnClickListener { onSearchContainerClick() }
         binding.searchLangButtonContainer.setOnClickListener { onLangButtonClick() }
         initSearchView()
+
+        binding.searchNamespaceButton.setOnClickListener {
+            val builder = MenuBuilder(context)
+            MenuInflater(context).inflate(R.menu.menu_search_namespace, builder)
+            builder.setCallback(object : MenuBuilder.Callback {
+                override fun onMenuItemSelected(menu: MenuBuilder, item: MenuItem): Boolean {
+                    return when (item.itemId) {
+                        R.id.menu_search_ns_article -> {
+                            setQueryNamespace(Namespace.MAIN)
+                            true
+                        }
+                        R.id.menu_search_ns_user -> {
+                            setQueryNamespace(Namespace.USER)
+                            true
+                        }
+                        R.id.menu_search_ns_portal -> {
+                            setQueryNamespace(Namespace.PORTAL)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+
+                override fun onMenuModeChange(menu: MenuBuilder) { }
+            })
+            val helper = MenuPopupHelper(requireContext(), builder, it)
+            helper.setForceShowIcon(true)
+            helper.gravity = Gravity.END
+            helper.show()
+        }
+
         return binding.root
     }
 
@@ -189,6 +224,24 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
         _binding = null
         funnel.searchCancel(searchLanguageCode)
         super.onDestroyView()
+    }
+
+    private fun setQueryNamespace(ns: Namespace) {
+        var curText = query.orEmpty()
+
+        val pos = curText.indexOf(':')
+        if (pos > 0) {
+            // val curNs = curText.split(':')[0]
+            curText = curText.substring(pos + 1)
+        }
+
+        if (ns == Namespace.USER) {
+            curText = UserAliasData.valueFor(searchLanguageCode) + ":" + curText
+        } else if (ns == Namespace.PORTAL) {
+            curText = "Portal" + ":" + curText
+        }
+
+        switchToSearch(curText)
     }
 
     override fun getFunnel(): SearchFunnel {

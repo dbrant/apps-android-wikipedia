@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_search_ns_article"
+        android:icon="@drawable/ic_search_white_24dp"
+        android:iconTint="?attr/material_theme_secondary_color"
+        android:title="Articles" />
+    <item
+        android:id="@+id/menu_search_ns_user"
+        android:icon="@drawable/ic_user_avatar_material_secondary_themed"
+        android:iconTint="?attr/material_theme_secondary_color"
+        android:iconTintMode="src_atop"
+        android:title="Users" />
+    <item
+        android:id="@+id/menu_search_ns_portal"
+        android:icon="@drawable/ic_interests_24"
+        android:iconTint="?attr/material_theme_secondary_color"
+        android:title="Portals" />
+</menu>
