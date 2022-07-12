@@ -1970,6 +1970,22 @@ a.notheme {
   margin: 0px;
   padding: 0px;
 }
+.section-heading {
+  border-bottom: 0px !important;
+  margin-bottom: 0px !important;
+}
+.pcs-theme-dark .indicator,
+.pcs-theme-black .indicator {
+  filter: invert(1)
+}
+.mw-ui-icon-wikimedia-edit-base20:before {
+  background-image: var(--edit-section-icon);
+  opacity: var(--edit-section-link-container-opacity);
+}
+.pcs-theme-dark .edit-page,
+.pcs-theme-black .edit-page {
+  filter: invert(1)
+}
 /* ------- */
 
 
