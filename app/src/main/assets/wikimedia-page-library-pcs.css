@@ -1966,6 +1966,10 @@ a.notheme {
 .pcs-theme-black div#mw-mf-page-center {
   background: var(--paper-background);
 }
+.pre-content, .content {
+  margin: 0px;
+  padding: 0px;
+}
 /* ------- */
 
 
