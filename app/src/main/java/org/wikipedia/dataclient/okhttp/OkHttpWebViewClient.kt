@@ -5,6 +5,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewClientCompat
 import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
@@ -14,11 +16,12 @@ import org.wikipedia.page.LinkHandler
 import org.wikipedia.page.PageViewModel
 import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.Charset
 
-abstract class OkHttpWebViewClient : WebViewClient() {
+abstract class OkHttpWebViewClient : WebViewClientCompat() {
     /*
         Note: Any data transformations performed here are only for the benefit of WebViews.
         They should not be made into general Interceptors.
@@ -26,6 +29,11 @@ abstract class OkHttpWebViewClient : WebViewClient() {
 
     abstract val model: PageViewModel
     abstract val linkHandler: LinkHandler
+
+
+    private val assetLoader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(WikipediaApp.instance))
+            .build()
 
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
         if (model.shouldLoadAsMobileWeb) {
@@ -44,6 +52,9 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         if (request.url.toString().contains(RestService.PAGE_HTML_PREVIEW_ENDPOINT)) {
             return null
         }
+        if (request.url.toString().contains("//appassets")) {
+            return assetLoader.shouldInterceptRequest(request.url)
+        }
         var response: WebResourceResponse
         try {
             val rsp = request(request)
@@ -58,7 +69,7 @@ abstract class OkHttpWebViewClient : WebViewClient() {
                     rsp.code,
                     rsp.message.ifBlank { "Unknown error" },
                     addResponseHeaders(rsp.headers).toMap(),
-                    getInputStream(rsp))
+                    getInputStream(rsp, request.url.toString().contains("m.wikipedia.org/wiki/")))
             }
         } catch (e: Exception) {
             val reasonCode = if (e.message.isNullOrEmpty()) "Unknown error" else UriUtil.encodeURL(e.message!!)
@@ -121,9 +132,37 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         return headers.newBuilder().set("Access-Control-Allow-Origin", "*").build()
     }
 
-    private fun getInputStream(rsp: Response): InputStream? {
+    private fun getInputStream(rsp: Response, isMobileHtml: Boolean): InputStream? {
         return rsp.body?.let {
             var inputStream = it.byteStream()
+
+            if (isMobileHtml) {
+
+                var content = it.string()
+                var pos = content.indexOf("</head>")
+                if (pos > 0) {
+
+                    content = content.substring(0, pos) + "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.css\">" +
+                            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.css\">" +
+                            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.css\">" +
+                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.js\"></script>" +
+                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.js\"></script>" +
+                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.js\"></script>" + content.substring(pos)
+
+
+                    pos = content.indexOf("<main ")
+                    content = content.substring(0, pos) + "<script>pcs.c1.Page.onBodyStart();</script>" + content.substring(pos)
+
+                    pos = content.indexOf("<footer ")
+                    content = content.substring(0, pos) + "<script defer=\"true\">pcs.c1.Page.onBodyEnd();</script>" + content.substring(pos)
+
+                    content = content.replace("<div class=\"mw-parser-output\"", "<div id=\"pcs\" class=\"mw-parser-output\"")
+
+                    inputStream = content.byteInputStream()
+                }
+
+            }
+
             if (CONTENT_TYPE_OGG == rsp.header(HEADER_CONTENT_TYPE)) {
                 inputStream = AvailableInputStream(it.byteStream(), it.contentLength())
             }

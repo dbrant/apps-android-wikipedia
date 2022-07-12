@@ -386,12 +386,12 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     // doesn't support PCS, meaning that we will never receive the `setup` event that
                     // tells us the page is finished loading. In such a case, we must infer that the
                     // page has now loaded and trigger the remaining logic ourselves.
-                    if ("true" != pcsExists) {
-                        onPageSetupEvent()
-                        bridge.onMetadataReady()
-                        bridge.onPcsReady()
+                    //if ("true" != pcsExists) {
+                        //onPageSetupEvent()
+                        //bridge.onMetadataReady()
+                        //bridge.onPcsReady()
                         bridge.execute(JavaScriptActionHandler.mobileWebChromeShim())
-                    }
+                    //}
                 }
             }
 
