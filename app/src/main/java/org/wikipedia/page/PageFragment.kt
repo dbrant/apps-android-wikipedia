@@ -984,7 +984,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
         binding.pageActionsTabLayout.forEach { it as MaterialTextView
             val pageActionItem = PageActionItem.find(it.id)
-            val enabled = model.page != null && (!model.shouldLoadAsMobileWeb || (model.shouldLoadAsMobileWeb && pageActionItem.isAvailableOnMobileWeb))
+            val enabled = model.page != null
             it.isEnabled = enabled
             it.alpha = if (enabled) 1f else 0.5f
 
@@ -1376,12 +1376,12 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 val animDuration = 250
                 val anim = ObjectAnimator.ofInt(webView, "scrollY", webView.scrollY, DimenUtil.leadImageHeightForDevice(requireActivity()))
                 anim.setDuration(animDuration.toLong()).doOnEnd {
-                    showBottomSheet(ThemeChooserDialog.newInstance(InvokeSource.PAGE_ACTION_TAB, model.shouldLoadAsMobileWeb))
+                    showBottomSheet(ThemeChooserDialog.newInstance(InvokeSource.PAGE_ACTION_TAB))
                 }
                 anim.start()
             } else {
                 scrolledUpForThemeChange = false
-                showBottomSheet(ThemeChooserDialog.newInstance(InvokeSource.PAGE_ACTION_TAB, model.shouldLoadAsMobileWeb))
+                showBottomSheet(ThemeChooserDialog.newInstance(InvokeSource.PAGE_ACTION_TAB))
             }
         }
 

@@ -10,15 +10,13 @@ import org.wikipedia.model.EnumCodeMap
 enum class PageActionItem constructor(val id: Int,
                                       val viewId: Int,
                                       @StringRes val titleResId: Int,
-                                      @DrawableRes val iconResId: Int = R.drawable.ic_settings_black_24dp,
-                                      val isAvailableOnMobileWeb: Boolean = true,
-                                      val isExternalLink: Boolean = false) : EnumCode {
-    SAVE(0, R.id.page_save, R.string.article_menu_bar_save_button, R.drawable.ic_bookmark_border_white_24dp, false) {
+                                      @DrawableRes val iconResId: Int = R.drawable.ic_settings_black_24dp) : EnumCode {
+    SAVE(0, R.id.page_save, R.string.article_menu_bar_save_button, R.drawable.ic_bookmark_border_white_24dp) {
         override fun select(cb: Callback) {
             cb.onSaveSelected()
         }
     },
-    LANGUAGE(1, R.id.page_language, R.string.article_menu_bar_language_button, R.drawable.ic_translate_white_24dp, false) {
+    LANGUAGE(1, R.id.page_language, R.string.article_menu_bar_language_button, R.drawable.ic_translate_white_24dp) {
         override fun select(cb: Callback) {
             cb.onLanguageSelected()
         }
@@ -28,12 +26,12 @@ enum class PageActionItem constructor(val id: Int,
             cb.onFindInArticleSelected()
         }
     },
-    THEME(3, R.id.page_theme, R.string.article_menu_bar_theme_button, R.drawable.ic_icon_format_size, true) {
+    THEME(3, R.id.page_theme, R.string.article_menu_bar_theme_button, R.drawable.ic_icon_format_size) {
         override fun select(cb: Callback) {
             cb.onThemeSelected()
         }
     },
-    CONTENTS(4, R.id.page_contents, R.string.article_menu_bar_contents_button, R.drawable.ic_icon_list, false) {
+    CONTENTS(4, R.id.page_contents, R.string.article_menu_bar_contents_button, R.drawable.ic_icon_list) {
         override fun select(cb: Callback) {
             cb.onContentsSelected()
         }
@@ -43,7 +41,7 @@ enum class PageActionItem constructor(val id: Int,
             cb.onShareSelected()
         }
     },
-    ADD_TO_WATCHLIST(6, R.id.page_watch, R.string.menu_page_watch, R.drawable.ic_baseline_star_outline_24, false) {
+    ADD_TO_WATCHLIST(6, R.id.page_watch, R.string.menu_page_watch, R.drawable.ic_baseline_star_outline_24) {
         override fun select(cb: Callback) {
             cb.onAddToWatchlistSelected()
         }
@@ -53,7 +51,7 @@ enum class PageActionItem constructor(val id: Int,
             cb.onViewTalkPageSelected()
         }
     },
-    VIEW_EDIT_HISTORY(8, R.id.page_view_edit_history, R.string.menu_page_edit_history, R.drawable.ic_icon_revision_history_apps, true) {
+    VIEW_EDIT_HISTORY(8, R.id.page_view_edit_history, R.string.menu_page_edit_history, R.drawable.ic_icon_revision_history_apps) {
         override fun select(cb: Callback) {
             cb.onViewEditHistorySelected()
         }

@@ -65,7 +65,7 @@ class PageActionOverflowView(context: Context) : FrameLayout(context) {
         for (i in 1 until binding.overflowList.childCount) {
             val view = binding.overflowList.getChildAt(i) as MaterialTextView
             val pageActionItem = PageActionItem.find(view.id)
-            val enabled = model.page != null && (!model.shouldLoadAsMobileWeb || (model.shouldLoadAsMobileWeb && pageActionItem.isAvailableOnMobileWeb))
+            val enabled = model.page != null
             when (pageActionItem) {
                 PageActionItem.ADD_TO_WATCHLIST -> {
                     view.setText(if (model.isWatched) R.string.menu_page_unwatch else R.string.menu_page_watch)
