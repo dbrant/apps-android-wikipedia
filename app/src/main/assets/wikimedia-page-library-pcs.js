@@ -729,6 +729,16 @@ var handleClickEvent = function handleClickEvent(event) {
   } // Handle add title description link.
 
 
+  if (anchorForTarget.getAttribute('data-section')) {
+    var sectionId = anchorForTarget.getAttribute('data-section') || undefined;
+    var _data = {
+      sectionId: sectionId
+    };
+    postMessage(new Interaction(Actions.EditSection, _data));
+    return;
+  }
+
+
   if (anchorForTarget.getAttribute('data-action') === 'add_title_description') {
     postMessage(new Interaction(Actions.AddTitleDescription));
     return;

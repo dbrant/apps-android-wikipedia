@@ -4,7 +4,6 @@ import android.view.KeyEvent
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 import okhttp3.Headers
@@ -16,7 +15,6 @@ import org.wikipedia.page.LinkHandler
 import org.wikipedia.page.PageViewModel
 import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
-import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.Charset
@@ -173,6 +171,8 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
 
                 // Override default collapsing of sections.
                 content = content.replace("\"wgMFCollapseSectionsByDefault\":true", "\"wgMFCollapseSectionsByDefault\":false")
+
+                content = content.replace("on(\"click\",(function(e){!function(e,t,i){var n;n=1===s.length?\"all\":mw.util.getParamValue(\"section\",e.href)", "on(\"click\",(function(e){return true; !function(e,t,i){var n;n=1===s.length?\"all\":mw.util.getParamValue(\"section\",e.href)")
 
                 inputStream = content.byteInputStream()
             }

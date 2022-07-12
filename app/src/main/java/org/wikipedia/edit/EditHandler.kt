@@ -14,7 +14,6 @@ import org.wikipedia.bridge.CommunicationBridge.JSEventListener
 import org.wikipedia.descriptions.DescriptionEditUtil
 import org.wikipedia.page.Page
 import org.wikipedia.page.PageFragment
-import org.wikipedia.util.log.L
 
 class EditHandler(private val fragment: PageFragment, bridge: CommunicationBridge) : JSEventListener {
 
@@ -76,12 +75,11 @@ class EditHandler(private val fragment: PageFragment, bridge: CommunicationBridg
 
     fun startEditingSection(sectionID: Int, highlightText: String?) {
         currentPage?.let {
-            if (sectionID < 0 || sectionID >= it.sections.size) {
-                L.w("Attempting to edit a mismatched section ID.")
-                return
-            }
+            // fragment.startActivityForResult(EditSectionActivity.newIntent(fragment.requireContext(),
+            //    it.sections[sectionID].id, it.sections[sectionID].anchor, it.title, highlightText), Constants.ACTIVITY_REQUEST_EDIT_SECTION)
+
             fragment.startActivityForResult(EditSectionActivity.newIntent(fragment.requireContext(),
-                it.sections[sectionID].id, it.sections[sectionID].anchor, it.title, highlightText), Constants.ACTIVITY_REQUEST_EDIT_SECTION)
+                    sectionID, "", it.title, highlightText), Constants.ACTIVITY_REQUEST_EDIT_SECTION)
         }
     }
 
