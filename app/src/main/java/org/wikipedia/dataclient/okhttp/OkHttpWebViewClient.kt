@@ -69,7 +69,7 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
                     rsp.code,
                     rsp.message.ifBlank { "Unknown error" },
                     addResponseHeaders(rsp.headers).toMap(),
-                    getInputStream(rsp, request.url.toString().contains("m.wikipedia.org/wiki/")))
+                    getInputStream(rsp, request.url.toString()))
             }
         } catch (e: Exception) {
             val reasonCode = if (e.message.isNullOrEmpty()) "Unknown error" else UriUtil.encodeURL(e.message!!)
@@ -132,35 +132,46 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
         return headers.newBuilder().set("Access-Control-Allow-Origin", "*").build()
     }
 
-    private fun getInputStream(rsp: Response, isMobileHtml: Boolean): InputStream? {
+    private fun getInputStream(rsp: Response, url: String): InputStream? {
         return rsp.body?.let {
             var inputStream = it.byteStream()
 
-            if (isMobileHtml) {
+            if (url.contains("m.wikipedia.org/wiki/") && it.contentType()?.subtype == "html") {
 
                 var content = it.string()
+
+                // Inject PCS javascript and CSS before the close of the HEAD tag...
                 var pos = content.indexOf("</head>")
-                if (pos > 0) {
+                content = content.substring(0, pos) + "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.css\">" +
+                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.css\">" +
+                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.css\">" +
+                        "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.js\"></script>" +
+                        "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.js\"></script>" +
+                        "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.js\"></script>" + content.substring(pos)
 
-                    content = content.substring(0, pos) + "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.css\">" +
-                            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.css\">" +
-                            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.css\">" +
-                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.js\"></script>" +
-                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.js\"></script>" +
-                            "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.js\"></script>" + content.substring(pos)
+                // Inject onBodyStart() before the MAIN tag.
+                pos = content.indexOf("<main ")
+                content = content.substring(0, pos) + "<script>pcs.c1.Page.onBodyStart();</script>" + content.substring(pos)
 
+                // Inject onBodyEnd() before the FOOTER tag.
+                pos = content.indexOf("<footer ")
+                content = content.substring(0, pos) + "<script defer=\"true\">pcs.c1.Page.onBodyEnd();</script>" + content.substring(pos)
 
-                    pos = content.indexOf("<main ")
-                    content = content.substring(0, pos) + "<script>pcs.c1.Page.onBodyStart();</script>" + content.substring(pos)
+                // Set the "pcs" id onto the root div of the content.
+                content = content.replace("<div class=\"mw-parser-output\"", "<div id=\"pcs\" class=\"mw-parser-output\"")
 
-                    pos = content.indexOf("<footer ")
-                    content = content.substring(0, pos) + "<script defer=\"true\">pcs.c1.Page.onBodyEnd();</script>" + content.substring(pos)
+                inputStream = content.byteInputStream()
 
-                    content = content.replace("<div class=\"mw-parser-output\"", "<div id=\"pcs\" class=\"mw-parser-output\"")
+            } else if (url.contains("load.php") && it.contentType()?.subtype == "javascript") {
+                var content = it.string()
 
-                    inputStream = content.byteInputStream()
-                }
+                // Override click handler for images.
+                content = content.replace("onClickImage(ev){", "onClickImage(ev){return;")
 
+                // Override click handler for references.
+                content = content.replace("onClickReference(ev){", "onClickReference(ev){return;")
+
+                inputStream = content.byteInputStream()
             }
 
             if (CONTENT_TYPE_OGG == rsp.header(HEADER_CONTENT_TYPE)) {
