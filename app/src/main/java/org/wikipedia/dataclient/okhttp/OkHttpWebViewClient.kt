@@ -171,6 +171,9 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
                 // Override click handler for references.
                 content = content.replace("onClickReference(ev){", "onClickReference(ev){return;")
 
+                // Override default collapsing of sections.
+                content = content.replace("\"wgMFCollapseSectionsByDefault\":true", "\"wgMFCollapseSectionsByDefault\":false")
+
                 inputStream = content.byteInputStream()
             }
 
