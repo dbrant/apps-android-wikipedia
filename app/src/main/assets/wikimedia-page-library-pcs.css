@@ -1953,6 +1953,22 @@ be found here: https://phabricator.wikimedia.org/T236137
 a.notheme {
   color: #36c;
 }
+
+
+/* ------- Modifications to accommodate direct loading from Mobile Web. ------- */
+.pcs-theme-sepia main,
+.pcs-theme-dark main,
+.pcs-theme-black main {
+  background: var(--paper-background);
+}
+.pcs-theme-sepia div#mw-mf-page-center,
+.pcs-theme-dark div#mw-mf-page-center,
+.pcs-theme-black div#mw-mf-page-center {
+  background: var(--paper-background);
+}
+/* ------- */
+
+
 /* baseline anchor */
 .pcs-theme-sepia :not(.notheme) a:not(.notheme),
 .pcs-theme-dark :not(.notheme) a:not(.notheme),

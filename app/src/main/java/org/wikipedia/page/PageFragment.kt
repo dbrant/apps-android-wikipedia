@@ -376,25 +376,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
 
             override val linkHandler get() = this@PageFragment.linkHandler
 
-            override fun onPageFinished(view: WebView, url: String) {
-                bridge.evaluateImmediate("(function() { return (typeof pcs !== 'undefined'); })();") { pcsExists ->
-                    if (!isAdded) {
-                        return@evaluateImmediate
-                    }
-                    // TODO: This is a bit of a hack: If PCS does not exist in the current page, then
-                    // it's implied that this page was loaded via Mobile Web (e.g. the Main Page) and
-                    // doesn't support PCS, meaning that we will never receive the `setup` event that
-                    // tells us the page is finished loading. In such a case, we must infer that the
-                    // page has now loaded and trigger the remaining logic ourselves.
-                    //if ("true" != pcsExists) {
-                        //onPageSetupEvent()
-                        //bridge.onMetadataReady()
-                        //bridge.onPcsReady()
-                        bridge.execute(JavaScriptActionHandler.mobileWebChromeShim())
-                    //}
-                }
-            }
-
             override fun onReceivedError(view: WebView, errorCode: Int, description: String, failingUrl: String) {
                 onPageLoadError(RuntimeException(description))
             }

@@ -1363,6 +1363,20 @@ var onBodyStart = function onBodyStart() {
   } // eslint-disable-next-line no-undef
 
 
+
+
+  // --------------
+  // Modifications to accommodate direct loading from Mobile Web.
+  {
+    var style = document.createElement('style');
+    style.innerHTML = '.header-chrome { visibility: hidden; margin-top: 48px; height: 0px; } #page-secondary-actions { display: none; } .mw-footer { padding-bottom: 72px; } .page-actions-menu { display: none; } .minerva__tab-container { display: none; }';
+    document.head.appendChild(style);
+  }
+  // --------------
+
+
+
+
   if (typeof pcsClient !== 'undefined' && pcsClient.getSetupSettings) {
     // eslint-disable-next-line no-undef
     var setupJSON = pcsClient.getSetupSettings();

@@ -141,14 +141,6 @@ object JavaScriptActionHandler {
                 "})"
     }
 
-    fun mobileWebChromeShim(): String {
-        return "(function() {" +
-                "let style = document.createElement('style');" +
-                "style.innerHTML = '.header-chrome { visibility: hidden; margin-top: 48px; height: 0px; } #page-secondary-actions { display: none; } .mw-footer { padding-bottom: 72px; } .page-actions-menu { display: none; } .minerva__tab-container { display: none; }';" +
-                "document.head.appendChild(style);" +
-                "})();"
-    }
-
     fun getElementAtPosition(x: Int, y: Int): String {
         return "(function() {" +
                 "  let element = document.elementFromPoint($x, $y);" +
