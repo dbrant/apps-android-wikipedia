@@ -962,8 +962,6 @@ var setup = function setup(optionalSettings, onSuccess) {
   var settings = optionalSettings || {};
   _transform_PlatformTransform__WEBPACK_IMPORTED_MODULE_9__["default"].setVersion(document, settings.version);
 
-  console.log('>>>>> setup 1');
-
   if (settings.platform !== undefined) {
     _transform_PlatformTransform__WEBPACK_IMPORTED_MODULE_9__["default"].setPlatform(document, _transform_PlatformTransform__WEBPACK_IMPORTED_MODULE_9__["default"].CLASS_PREFIX + settings.platform);
   }
@@ -980,14 +978,10 @@ var setup = function setup(optionalSettings, onSuccess) {
     _transform_DimImagesTransform__WEBPACK_IMPORTED_MODULE_4__["default"].dimImages(document, settings.dimImages);
   }
 
-  console.log('>>>>> setup 2');
-
   var metaTags; // lazy load these to avoid a double query selector
 
   if (settings.margins !== undefined || settings.leadImageHeight !== undefined) {
     var margins = settings.margins || {};
-
-    console.log('>>>>> setup 3');
 
     if (settings.leadImageHeight !== undefined) {
       if (!metaTags) {
@@ -1006,9 +1000,6 @@ var setup = function setup(optionalSettings, onSuccess) {
           margins.top = settings.leadImageHeight;
         }
       }
-
-      console.log('>>>>> setup 4');
-
     }
 
     _transform_BodySpacingTransform__WEBPACK_IMPORTED_MODULE_1__["default"].setMargins(document.body, margins);
@@ -1367,8 +1358,6 @@ var getLeadImage = function getLeadImage() {
 
 
 var onBodyStart = function onBodyStart() {
-console.log('>>>>> 1');
-
   if (!document) {
     return;
   } // eslint-disable-next-line no-undef
@@ -1398,8 +1387,6 @@ console.log('>>>>> 1');
   } // eslint-disable-next-line require-jsdoc
 
 
-  console.log('>>>>> 2');
-
   var initialSetupCompletion = function initialSetupCompletion() {
     _InteractionHandling__WEBPACK_IMPORTED_MODULE_6__["default"].initialSetupComplete();
   };
@@ -1418,9 +1405,6 @@ console.log('>>>>> 1');
       loadImages: false,
       setupTableEventHandling: false
     };
-
-    console.log('>>>>> 2a');
-
     setup(preSettings, initialSetupCompletion);
     return;
   }
@@ -1445,7 +1429,6 @@ console.log('>>>>> 1');
     }
   }
 
-  console.log('>>>>> 3');
   setup(defaultInitialSettings, initialSetupCompletion);
 };
 /**
