@@ -1456,6 +1456,15 @@ var onBodyEnd = function onBodyEnd() {
     return;
   }
 
+
+
+  // ------ Modifications to accommodate direct loading from Mobile Web. ------
+  _transform_CollapseTable__WEBPACK_IMPORTED_MODULE_2__["default"].collapseTables(window, document, "FooBar", false, "Quick Facts", "More information", "Close")
+  //-------------
+
+
+
+
   var remainingContentTimeout = 100;
   _transform_EditTransform__WEBPACK_IMPORTED_MODULE_5__["default"].setARIAEditButtons(document);
   /**
