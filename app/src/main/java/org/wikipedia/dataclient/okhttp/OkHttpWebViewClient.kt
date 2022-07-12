@@ -141,10 +141,6 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
                 // Inject PCS javascript and CSS before the close of the HEAD tag...
                 var pos = content.indexOf("</head>")
                 content = content.substring(0, pos) + "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.css\">" +
-                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.css\">" +
-                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.css\">" +
-                        "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-transform.js\"></script>" +
-                        "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-override.js\"></script>" +
                         "<script src=\"https://appassets.androidplatform.net/assets/wikimedia-page-library-pcs.js\"></script>" + content.substring(pos)
 
                 // Inject onBodyStart() before the MAIN tag.
