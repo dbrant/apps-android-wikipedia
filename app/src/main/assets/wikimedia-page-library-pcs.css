@@ -1986,6 +1986,9 @@ a.notheme {
 .pcs-theme-black .edit-page {
   filter: invert(1)
 }
+.mw-ui-icon-mf-expand {
+  display: none !important;
+}
 .ambox {
   display: none !important;
 }
