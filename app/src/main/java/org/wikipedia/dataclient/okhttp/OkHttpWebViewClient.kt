@@ -168,6 +168,7 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
                 // Override default collapsing of sections.
                 content = content.replace("\"wgMFCollapseSectionsByDefault\":true", "\"wgMFCollapseSectionsByDefault\":false")
 
+                // Disable click handler for edit pencils.
                 content = content.replace("on(\"click\",(function(e){!function(e,t,i){var n;n=1===s.length?\"all\":mw.util.getParamValue(\"section\",e.href)", "on(\"click\",(function(e){return true; !function(e,t,i){var n;n=1===s.length?\"all\":mw.util.getParamValue(\"section\",e.href)")
 
                 inputStream = content.byteInputStream()

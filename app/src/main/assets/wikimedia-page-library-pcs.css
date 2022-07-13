@@ -1986,6 +1986,9 @@ a.notheme {
 .pcs-theme-black .edit-page {
   filter: invert(1)
 }
+.ambox {
+  display: none !important;
+}
 /* ------- */
 
 
