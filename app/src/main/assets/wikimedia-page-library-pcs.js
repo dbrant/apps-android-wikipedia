@@ -1179,7 +1179,7 @@ var getTableOfContents = function getTableOfContents() {
       return;
     }
 
-    var span = heading.querySelector('span');
+    var span = heading.querySelector('span.mw-headline');
     if (!span) {
       return;
     }
