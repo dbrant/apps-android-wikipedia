@@ -1978,13 +1978,21 @@ a.notheme {
 .pcs-theme-black .indicator {
   filter: invert(1)
 }
-.mw-ui-icon-wikimedia-edit-base20:before {
-  background-image: var(--edit-section-icon);
-  opacity: var(--edit-section-link-container-opacity);
+.pcs-theme-dark th.headerSort,
+.pcs-theme-black th.headerSort {
+  background-color: transparent !important;
+  filter: invert(1);
 }
 .pcs-theme-dark .edit-page,
 .pcs-theme-black .edit-page {
   filter: invert(1)
+}
+.mw-ui-icon-wikimedia-edit-base20:before {
+  background-image: var(--edit-section-icon);
+  opacity: var(--edit-section-link-container-opacity);
+}
+.table-na {
+  background-color: transparent !important;
 }
 .mw-ui-icon-mf-expand {
   display: none !important;
@@ -2013,17 +2021,17 @@ body[dir='rtl'] .mw-parser-output a.external {
 .pcs-theme-sepia :not(.notheme) table:not(.notheme),
 .pcs-theme-sepia :not(.notheme) td:not(.notheme),
 .pcs-theme-sepia :not(.notheme) tr:not(.notheme),
-.pcs-theme-sepia :not(.notheme) th:not(.notheme),
+.pcs-theme-sepia :not(.notheme) th:not(.notheme,.headerSort),
 .pcs-theme-sepia :not(.notheme) li.gallerybox div.thumb:not(.notheme),
 .pcs-theme-dark :not(.notheme) table:not(.notheme),
 .pcs-theme-dark :not(.notheme) td:not(.notheme),
 .pcs-theme-dark :not(.notheme) tr:not(.notheme),
-.pcs-theme-dark :not(.notheme) th:not(.notheme),
+.pcs-theme-dark :not(.notheme) th:not(.notheme,.headerSort),
 .pcs-theme-dark :not(.notheme) li.gallerybox div.thumb:not(.notheme),
 .pcs-theme-black :not(.notheme) table:not(.notheme),
 .pcs-theme-black :not(.notheme) td:not(.notheme),
 .pcs-theme-black :not(.notheme) tr:not(.notheme),
-.pcs-theme-black :not(.notheme) th:not(.notheme),
+.pcs-theme-black :not(.notheme) th:not(.notheme,.headerSort),
 .pcs-theme-black :not(.notheme) li.gallerybox div.thumb:not(.notheme) {
   background: var(--mid-background);
   color: var(--primary-text-color);
