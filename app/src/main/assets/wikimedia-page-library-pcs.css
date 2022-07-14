@@ -1956,6 +1956,9 @@ a.notheme {
 
 
 /* ------- Modifications to accommodate direct loading from Mobile Web. ------- */
+a {
+  text-decoration: none !important;
+}
 .pcs-theme-sepia main,
 .pcs-theme-dark main,
 .pcs-theme-black main {
@@ -1974,8 +1977,8 @@ a.notheme {
   border-bottom: 0px !important;
   margin-bottom: 0px !important;
 }
-.pcs-theme-dark .indicator,
-.pcs-theme-black .indicator {
+.pcs-theme-dark .indicator,.pcs-theme-dark .mw-ui-icon,
+.pcs-theme-black .indicator,.pcs-theme-black .mw-ui-icon {
   filter: invert(1)
 }
 .pcs-theme-dark th.headerSort,
@@ -1985,6 +1988,10 @@ a.notheme {
 }
 .pcs-theme-dark .edit-page,
 .pcs-theme-black .edit-page {
+  filter: invert(1)
+}
+.pcs-theme-dark .minerva-footer-logo,
+.pcs-theme-black .minerva-footer-logo {
   filter: invert(1)
 }
 .mw-ui-icon-wikimedia-edit-base20:before {
@@ -1999,6 +2006,16 @@ a.notheme {
 }
 .ambox {
   display: none !important;
+}
+.last-modified-bar,.last-modified-text-accent {
+  color: var(--primary-text-color) !important;
+  background-color: transparent !important;
+}
+aside h2 {
+  color: var(--primary-text-color) !important;
+}
+.ext-related-articles-card-list h3:after {
+  background-image: none;
 }
 /* ------- */
 
