@@ -888,7 +888,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         // Explicitly set the top margin (even though it might have already been set in the setup
         // handler), since the page metadata might have altered the lead image display state.
         bridge.execute(JavaScriptActionHandler.setTopMargin(leadImagesHandler.topMargin))
-        bridge.execute(JavaScriptActionHandler.setFooter(model))
+        //bridge.execute(JavaScriptActionHandler.setFooter(model))
     }
 
     fun openInNewBackgroundTab(title: PageTitle, entry: HistoryEntry) {
