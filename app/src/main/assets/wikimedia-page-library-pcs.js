@@ -5238,23 +5238,27 @@ var Polyfill = __webpack_require__(/*! ./Polyfill */ "./src/transform/Polyfill.j
 
 
 var getSectionOffsets = function getSectionOffsets(body) {
-  var sections = Polyfill.querySelectorAll(body, 'section');
-  return {
-    sections: sections.reduce(function (results, section) {
-      var id = section.getAttribute('data-mw-section-id');
-      var heading = section && section.firstElementChild && section.firstElementChild.querySelector('.pcs-edit-section-title');
+  var headings = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
+  var result = [];
+  var curId = 0;
+  [].forEach.call(headings, function (heading) {
+    var id = curId++;
+    if (!id || isNaN(id) || id < 1) {
+      return;
+    }
 
-      if (id && parseInt(id) >= 1) {
-        results.push({
-          heading: heading && heading.innerHTML,
-          id: parseInt(id),
-          yOffset: section.offsetTop
-        });
-      }
+    var span = heading.querySelector('span.mw-headline');
+    if (!span) {
+      return;
+    }
 
-      return results;
-    }, [])
-  };
+    result.push({
+      heading: span.innerHTML.trim(),
+      id: id,
+      yOffset: heading.offsetTop
+    });
+  });
+  return { sections: result };
 };
 /**
  * Get section of a given element
