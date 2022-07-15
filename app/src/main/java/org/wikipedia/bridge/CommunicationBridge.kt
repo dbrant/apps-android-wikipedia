@@ -8,12 +8,9 @@ import android.webkit.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import org.wikipedia.bridge.JavaScriptActionHandler.setUp
-import org.wikipedia.dataclient.RestService
-import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.json.JsonUtil
 import org.wikipedia.page.PageTitle
 import org.wikipedia.page.PageViewModel
-import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 
 /**
@@ -72,12 +69,7 @@ class CommunicationBridge constructor(private val communicationBridgeListener: C
         isMetadataReady = false
         pendingJSMessages.clear()
         pendingEvals.clear()
-        if (communicationBridgeListener.model.shouldLoadAsMobileWeb) {
-            communicationBridgeListener.webView.loadUrl(pageTitle.mobileUri)
-        } else {
-            communicationBridgeListener.webView.loadUrl(ServiceFactory.getRestBasePath(pageTitle.wikiSite) +
-                    RestService.PAGE_HTML_ENDPOINT + UriUtil.encodeURL(pageTitle.prefixedText))
-        }
+        communicationBridgeListener.webView.loadUrl(pageTitle.mobileUri)
     }
 
     fun cleanup() {

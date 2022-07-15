@@ -34,13 +34,9 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
             .build()
 
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-        if (model.shouldLoadAsMobileWeb) {
-            // If the page was loaded as Mobile Web, then pass all link clicks through
-            // to our own link handler.
-            linkHandler.onUrlClick(UriUtil.decodeURL(url), null, "")
-            return true
-        }
-        return false
+        // Pass all link clicks through to our own link handler.
+        linkHandler.onUrlClick(UriUtil.decodeURL(url), null, "")
+        return true
     }
 
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
