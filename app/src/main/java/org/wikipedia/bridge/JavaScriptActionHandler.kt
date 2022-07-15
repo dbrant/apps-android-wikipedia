@@ -53,7 +53,7 @@ object JavaScriptActionHandler {
     }
 
     fun scrollToFooter(context: Context): String {
-        return "window.scrollTo(0, document.getElementById('pcs-footer-container-menu').offsetTop - ${DimenUtil.getNavigationBarHeight(context)});"
+        return "window.scrollTo(0, document.querySelector('footer').offsetTop - ${DimenUtil.getNavigationBarHeight(context)});"
     }
 
     fun scrollToAnchor(anchorLink: String): String {
