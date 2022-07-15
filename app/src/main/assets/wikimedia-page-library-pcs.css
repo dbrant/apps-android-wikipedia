@@ -1961,8 +1961,11 @@ a {
 }
 .pcs-theme-sepia main,
 .pcs-theme-dark main,
-.pcs-theme-black main {
-  background: var(--paper-background);
+.pcs-theme-black main,
+.pcs-theme-sepia .infobox,
+.pcs-theme-dark .infobox,
+.pcs-theme-black .infobox {
+  background: var(--paper-background) !important;
 }
 .pcs-theme-sepia div#mw-mf-page-center,
 .pcs-theme-dark div#mw-mf-page-center,
