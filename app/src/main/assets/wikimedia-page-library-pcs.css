@@ -1977,21 +1977,19 @@ a {
   border-bottom: 0px !important;
   margin-bottom: 0px !important;
 }
-.pcs-theme-dark .indicator,.pcs-theme-dark .mw-ui-icon,
-.pcs-theme-black .indicator,.pcs-theme-black .mw-ui-icon {
-  filter: invert(1)
-}
 .pcs-theme-dark th.headerSort,
 .pcs-theme-black th.headerSort {
   background-color: transparent !important;
   filter: invert(1);
 }
+.pcs-theme-dark .indicator,.pcs-theme-dark .mw-ui-icon,
+.pcs-theme-black .indicator,.pcs-theme-black .mw-ui-icon,
 .pcs-theme-dark .edit-page,
-.pcs-theme-black .edit-page {
-  filter: invert(1)
-}
+.pcs-theme-black .edit-page,
 .pcs-theme-dark .minerva-footer-logo,
-.pcs-theme-black .minerva-footer-logo {
+.pcs-theme-black .minerva-footer-logo,
+.pcs-theme-dark span.haudio,
+.pcs-theme-black span.haudio {
   filter: invert(1)
 }
 .mw-ui-icon-wikimedia-edit-base20:before {
