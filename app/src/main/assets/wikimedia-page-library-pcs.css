@@ -1964,7 +1964,10 @@ a {
 .pcs-theme-black main,
 .pcs-theme-sepia .infobox,
 .pcs-theme-dark .infobox,
-.pcs-theme-black .infobox {
+.pcs-theme-black .infobox,
+.pcs-theme-sepia .infobox-header,
+.pcs-theme-dark .infobox-header,
+.pcs-theme-black .infobox-header {
   background: var(--paper-background) !important;
 }
 .pcs-theme-sepia div#mw-mf-page-center,
