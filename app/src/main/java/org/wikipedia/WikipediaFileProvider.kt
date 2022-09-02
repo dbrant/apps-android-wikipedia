@@ -18,6 +18,5 @@ class WikipediaFileProvider : FileProvider(R.xml.file_paths) {
         const val WIKIPEDIA_MIME_TYPE = "application/json"
 
         var sharingMimeType = WIKIPEDIA_MIME_TYPE
-
     }
 }

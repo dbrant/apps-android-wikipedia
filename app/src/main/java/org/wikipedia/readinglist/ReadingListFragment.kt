@@ -1,14 +1,18 @@
 package org.wikipedia.readinglist
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.view.ActionMode
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.MenuItemCompat
 import androidx.fragment.app.Fragment
@@ -73,6 +77,15 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
     private var displayedLists = mutableListOf<Any>()
     private var currentSearchQuery: String? = null
     private var articleLimitMessageShown = false
+
+    private var pendingReadingListForExport: ReadingList? = null
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+        if (isGranted) {
+            ReadingListsShareHelper.exportReadingListCsv(requireContext(), pendingReadingListForExport)
+        } else {
+            // TODO: show message about granting permission.
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         super.onCreateView(inflater, container, savedInstanceState)
@@ -182,20 +195,8 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
                 }
                 true
             }
-            R.id.menu_reading_list_share1 -> {
-                ReadingListsShareHelper.shareReadingList(requireActivity(), readingList, "application/json")
-                true
-            }
-            R.id.menu_reading_list_share2 -> {
-                ReadingListsShareHelper.shareReadingList(requireActivity(), readingList, "application/vnd.wikipedia")
-                true
-            }
-            R.id.menu_reading_list_share3 -> {
-                ReadingListsShareHelper.shareReadingList(requireActivity(), readingList, "text/plain")
-                true
-            }
             R.id.menu_reading_list_export_csv -> {
-                ReadingListsShareHelper.exportReadingListCsv(requireActivity(), readingList)
+                beginExportReadingListCsv(readingList)
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -467,6 +468,21 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
         return readingList?.pages?.firstOrNull { it.id == id }
     }
 
+    private fun beginExportReadingListCsv(readingList: ReadingList?) {
+        pendingReadingListForExport = readingList
+        when {
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED -> {
+                ReadingListsShareHelper.exportReadingListCsv(requireContext(), pendingReadingListForExport)
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
+            // TODO: show message about rationale for permission.
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+    }
+
     private inner class AppBarListener : OnOffsetChangedListener {
         override fun onOffsetChanged(appBarLayout: AppBarLayout, verticalOffset: Int) {
             if (verticalOffset > -appBarLayout.totalScrollRange && showOverflowMenu) {
@@ -628,12 +644,8 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
             }
         }
 
-        override fun onShare(readingList: ReadingList, mimeType: String) {
-            ReadingListsShareHelper.shareReadingList(requireActivity(), readingList, mimeType)
-        }
-
         override fun onExportCsv(readingList: ReadingList) {
-            ReadingListsShareHelper.exportReadingListCsv(requireActivity(), readingList)
+            beginExportReadingListCsv(readingList)
         }
     }
 
@@ -662,12 +674,8 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
             ReadingListBehaviorsUtil.removePagesFromOffline(requireActivity(), readingList.pages) { setSearchQuery() }
         }
 
-        override fun onShare(readingList: ReadingList, mimeType: String) {
-            ReadingListsShareHelper.shareReadingList(requireActivity(), readingList, mimeType)
-        }
-
         override fun onExportCsv(readingList: ReadingList) {
-            ReadingListsShareHelper.exportReadingListCsv(requireActivity(), readingList)
+            beginExportReadingListCsv(readingList)
         }
     }
 
