@@ -471,7 +471,8 @@ class ReadingListFragment : Fragment(), ReadingListItemActionsDialog.Callback {
     private fun beginExportReadingListCsv(readingList: ReadingList?) {
         pendingReadingListForExport = readingList
         when {
-            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED -> {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+                    ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED -> {
                 ReadingListsShareHelper.exportReadingListCsv(requireContext(), pendingReadingListForExport)
             }
             shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
