@@ -8,6 +8,7 @@ import org.wikipedia.dataclient.page.PageSummary
 import org.wikipedia.page.Namespace
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
+import org.wikipedia.util.StringUtil
 import java.io.Serializable
 import java.util.*
 
@@ -50,7 +51,7 @@ data class ReadingListPage(
 
     fun accentAndCaseInvariantTitle(): String {
         if (accentAndCaseInvariantTitle == null) {
-            accentAndCaseInvariantTitle = StringUtils.stripAccents(displayTitle).lowercase(Locale.getDefault())
+            accentAndCaseInvariantTitle = StringUtils.stripAccents(StringUtil.fromHtml(displayTitle).toString()).lowercase(Locale.getDefault())
         }
         return accentAndCaseInvariantTitle!!
     }
@@ -70,7 +71,9 @@ data class ReadingListPage(
         }
 
         fun toPageTitle(page: ReadingListPage): PageTitle {
-            return PageTitle(page.apiTitle, page.wiki, page.thumbUrl, page.description, page.displayTitle)
+            val wiki = page.wiki
+            wiki.languageCode = page.lang
+            return PageTitle(page.apiTitle, wiki, page.thumbUrl, page.description, page.displayTitle)
         }
     }
 }

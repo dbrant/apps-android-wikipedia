@@ -176,6 +176,12 @@ interface Service {
             @Query("amargs") args: String?
     ): MwQueryResponse
 
+    @FormUrlEncoded
+    @POST(MW_API_PREFIX + "action=shortenurl")
+    suspend fun shortenUrl(
+            @Field("url") url: String,
+    ): ShortenUrlResponse
+
     // ------- CSRF, Login, and Create Account -------
 
     @Headers("Cache-Control: no-cache")
@@ -322,7 +328,9 @@ interface Service {
         @Field("baserevid") baseRevId: Long,
         @Field("token") token: String,
         @Field("captchaid") captchaId: String?,
-        @Field("captchaword") captchaWord: String?
+        @Field("captchaword") captchaWord: String?,
+        @Field("minor") minor: Boolean? = null,
+        @Field("watchlist") watchlist: String? = null,
     ): Observable<Edit>
 
     @GET(MW_API_PREFIX + "action=query&list=usercontribs&ucprop=ids|title|timestamp|comment|size|flags|sizediff|tags&meta=userinfo&uiprop=groups|blockinfo|editcount|latestcontrib")
