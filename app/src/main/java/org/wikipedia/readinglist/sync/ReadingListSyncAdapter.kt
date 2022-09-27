@@ -422,7 +422,7 @@ class ReadingListSyncAdapter : JobIntentService() {
     private fun createOrUpdatePage(listForPage: ReadingList,
                                    remotePage: RemoteReadingListEntry) {
         val remoteTitle = pageTitleFromRemoteEntry(remotePage)
-        var localPage = listForPage.pages.find { ReadingListPage.toPageTitle(it) == remoteTitle }
+        var localPage = listForPage.pages.find { ReadingListPage.toPageTitle(it).matches(remoteTitle) }
         var updateOnly = localPage != null
 
         if (localPage == null) {
@@ -438,23 +438,23 @@ class ReadingListSyncAdapter : JobIntentService() {
             localPage.thumbUrl = remotePage.summary.thumbnailUrl
         }
         if (updateOnly) {
-            L.d("Updating local page " + localPage.displayTitle)
+            L.d("Updating local page " + localPage.apiTitle)
             AppDatabase.instance.readingListPageDao().updateReadingListPage(localPage)
         } else {
-            L.d("Creating local page " + localPage.displayTitle)
+            L.d("Creating local page " + localPage.apiTitle)
             AppDatabase.instance.readingListPageDao().addPagesToList(listForPage, listOf(localPage), false)
         }
     }
 
     private fun deletePageByTitle(listForPage: ReadingList, title: PageTitle) {
-        var localPage = listForPage.pages.find { ReadingListPage.toPageTitle(it) == title }
+        var localPage = listForPage.pages.find { ReadingListPage.toPageTitle(it).matches(title) }
         if (localPage == null) {
             localPage = AppDatabase.instance.readingListPageDao().getPageByTitle(listForPage, title)
             if (localPage == null) {
                 return
             }
         }
-        L.d("Deleting local page " + localPage.displayTitle)
+        L.d("Deleting local page " + localPage.apiTitle)
         AppDatabase.instance.readingListPageDao().markPagesForDeletion(listForPage, listOf(localPage), false)
     }
 
