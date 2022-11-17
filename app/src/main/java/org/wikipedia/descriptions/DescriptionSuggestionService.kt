@@ -1,0 +1,14 @@
+package org.wikipedia.descriptions
+
+import io.reactivex.rxjava3.core.Observable
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface DescriptionSuggestionService {
+    @GET("article")
+    fun getSuggestion(
+        @Query("lang") lang: String,
+        @Query("title") title: String,
+        @Query("num_return") count: Int
+    ): Observable<DescriptionSuggestionResponse>
+}

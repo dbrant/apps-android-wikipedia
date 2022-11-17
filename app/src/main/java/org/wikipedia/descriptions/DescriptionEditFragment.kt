@@ -213,6 +213,20 @@ class DescriptionEditFragment : Fragment() {
         binding.fragmentDescriptionEditView.showProgressBar(false)
         binding.fragmentDescriptionEditView.setEditAllowed(editingAllowed)
         binding.fragmentDescriptionEditView.updateInfoText()
+
+        requestSuggestion()
+    }
+
+    private fun requestSuggestion() {
+        disposables.add(
+            ServiceFactory[pageTitle.wikiSite, "https://ml-article-description-api.wmcloud.org/", DescriptionSuggestionService::class.java]
+            .getSuggestion(pageTitle.wikiSite.languageCode, pageTitle.prefixedText, 1)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ response ->
+                binding.fragmentDescriptionEditView.setSuggestion(response.prediction[0])
+            }, { L.e(it) })
+        )
     }
 
     private fun callback(): Callback? {

@@ -100,7 +100,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:animateLayoutChanges="true">
 
                     <LinearLayout
                         android:id="@+id/view_description_edit_page_summary_container"
@@ -179,6 +180,32 @@
                             </org.wikipedia.views.PlainPasteEditText>
                         </com.google.android.material.textfield.TextInputLayout>
                     </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/autoSuggestHint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:textColor="?attr/material_theme_primary_color"
+                        android:text="Auto-generated suggestion:" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/autoSuggestButton"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:layout_marginBottom="16dp"
+                        android:paddingVertical="4dp"
+                        android:paddingHorizontal="16dp"
+                        android:letterSpacing="0"
+                        android:textAllCaps="false"
+                        app:icon="@drawable/ic_robot_24"
+                        app:iconPadding="12dp"
+                        app:iconSize="20dp"
+                        app:iconTint="?attr/colorAccent"
+                        tools:text="Lorem ipsum" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/learnMoreButton"

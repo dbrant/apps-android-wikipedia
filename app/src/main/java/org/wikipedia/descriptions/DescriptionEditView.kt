@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.addTextChangedListener
 import org.wikipedia.R
@@ -56,6 +57,8 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         FeedbackUtil.setButtonLongPressToast(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
         orientation = VERTICAL
         mlKitLanguageDetector.callback = this
+        binding.autoSuggestHint.isVisible = false
+        binding.autoSuggestButton.isVisible = false
 
         binding.viewDescriptionEditSaveButton.setOnClickListener {
             validateText()
@@ -94,6 +97,10 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
                 action == DescriptionEditActivity.Action.TRANSLATE_DESCRIPTION) R.string.description_edit_description_learn_more_url
             else R.string.description_edit_image_caption_learn_more_url)))
         }
+
+        binding.autoSuggestButton.setOnClickListener {
+            binding.viewDescriptionEditText.setText(binding.autoSuggestButton.text)
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -113,6 +120,14 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         setHintText()
         description = originalDescription
         setReviewHeaderText(false)
+        binding.autoSuggestHint.isVisible = false
+        binding.autoSuggestButton.isVisible = false
+    }
+
+    fun setSuggestion(suggestion: String) {
+        binding.autoSuggestButton.text = suggestion
+        binding.autoSuggestHint.isVisible = true
+        binding.autoSuggestButton.isVisible = true
     }
 
     private fun setVoiceInput() {
