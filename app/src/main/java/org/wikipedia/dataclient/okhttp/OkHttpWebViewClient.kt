@@ -46,10 +46,10 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
         if (request.url.toString().contains(RestService.PAGE_HTML_PREVIEW_ENDPOINT)) {
             return null
         }
-        if (request.url.toString().contains("//appassets")) {
-            return assetLoader.shouldInterceptRequest(request.url)
+        var response = assetLoader.shouldInterceptRequest(request.url)
+        if (response != null) {
+            return response
         }
-        var response: WebResourceResponse
         try {
             val shouldLogLatency = request.url.encodedPath?.contains(RestService.PAGE_HTML_ENDPOINT) == true
             if (shouldLogLatency) {
@@ -130,7 +130,10 @@ abstract class OkHttpWebViewClient : WebViewClientCompat() {
 
     private fun addResponseHeaders(headers: Headers): Headers {
         // add CORS header to allow requests from all domains.
-        return headers.newBuilder().set("Access-Control-Allow-Origin", "*").build()
+        return headers.newBuilder()
+            .set("Access-Control-Allow-Origin", "*")
+            .set("Content-Security-Policy", "script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';")
+            .build()
     }
 
     private fun getInputStream(rsp: Response, url: String): InputStream? {

@@ -152,7 +152,11 @@ object JavaScriptActionHandler {
 
     fun injectDarkModeCss(): String {
         return "(function() {" +
-                "let el = document.createElement('link');" +
+                "let el = document.createElement('meta');" +
+                "el.setAttribute(\"http-equiv\", \"Content-Security-Policy\");" +
+                "el.setAttribute(\"content\", \"script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';\");" +
+                "document.head.appendChild(el);" +
+                "el = document.createElement('link');" +
                 "el.setAttribute(\"rel\", \"stylesheet\");" +
                 "el.setAttribute(\"href\", \"https://appassets.androidplatform.net/assets/gadget-dark-mode.css\");" +
                 "document.head.appendChild(el);" +
