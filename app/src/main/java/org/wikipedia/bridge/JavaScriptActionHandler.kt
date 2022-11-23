@@ -150,6 +150,15 @@ object JavaScriptActionHandler {
                 "})"
     }
 
+    fun injectDarkModeCss(): String {
+        return "(function() {" +
+                "let el = document.createElement('link');" +
+                "el.setAttribute(\"rel\", \"stylesheet\");" +
+                "el.setAttribute(\"href\", \"https://appassets.androidplatform.net/assets/gadget-dark-mode.css\");" +
+                "document.head.appendChild(el);" +
+                "})();"
+    }
+
     fun mobileWebChromeShim(): String {
         return "(function() {" +
                 "let style = document.createElement('style');" +
