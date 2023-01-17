@@ -63,6 +63,7 @@
   <string name="image_share_via">Дели помоћу</string>
   <string name="search_redirect_from">Преусмерено са %s</string>
   <string name="page_edit_history_activity_title">Историја измена: %s</string>
+  <string name="page_edit_history_minor_edit">&lt;b&gt;м&lt;/b&gt; %s</string>
   <string name="page_edit_history_comment_placeholder">Без описа измене</string>
   <string name="page_edit_history_filter_by_all">Све измене (%s)</string>
   <string name="page_edit_history_filter_by_user">Корисничке измене (%s)</string>
@@ -449,6 +450,7 @@
   <string name="reading_list_name_hint">Име ове листе</string>
   <string name="reading_list_description_hint">Опис (опционално)</string>
   <string name="reading_list_item_deleted">Чланак „%s” је уклоњен са листе</string>
+  <string name="reading_list_item_deleted_from_list">%1$s је уклоњен са списка %2$s</string>
   <string name="reading_list_items_deleted">Чланака уклоњено са листе: %d</string>
   <string name="reading_lists_item_deleted">%s уклоњено са спискова</string>
   <string name="reading_list_item_delete_undo">Опозови</string>
@@ -575,6 +577,9 @@
   <string name="notifications_mark_unread">Означи као непрочитано</string>
   <string name="notifications_mark_all_as_read">Означи све као прочитано</string>
   <string name="notifications_direct_reply_action">Одговори</string>
+  <string name="notifications_direct_reply_success">Одговор објављен.</string>
+  <string name="notifications_mark_all_as_read_message">Означено прочитаним: %d</string>
+  <string name="notifications_mark_all_as_unread_message">Означено непрочитаним: %d</string>
   <string name="watchlist_title">Списак надгледања</string>
   <string name="preference_title_notification_poll">Примај обавештења</string>
   <string name="preference_summary_notification_poll">Дозволите апликацији да користи податке ради провере да ли су доступна нова обавештења.</string>
@@ -706,6 +711,8 @@
   <string name="description_edit_tutorial_button_label_start_editing">Започни уређивање</string>
   <string name="description_edit_tutorial_promise">Када почнем, обећавам да нећу злоупотребити ову функцију.</string>
   <string name="customize_toolbar_category_menu">Мени</string>
+  <string name="suggested_edits_describe_articles">Опис чланака</string>
+  <string name="suggested_edits_caption_images">Опис слике</string>
   <string name="suggested_edits_tag_images">Означавање слика</string>
   <string name="suggested_edits_review_description">Преглед описа чланка</string>
   <string name="suggested_edits_add_description_button">Додај опис</string>
@@ -805,6 +812,7 @@
   <string name="suggested_edits_last_edited">Последњи пут уређено</string>
   <string name="suggested_edits_last_edited_never">Никад</string>
   <string name="suggested_edits_task_new">ново</string>
+  <string name="suggested_edits_cc0_notice">Објављивањем измена прихватате &lt;a href=\"%1$s\"&gt;услове коришћења&lt;/a&gt; и неопозиво објављивање свог доприноса под лиценцом &lt;a href=\"%2$s\"&gt;CC0&lt;/a&gt;.</string>
   <string name="suggested_edits_reactivation_notification_title">Предложене измене</string>
   <string name="suggested_edits_reactivation_notification_stage_one">Хвала на уређивању Википедије. Зашто не бисте наставили тамо где сте стали?</string>
   <string name="suggested_edits_reactivation_notification_stage_two">Имате времена да наставите побољшавање Википедије? Погледајте ове предлоге измена.</string>
@@ -821,6 +829,7 @@
   <string name="suggested_edits_contribution_type_image_tag">Ознака слике</string>
   <string name="suggested_edits_contribution_current_revision_text">Ваша измена је сада видљива на Википедији</string>
   <string name="file_page_activity_title">Страница датотеке</string>
+  <string name="file_page_edit_button_content_description">Уреди %s</string>
   <string name="description_edit_revert_subtitle">Хвала вам што уређујете Википедију.</string>
   <string name="description_edit_revert_intro">Знамо да сте дали све од себе, али један од патролера има примедбу. Могући разлози због чега је ваша измена поништена:</string>
   <string name="description_edit_revert_reason1">ваша измена није била у складу са неком од &lt;a href=\"%1$s\"&gt;смерница&lt;/a&gt;.</string>
@@ -860,6 +869,8 @@
     <item quantity="one">Прошле године</item>
     <item quantity="other">Пре %d године</item>
   </plurals>
+  <string name="on_this_day_end_of_scroll_message">Пропутовали сте све 🚀</string>
+  <string name="on_this_day_back_to_future">Повратак у будућност</string>
   <string name="languages_list_activity_title">Додавање језика</string>
   <string name="languages_list_suggested_text">Предложени</string>
   <string name="languages_list_all_text">Сви језици</string>
@@ -893,6 +904,8 @@
   <string name="content_description_for_page_indicator">Страница %1$d од %2$d</string>
   <string name="wikitext_bold">Подебљано</string>
   <string name="wikitext_italic">Искошено</string>
+  <string name="wikitext_underline">Подвуци</string>
+  <string name="wikitext_strikethrough">Прецртај</string>
   <string name="wikitext_large">Увећан текст</string>
   <string name="wikitext_small">Умањен текст</string>
   <string name="wikitext_code">Кôд</string>
@@ -918,6 +931,7 @@
   <string name="insert_media_advanced_settings_image_size_custom">Прилагођено</string>
   <string name="insert_media_advanced_settings_image_size_custom_width">Ширина</string>
   <string name="insert_media_advanced_settings_image_size_custom_height">Висина</string>
+  <string name="insert_media_advanced_settings_image_size_custom_px">п</string>
   <string name="insert_media_insert_button">Уметни</string>
   <string name="main_drawer_help">Помоћ</string>
   <string name="main_drawer_login">Пријави ме / придружи ме Википедији</string>
@@ -937,8 +951,13 @@
   <string name="talk_add_reply">Одговори</string>
   <string name="talk_no_subject">(Без наслова)</string>
   <string name="talk_reply_subject">Тема</string>
+  <string name="talk_response_submitted">Одговор објављен.</string>
   <string name="talk_snackbar_undo">Опозови</string>
+  <string name="talk_list_item_overflow_mark_as_read">Означи као прочитано</string>
+  <string name="talk_list_item_overflow_mark_as_unread">Означи као непрочитано</string>
   <string name="talk_list_item_overflow_share">Дели</string>
+  <string name="talk_list_item_last_comment_date">Последњи коментар: %s</string>
+  <string name="talk_list_item_reply_icon_content_description">Укупно одговора</string>
   <string name="talk_list_item_swipe_mark_as_read">Прочитано</string>
   <string name="talk_list_item_swipe_mark_as_unread">Непрочитано</string>
   <string name="menu_option_edit_source">Уреди извор</string>
@@ -957,6 +976,12 @@
   <string name="revision_diff_compare">Упореди измене</string>
   <string name="revision_diff_from">Од:</string>
   <string name="revision_diff_to">До:</string>
+  <string name="revision_undo_title">Поништавање измене</string>
+  <string name="revision_undo_success">Измена је поништена.</string>
+  <string name="revision_rollback_dialog_title">Враћање измена?</string>
+  <string name="revision_rollback_success">Измене враћене.</string>
+  <string name="revision_compare_button">Упореди</string>
+  <string name="revision_compare_two_only">Могу се изабрати само две измене.</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_action">Промени</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_period_permanently">трајно</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_period_for_one_week">недељу дана</string>
@@ -987,12 +1012,12 @@
   <string name="category_empty">Нема чланака у овој категорији.</string>
   <string name="subcategory_empty">Нема поткатегорија у овој категорији.</string>
   <string name="search_namespaces">Именски простори</string>
-  <string name="user_contrib_filter_all" fuzzy="true">Све измене</string>
+  <string name="user_contrib_activity_title">Доприноси %s</string>
+  <string name="archive_empty">Нема архивираних страница.</string>
+  <string name="user_contrib_filter_all">Сви именски простори</string>
   <string name="namespace_article">Чланак</string>
   <string name="user_contrib_current">тренутна</string>
   <string name="user_contrib_menu_label">Доприноси</string>
-  <string name="shareable_reading_lists_import_dialog_confirm">Увези</string>
-  <string name="shareable_reading_lists_import_dialog_cancel">Откажи</string>
   <string name="shareable_reading_lists_new_indicator">*ново*</string>
   <string name="shareable_reading_lists_new_install_dialog_got_it">Разумео</string>
   <string name="reading_list_share_menu_label">Дели…</string>
