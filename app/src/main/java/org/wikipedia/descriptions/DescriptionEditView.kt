@@ -57,8 +57,7 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         FeedbackUtil.setButtonLongPressToast(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
         orientation = VERTICAL
         mlKitLanguageDetector.callback = this
-        binding.autoSuggestHint.isVisible = false
-        binding.autoSuggestButton.isVisible = false
+        setSuggestion(emptyList())
 
         binding.viewDescriptionEditSaveButton.setOnClickListener {
             validateText()
@@ -101,6 +100,9 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         binding.autoSuggestButton.setOnClickListener {
             binding.viewDescriptionEditText.setText(binding.autoSuggestButton.text)
         }
+        binding.autoSuggestButton2.setOnClickListener {
+            binding.viewDescriptionEditText.setText(binding.autoSuggestButton2.text)
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -120,14 +122,23 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         setHintText()
         description = originalDescription
         setReviewHeaderText(false)
-        binding.autoSuggestHint.isVisible = false
-        binding.autoSuggestButton.isVisible = false
+        setSuggestion(emptyList())
     }
 
-    fun setSuggestion(suggestion: String) {
-        binding.autoSuggestButton.text = suggestion
-        binding.autoSuggestHint.isVisible = true
-        binding.autoSuggestButton.isVisible = true
+    fun setSuggestion(suggestions: List<String>) {
+        if (suggestions.isEmpty()) {
+            binding.autoSuggestHint.isVisible = false
+            binding.autoSuggestButton.isVisible = false
+            binding.autoSuggestButton2.isVisible = false
+        } else {
+            binding.autoSuggestHint.isVisible = true
+            binding.autoSuggestButton.text = suggestions[0]
+            binding.autoSuggestButton.isVisible = true
+            if (suggestions.size > 1) {
+                binding.autoSuggestButton2.text = suggestions[1]
+                binding.autoSuggestButton2.isVisible = true
+            }
+        }
     }
 
     private fun setVoiceInput() {

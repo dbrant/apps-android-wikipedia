@@ -9,6 +9,6 @@ interface DescriptionSuggestionService {
     fun getSuggestion(
         @Query("lang") lang: String,
         @Query("title") title: String,
-        @Query("num_return") count: Int
+        @Query("num_beams") count: Int
     ): Observable<DescriptionSuggestionResponse>
 }

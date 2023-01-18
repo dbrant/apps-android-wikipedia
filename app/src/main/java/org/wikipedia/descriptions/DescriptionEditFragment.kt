@@ -217,11 +217,11 @@ class DescriptionEditFragment : Fragment() {
     private fun requestSuggestion() {
         disposables.add(
             ServiceFactory[pageTitle.wikiSite, "https://ml-article-description-api.wmcloud.org/", DescriptionSuggestionService::class.java]
-            .getSuggestion(pageTitle.wikiSite.languageCode, pageTitle.prefixedText, 1)
+            .getSuggestion(pageTitle.wikiSite.languageCode, pageTitle.prefixedText, 2)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
-                binding.fragmentDescriptionEditView.setSuggestion(response.prediction[0])
+                binding.fragmentDescriptionEditView.setSuggestion(response.prediction)
             }, { L.e(it) })
         )
     }
