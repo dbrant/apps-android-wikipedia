@@ -41,6 +41,7 @@ import org.wikipedia.suggestededits.SuggestedEditsSurvey
 import org.wikipedia.suggestededits.SuggestionsActivity
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.util.log.L
 import java.io.IOException
 import java.util.*
@@ -221,7 +222,14 @@ class DescriptionEditFragment : Fragment() {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ response ->
-                binding.fragmentDescriptionEditView.setSuggestion(response.prediction)
+                // Perform some post-processing on the predictions.
+                // 1) Capitalize them, if we're dealing with enwiki.
+                // 2) Remove duplicates.
+                val list = (if (pageTitle.wikiSite.languageCode == "en") {
+                    response.prediction.map { StringUtil.capitalize(it)!! }
+                } else response.prediction).distinct()
+
+                binding.fragmentDescriptionEditView.setSuggestion(list)
             }, { L.e(it) })
         )
     }
