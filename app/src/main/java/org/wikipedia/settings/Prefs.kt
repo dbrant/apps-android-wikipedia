@@ -213,6 +213,9 @@ object Prefs {
     val isMemoryLeakTestEnabled
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_memory_leak_test, false)
 
+    val isFaceDetectTestEnabled
+        get() = PrefsIoUtil.getBoolean(R.string.preference_developer_face_detect_test, false)
+
     var isDescriptionEditTutorialEnabled
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_description_edit_tutorial_enabled, true)
         set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_description_edit_tutorial_enabled, enabled)
