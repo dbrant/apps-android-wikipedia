@@ -77,7 +77,7 @@ object ServiceFactory {
         return path
     }
 
-    private fun createRetrofit(wiki: WikiSite?, baseUrl: String): Retrofit {
+    fun createRetrofit(wiki: WikiSite?, baseUrl: String): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(OkHttpConnectionFactory.client.newBuilder().addInterceptor(LanguageVariantHeaderInterceptor(wiki)).build())

@@ -95,6 +95,7 @@ import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
 import org.wikipedia.wiktionary.WiktionaryDialog
+import retrofit2.create
 import java.util.*
 
 class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.CommunicationBridgeListener, ThemeChooserDialog.Callback,
@@ -641,7 +642,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
     private fun maybeShowAnnouncement() {
         title?.let {
             if (Prefs.hasVisitedArticlePage) {
-                disposables.add(ServiceFactory.getRest(it.wikiSite).announcements
+                disposables.add(
+                    ServiceFactory.createRetrofit(WikiSite.forLanguageCode("ja"), "http://192.168.1.26:8889/ja.wikipedia.org/v1/").create<RestService>().announcements
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ list ->
