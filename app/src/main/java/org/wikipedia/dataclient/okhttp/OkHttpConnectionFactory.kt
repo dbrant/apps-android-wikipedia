@@ -2,7 +2,9 @@ package org.wikipedia.dataclient.okhttp
 
 import okhttp3.Cache
 import okhttp3.CacheControl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.logging.HttpLoggingInterceptor
 import org.wikipedia.WikipediaApp
 import org.wikipedia.dataclient.SharedPreferenceCookieManager
@@ -21,7 +23,13 @@ object OkHttpConnectionFactory {
     val client = createClient()
 
     private fun createClient(): OkHttpClient {
-        return OkHttpClient.Builder()
+
+        val bootstrapClient = OkHttpClient.Builder().build()
+        val dns = DnsOverHttps.Builder().client(bootstrapClient)
+            .url("https://1.1.1.1/dns-query".toHttpUrl()).build()
+
+        return bootstrapClient.newBuilder()
+                .dns(dns)
                 .cookieJar(SharedPreferenceCookieManager.instance)
                 .cache(NET_CACHE)
                 .readTimeout(20, TimeUnit.SECONDS)
