@@ -28,6 +28,7 @@ import org.wikipedia.page.PageTitle
 import org.wikipedia.util.DateUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.CommonsDraweeView
 import java.util.*
@@ -73,7 +74,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
         FeedbackUtil.setButtonLongPressToast(binding.closeButton)
         binding.closeButton.setOnClickListener { dismiss() }
 
-        binding.infoTitle.text = pageTitle.displayText
+        binding.infoTitle.text = StringUtil.fromHtml(pageTitle.displayText)
         binding.infoProgress.visibility = View.VISIBLE
         loadEntities()
         return binding.root
@@ -86,7 +87,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun loadEntities() {
-        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getEntitiesByTitle(pageTitle.displayText, "enwiki")
+        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getEntitiesByTitle(pageTitle.prefixedText, "enwiki")
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doAfterTerminate { binding.infoProgress.visibility = View.GONE }
@@ -122,7 +123,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun populateEntityLabels(entitiesToRetrieve: List<String>) {
-        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataLabels(entitiesToRetrieve.joinToString("|"), WikipediaApp.getInstance().appOrSystemLanguageCode)
+        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataLabelsAndDescriptions(entitiesToRetrieve.joinToString("|"))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doAfterTerminate { binding.infoProgress.visibility = View.GONE }
@@ -130,7 +131,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                     for (key in entities.entities.keys) {
                         for (item in infoItems) {
                             if (key == item.value) {
-                                val label = entities.entities[key]!!.getLabelForLang(WikipediaApp.getInstance().appOrSystemLanguageCode)
+                                val label = entities.entities[key]!!.getLabelForLang(WikipediaApp.instance.appOrSystemLanguageCode)
                                 if (label.isNotEmpty()) {
                                     item.value = label
                                 }
@@ -199,10 +200,10 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
             valueText.text = infoValue
             if (PropertiesPreferred.WIKILINK_PROPS.contains(key)) {
                 valueText.setOnClickListener(wikiValueClickListener)
-                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.colorAccent))
+                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.progressive_color))
             } else {
                 valueText.setOnClickListener(null)
-                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.colorPrimaryDark))
+                valueText.setTextColor(ResourceUtil.getThemedColor(requireContext(), R.attr.primary_color))
             }
 
             // FIXME: HACK
@@ -219,7 +220,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 valueText.visibility = View.VISIBLE
                 valueImage.visibility = View.GONE
             }
-            itemView.setBackgroundColor(ContextCompat.getColor(requireContext(), if (position % 2 == 0) R.color.base90 else android.R.color.transparent))
+            itemView.setBackgroundColor(ContextCompat.getColor(requireContext(), if (position % 2 == 0) R.color.gray200 else android.R.color.transparent))
         }
     }
 

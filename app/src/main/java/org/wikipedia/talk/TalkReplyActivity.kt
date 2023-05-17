@@ -31,6 +31,7 @@ import org.wikipedia.staticdata.TalkAliasData
 import org.wikipedia.util.*
 import org.wikipedia.views.UserMentionInputView
 import org.wikipedia.views.ViewUtil
+import org.wikipedia.wikidata.WikidataInfoDialog
 
 class TalkReplyActivity : BaseActivity(), LinkPreviewDialog.Callback, UserMentionInputView.Listener {
     private lateinit var binding: ActivityTalkReplyBinding
@@ -290,6 +291,10 @@ class TalkReplyActivity : BaseActivity(), LinkPreviewDialog.Callback, UserMentio
 
     override fun onLinkPreviewShareLink(title: PageTitle) {
         ShareUtil.shareText(this, title)
+    }
+
+    override fun showWikidataInfoBox(title: PageTitle) {
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     override fun onBackPressed() {

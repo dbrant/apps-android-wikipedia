@@ -436,7 +436,7 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     }
 
     override fun showWikidataInfoBox(title: PageTitle) {
-        bottomSheetPresenter.show(childFragmentManager, WikidataInfoDialog.newInstance(title))
+        ExclusiveBottomSheetPresenter.show(childFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     override fun onBackPressed(): Boolean {

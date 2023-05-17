@@ -25,7 +25,7 @@
                 android:layout_weight="1"
                 android:layout_margin="8dp"
                 android:gravity="center_vertical"
-                android:textColor="?attr/primary_text_color"
+                android:textColor="?attr/primary_color"
                 android:textSize="18sp"
                 android:text="@string/wikidata_info_title" />
 
@@ -34,15 +34,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:tint="?attr/material_theme_secondary_color"
-                app:srcCompat="@drawable/ic_close_white_24dp"
+                app:tint="?attr/secondary_color"
+                app:srcCompat="@drawable/ic_close_black_24dp"
                 android:contentDescription="@string/dialog_close_description"/>
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:background="?attr/material_theme_border_color"/>
+            android:background="?attr/border_color"/>
 
         <FrameLayout
             android:layout_width="match_parent"

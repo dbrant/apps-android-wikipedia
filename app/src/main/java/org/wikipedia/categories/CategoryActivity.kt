@@ -38,6 +38,7 @@ import org.wikipedia.util.*
 import org.wikipedia.views.DrawableItemDecoration
 import org.wikipedia.views.PageItemView
 import org.wikipedia.views.WikiErrorView
+import org.wikipedia.wikidata.WikidataInfoDialog
 
 class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
     private lateinit var binding: ActivityCategoryBinding
@@ -157,6 +158,10 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
 
     override fun onLinkPreviewShareLink(title: PageTitle) {
         ShareUtil.shareText(this, title)
+    }
+
+    override fun showWikidataInfoBox(title: PageTitle) {
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     private inner class LoadingItemAdapter(private val retry: () -> Unit) : LoadStateAdapter<LoadingViewHolder>() {

@@ -447,7 +447,7 @@ class GalleryActivity : BaseActivity(), LinkPreviewDialog.Callback, GalleryItemF
     }
 
     override fun showWikidataInfoBox(title: PageTitle) {
-        bottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     fun showError(caught: Throwable?) {
