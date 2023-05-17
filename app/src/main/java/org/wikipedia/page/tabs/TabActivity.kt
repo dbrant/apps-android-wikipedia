@@ -7,10 +7,10 @@ import android.os.Bundle
 import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
-import androidx.core.graphics.scale
+import androidx.core.view.drawToBitmap
 import androidx.core.view.isVisible
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.mrapp.android.tabswitcher.Animation
 import de.mrapp.android.tabswitcher.TabSwitcher
 import de.mrapp.android.tabswitcher.TabSwitcherDecorator
@@ -21,7 +21,6 @@ import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
-import org.wikipedia.analytics.TabFunnel
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.databinding.ActivityTabsBinding
 import org.wikipedia.main.MainActivity
@@ -33,23 +32,19 @@ import org.wikipedia.readinglist.AddToReadingListDialog
 import org.wikipedia.settings.Prefs
 import org.wikipedia.util.*
 import org.wikipedia.util.log.L
-import java.util.*
 
 class TabActivity : BaseActivity() {
     private lateinit var binding: ActivityTabsBinding
-    private val app: WikipediaApp = WikipediaApp.getInstance()
+    private val app: WikipediaApp = WikipediaApp.instance
     private val tabListener = TabListener()
-    private val funnel = TabFunnel()
     private var launchedFromPageActivity = false
     private var cancelled = true
     private var tabUpdatedTimeMillis: Long = 0
-    private val bottomSheetPresenter = ExclusiveBottomSheetPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTabsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        funnel.logEnterList(app.tabCount)
         binding.tabCountsView.updateTabCount(false)
         binding.tabCountsView.setOnClickListener { onBackPressed() }
         FeedbackUtil.setButtonLongPressToast(binding.tabCountsView, binding.tabButtonNotifications)
@@ -87,7 +82,7 @@ class TabActivity : BaseActivity() {
             }
 
             override fun getViewType(tab: de.mrapp.android.tabswitcher.Tab, index: Int): Int {
-                return if (index == 0 && FIRST_TAB_BITMAP != null && !FIRST_TAB_BITMAP!!.isRecycled) {
+                return if (FIRST_TAB_BITMAP_TITLE == app.tabList[app.tabCount - index - 1]?.backStackPositionTitle?.prefixedText) {
                     1
                 } else {
                     0
@@ -105,10 +100,10 @@ class TabActivity : BaseActivity() {
             }
             val tab = de.mrapp.android.tabswitcher.Tab(StringUtil.fromHtml(app.tabList[tabIndex].backStackPositionTitle?.displayText))
             tab.setIcon(R.drawable.ic_image_black_24dp)
-            tab.setIconTint(ResourceUtil.getThemedColor(this, R.attr.material_theme_secondary_color))
-            tab.setTitleTextColor(ResourceUtil.getThemedColor(this, R.attr.material_theme_secondary_color))
-            tab.setCloseButtonIcon(R.drawable.ic_close_white_24dp)
-            tab.setCloseButtonIconTint(ResourceUtil.getThemedColor(this, R.attr.material_theme_secondary_color))
+            tab.setIconTint(ResourceUtil.getThemedColor(this, R.attr.secondary_color))
+            tab.setTitleTextColor(ResourceUtil.getThemedColor(this, R.attr.secondary_color))
+            tab.setCloseButtonIcon(R.drawable.ic_close_black_24dp)
+            tab.setCloseButtonIconTint(ResourceUtil.getThemedColor(this, R.attr.secondary_color))
             tab.isCloseable = true
             tab.parameters = Bundle()
             binding.tabSwitcher.addTab(tab)
@@ -133,9 +128,6 @@ class TabActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        if (cancelled) {
-            funnel.logCancel(app.tabCount)
-        }
         binding.tabSwitcher.removeListener(tabListener)
         clearFirstTabBitmap()
         super.onDestroy()
@@ -164,14 +156,14 @@ class TabActivity : BaseActivity() {
             }
             R.id.menu_close_all_tabs -> {
                 if (app.tabList.isNotEmpty()) {
-                    AlertDialog.Builder(this).run {
+                    MaterialAlertDialogBuilder(this).run {
                         setMessage(R.string.close_all_tabs_confirm)
                         setPositiveButton(R.string.close_all_tabs_confirm_yes) { _, _ ->
                             binding.tabSwitcher.clear()
                             cancelled = false
                         }
                         setNegativeButton(R.string.close_all_tabs_confirm_no, null)
-                        create().show()
+                        .show()
                     }
                 }
                 true
@@ -196,7 +188,7 @@ class TabActivity : BaseActivity() {
 
     private fun saveTabsToList() {
         val titlesList = app.tabList.filter { it.backStackPositionTitle != null }.map { it.backStackPositionTitle!! }
-        bottomSheetPresenter.show(supportFragmentManager,
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager,
                 AddToReadingListDialog.newInstance(titlesList, InvokeSource.TABS_ACTIVITY))
     }
 
@@ -210,7 +202,6 @@ class TabActivity : BaseActivity() {
 
     private fun openNewTab() {
         cancelled = false
-        funnel.logCreateNew(app.tabCount)
         if (launchedFromPageActivity) {
             setResult(RESULT_NEW_TAB)
         } else {
@@ -221,7 +212,7 @@ class TabActivity : BaseActivity() {
 
     private fun showUndoSnackbar(tab: de.mrapp.android.tabswitcher.Tab, index: Int, appTab: Tab, appTabIndex: Int) {
         appTab.backStackPositionTitle?.let {
-            FeedbackUtil.makeSnackbar(this, getString(R.string.tab_item_closed, it.displayText), FeedbackUtil.LENGTH_DEFAULT).run {
+            FeedbackUtil.makeSnackbar(this, getString(R.string.tab_item_closed, it.displayText)).run {
                 setAction(R.string.reading_list_item_delete_undo) {
                     app.tabList.add(appTabIndex, appTab)
                     binding.tabSwitcher.addTab(tab, index)
@@ -232,7 +223,7 @@ class TabActivity : BaseActivity() {
     }
 
     private fun showUndoAllSnackbar(tabs: Array<de.mrapp.android.tabswitcher.Tab>, appTabs: MutableList<Tab>) {
-        FeedbackUtil.makeSnackbar(this, getString(R.string.all_tab_items_closed), FeedbackUtil.LENGTH_DEFAULT).run {
+        FeedbackUtil.makeSnackbar(this, getString(R.string.all_tab_items_closed)).run {
             setAction(R.string.reading_list_item_delete_undo) {
                 app.tabList.addAll(appTabs)
                 binding.tabSwitcher.addAllTabs(tabs)
@@ -257,7 +248,6 @@ class TabActivity : BaseActivity() {
                 cancelled = false
                 val tabUpdateDebounceMillis = 250
                 if (System.currentTimeMillis() - tabUpdatedTimeMillis > tabUpdateDebounceMillis) {
-                    funnel.logSelect(app.tabCount, tabIndex)
                     if (launchedFromPageActivity) {
                         setResult(RESULT_LOAD_FROM_BACKSTACK)
                     } else {
@@ -277,7 +267,6 @@ class TabActivity : BaseActivity() {
             if (app.tabList.isNotEmpty() && index < app.tabList.size) {
                 val tabIndex = app.tabList.size - index - 1
                 val appTab = app.tabList.removeAt(tabIndex)
-                funnel.logClose(app.tabCount, tabIndex)
                 binding.tabCountsView.updateTabCount(false)
                 setResult(RESULT_LOAD_FROM_BACKSTACK)
                 showUndoSnackbar(tab, index, appTab, tabIndex)
@@ -322,44 +311,25 @@ class TabActivity : BaseActivity() {
 
     companion object {
         private const val LAUNCHED_FROM_PAGE_ACTIVITY = "launchedFromPageActivity"
-        private const val MAX_CACHED_BMP_SIZE = 800
         private var FIRST_TAB_BITMAP: Bitmap? = null
+        private var FIRST_TAB_BITMAP_TITLE = ""
         const val RESULT_LOAD_FROM_BACKSTACK = 10
         const val RESULT_NEW_TAB = 11
 
-        @JvmStatic
-        fun captureFirstTabBitmap(view: View) {
+        fun captureFirstTabBitmap(view: View, title: String) {
             clearFirstTabBitmap()
-            var bmp: Bitmap? = null
             try {
-                val wasCacheEnabled = view.isDrawingCacheEnabled
-                if (!wasCacheEnabled) {
-                    view.isDrawingCacheEnabled = true
-                    view.drawingCacheQuality = View.DRAWING_CACHE_QUALITY_LOW
-                }
-                val cacheBmp = view.drawingCache
-                if (cacheBmp != null) {
-                    val width: Int
-                    val height: Int
-                    if (cacheBmp.width > cacheBmp.height) {
-                        width = MAX_CACHED_BMP_SIZE
-                        height = width * cacheBmp.height / cacheBmp.width
-                    } else {
-                        height = MAX_CACHED_BMP_SIZE
-                        width = height * cacheBmp.width / cacheBmp.height
-                    }
-                    bmp = cacheBmp.scale(width, height)
-                }
-                if (!wasCacheEnabled) {
-                    view.isDrawingCacheEnabled = false
+                if (view.isLaidOut) {
+                    FIRST_TAB_BITMAP = view.drawToBitmap(Bitmap.Config.RGB_565)
+                    FIRST_TAB_BITMAP_TITLE = title
                 }
             } catch (e: OutOfMemoryError) {
                 // don't worry about it
             }
-            FIRST_TAB_BITMAP = bmp
         }
 
         private fun clearFirstTabBitmap() {
+            FIRST_TAB_BITMAP_TITLE = ""
             FIRST_TAB_BITMAP?.run {
                 if (!isRecycled) {
                     recycle()
@@ -372,7 +342,6 @@ class TabActivity : BaseActivity() {
             return Intent(context, TabActivity::class.java)
         }
 
-        @JvmStatic
         fun newIntentFromPageActivity(context: Context): Intent {
             return Intent(context, TabActivity::class.java)
                     .putExtra(LAUNCHED_FROM_PAGE_ACTIVITY, true)

@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.appcompat.content.res.AppCompatResources
 import org.wikipedia.R
 import org.wikipedia.databinding.ViewWikiErrorBinding
 import org.wikipedia.dataclient.mwapi.MwException
@@ -34,15 +33,17 @@ class WikiErrorView : LinearLayout {
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle)
 
     init {
-        val movementMethod = LinkMovementMethodExt.getExternalLinkMovementMethod()
-        binding.viewWikiErrorText.movementMethod = movementMethod
-        binding.viewWikiErrorFooterText.movementMethod = movementMethod
+        if (!isInEditMode) {
+            val movementMethod = LinkMovementMethodExt.getExternalLinkMovementMethod()
+            binding.viewWikiErrorText.movementMethod = movementMethod
+            binding.viewWikiErrorFooterText.movementMethod = movementMethod
+        }
     }
 
     fun setError(caught: Throwable?, pageTitle: PageTitle? = null) {
         val resources = context.resources
         val errorType = getErrorType(caught, pageTitle)
-        binding.viewWikiErrorIcon.setImageDrawable(AppCompatResources.getDrawable(context, errorType.icon))
+        binding.viewWikiErrorIcon.setImageResource(errorType.icon)
         if (caught is MwException) {
             binding.viewWikiErrorText.text = StringUtil.fromHtml(caught.message)
         } else {

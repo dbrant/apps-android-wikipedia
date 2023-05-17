@@ -6,6 +6,8 @@ import android.net.Uri
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import org.wikipedia.WikipediaApp
+import org.wikipedia.analytics.eventplatform.InstallReferrerEvent
+import org.wikipedia.events.ImportReadingListsEvent
 import org.wikipedia.page.PageActivity
 import org.wikipedia.settings.Prefs
 import org.wikipedia.util.ShareUtil
@@ -45,7 +47,7 @@ class InstallReferrerListener : InstallReferrerStateListener {
             InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED -> { }
             InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> { }
         }
-        WikipediaApp.getInstance().mainThreadHandler.post {
+        WikipediaApp.instance.mainThreadHandler.post {
             referrerClient?.endConnection()
             referrerClient = null
             INSTANCE = null
@@ -103,11 +105,11 @@ class InstallReferrerListener : InstallReferrerStateListener {
                     continue
                 }
                 when (item[0]) {
-                    InstallReferrerFunnel.PARAM_REFERRER_URL -> refUrl = item[1]
-                    InstallReferrerFunnel.PARAM_UTM_MEDIUM -> refUtmMedium = item[1]
-                    InstallReferrerFunnel.PARAM_UTM_CAMPAIGN -> refUtmCampaign = item[1]
-                    InstallReferrerFunnel.PARAM_UTM_SOURCE -> refUtmSource = item[1]
-                    InstallReferrerFunnel.PARAM_CHANNEL -> refChannel = item[1]
+                    InstallReferrerEvent.PARAM_REFERRER_URL -> refUrl = item[1]
+                    InstallReferrerEvent.PARAM_UTM_MEDIUM -> refUtmMedium = item[1]
+                    InstallReferrerEvent.PARAM_UTM_CAMPAIGN -> refUtmCampaign = item[1]
+                    InstallReferrerEvent.PARAM_UTM_SOURCE -> refUtmSource = item[1]
+                    InstallReferrerEvent.PARAM_CHANNEL -> refChannel = item[1]
                 }
             }
         } catch (e: Exception) {
@@ -117,14 +119,18 @@ class InstallReferrerListener : InstallReferrerStateListener {
         // log the event only if at least one of the parameters is nonempty
         if (!refUrl.isNullOrEmpty() || !refUtmMedium.isNullOrEmpty() ||
                 !refUtmCampaign.isNullOrEmpty() || !refUtmSource.isNullOrEmpty()) {
-            val funnel = InstallReferrerFunnel(WikipediaApp.getInstance())
-            funnel.logInstall(refUrl, refUtmMedium, refUtmCampaign, refUtmSource)
+            InstallReferrerEvent.logInstall(refUrl, refUtmMedium, refUtmCampaign, refUtmSource)
         }
-        if (!refUrl.isNullOrEmpty() && ShareUtil.canOpenUrlInApp(WikipediaApp.getInstance(), refUrl)) {
-            openPageFromUrl(WikipediaApp.getInstance(), refUrl)
+        if (!refUrl.isNullOrEmpty() && ShareUtil.canOpenUrlInApp(WikipediaApp.instance, refUrl)) {
+            openPageFromUrl(WikipediaApp.instance, refUrl)
         }
         if (!refChannel.isNullOrEmpty()) {
             Prefs.appChannel = refChannel
+        }
+
+        if (refUtmSource.orEmpty() == "readingLists") {
+            Prefs.importReadingListsNewInstallDialogShown = false
+            WikipediaApp.instance.bus.post(ImportReadingListsEvent())
         }
     }
 
@@ -138,7 +144,6 @@ class InstallReferrerListener : InstallReferrerStateListener {
     companion object {
         private var INSTANCE: InstallReferrerListener? = null
 
-        @JvmStatic
         fun newInstance(context: Context) {
             val attempts = Prefs.installReferrerAttempts
             if (attempts > 2) {

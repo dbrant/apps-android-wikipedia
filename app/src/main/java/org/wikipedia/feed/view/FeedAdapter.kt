@@ -32,7 +32,6 @@ class FeedAdapter<T : View>(private val coordinator: FeedCoordinatorBase, privat
         FeaturedImageCardView.Callback, SearchCardView.Callback, NewsCardView.Callback,
         AnnouncementCardView.Callback, RandomCardView.Callback, ListCardView.Callback,
         SuggestedEditsCardView.Callback {
-        fun onShowCard(card: Card?)
         fun onRequestMore()
         fun onRetryFromOffline()
         fun onError(t: Throwable)
@@ -70,7 +69,6 @@ class FeedAdapter<T : View>(private val coordinator: FeedCoordinatorBase, privat
             adjustDayHeaderView(holder.view as DayHeaderCardView)
         }
         (holder.view as FeedCardView<*>).callback = callback
-        callback?.onShowCard((holder.view as FeedCardView<*>).card)
     }
 
     override fun onViewDetachedFromWindow(holder: DefaultViewHolder<T>) {
@@ -108,7 +106,6 @@ class FeedAdapter<T : View>(private val coordinator: FeedCoordinatorBase, privat
     }
 
     private fun adjustDayHeaderView(view: DayHeaderCardView) {
-        val layoutParams = view.layoutParams as StaggeredGridLayoutManager.LayoutParams
-        layoutParams.isFullSpan = true
+        view.updateLayoutParams<StaggeredGridLayoutManager.LayoutParams> { isFullSpan = true }
     }
 }

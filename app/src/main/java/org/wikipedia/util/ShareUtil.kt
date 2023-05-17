@@ -12,16 +12,13 @@ import android.os.Parcelable
 import android.os.TransactionTooLargeException
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.*
 import org.wikipedia.BuildConfig
 import org.wikipedia.R
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.DateUtil.getFeedCardDateString
 import org.wikipedia.util.log.L
 import java.io.File
-import java.util.*
 
 object ShareUtil {
     private const val APP_PACKAGE_REGEX = "org\\.wikipedia.*"
@@ -46,10 +43,9 @@ object ShareUtil {
         }
     }
 
-    @JvmStatic
-    fun shareText(context: Context, title: PageTitle) {
+    fun shareText(context: Context, title: PageTitle, withProvenance: Boolean = true) {
         shareText(context, StringUtil.fromHtml(title.displayText).toString(),
-                UriUtil.getUrlWithProvenance(context, title, R.string.prov_share_link))
+                if (withProvenance) UriUtil.getUrlWithProvenance(context, title, R.string.prov_share_link) else title.uri)
     }
 
     fun shareText(context: Context, title: PageTitle, newId: Long, oldId: Long) {
@@ -57,25 +53,23 @@ object ShareUtil {
                 title.getWebApiUrl("diff=$newId&oldid=$oldId&variant=${title.wikiSite.languageCode}"))
     }
 
-    @JvmStatic
     fun shareImage(context: Context, bmp: Bitmap,
                    imageFileName: String, subject: String, text: String) {
-        Observable.fromCallable {
-                getUriFromFile(context, processBitmapForSharing(context, bmp, imageFileName))
+        CoroutineScope(Dispatchers.Main).launch(CoroutineExceptionHandler { _, msg ->
+            run {
+                displayOnCatchMessage(msg, context)
             }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ uri: Uri? ->
-                if (uri == null) {
-                    displayShareErrorMessage(context)
-                    return@subscribe
-                }
+        }) {
+            val uri = withContext(Dispatchers.IO) { getUriFromFile(context, processBitmapForSharing(context, bmp, imageFileName)) }
+            if (uri == null) {
+                displayShareErrorMessage(context)
+            } else {
                 val chooserIntent = buildImageShareChooserIntent(context, subject, text, uri)
                 context.startActivity(chooserIntent)
-            }) { caught: Throwable -> displayOnCatchMessage(caught, context) }
+            }
+        }
     }
 
-    @JvmStatic
     fun getFeaturedImageShareSubject(context: Context, age: Int): String {
         return context.getString(R.string.feed_featured_image_share_subject) + " | " + getFeedCardDateString(age)
     }
@@ -87,7 +81,7 @@ object ShareUtil {
                 context.resources.getString(R.string.image_share_via))
     }
 
-    private fun getUriFromFile(context: Context, file: File?): Uri? {
+     fun getUriFromFile(context: Context, file: File?): Uri? {
         if (file == null) {
             return null
         }
@@ -124,20 +118,19 @@ object ShareUtil {
                 Toast.LENGTH_SHORT).show()
     }
 
-    @JvmStatic
     fun showUnresolvableIntentMessage(context: Context?) {
         Toast.makeText(context, R.string.error_can_not_process_link, Toast.LENGTH_LONG).show()
     }
 
     private fun getClearShareFolder(context: Context): File? {
-        try {
-            val dir = File(getShareFolder(context), "share")
-            FileUtil.deleteRecursively(dir)
-            return dir
+        return try {
+            File(getShareFolder(context), "share").also {
+                it.deleteRecursively()
+            }
         } catch (caught: Throwable) {
             L.e("Caught " + caught.message, caught)
+            null
         }
-        return null
     }
 
     private fun getShareFolder(context: Context): File {
@@ -195,7 +188,6 @@ object ShareUtil {
         return chooserIntent
     }
 
-    @JvmStatic
     fun canOpenUrlInApp(context: Context, url: String): Boolean {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)

@@ -19,7 +19,7 @@ import org.wikipedia.util.ResourceUtil.getThemedColor
 
 class SwipeableItemTouchHelperCallback @JvmOverloads constructor(
         context: Context,
-        @ColorRes swipeColor: Int = R.color.red50,
+        @ColorRes swipeColor: Int = R.color.red700,
         @DrawableRes swipeIcon: Int = R.drawable.ic_delete_white_24dp,
         @ColorRes val swipeIconTint: Int? = null,
         private val swipeIconAndTextFromTag: Boolean = false,
@@ -28,6 +28,7 @@ class SwipeableItemTouchHelperCallback @JvmOverloads constructor(
 
     interface Callback {
         fun onSwipe()
+        fun isSwipeable(): Boolean
     }
 
     private var swipeIconBitmap: Bitmap
@@ -60,7 +61,7 @@ class SwipeableItemTouchHelperCallback @JvmOverloads constructor(
 
     override fun getMovementFlags(recyclerView: RecyclerView, holder: RecyclerView.ViewHolder): Int {
         val dragFlags = 0 // ItemTouchHelper.UP | ItemTouchHelper.DOWN;
-        val swipeFlags = if (holder is Callback) ItemTouchHelper.START or ItemTouchHelper.END else 0
+        val swipeFlags = if (holder is Callback && holder.isSwipeable()) ItemTouchHelper.START or ItemTouchHelper.END else 0
         return makeMovementFlags(dragFlags, swipeFlags)
     }
 

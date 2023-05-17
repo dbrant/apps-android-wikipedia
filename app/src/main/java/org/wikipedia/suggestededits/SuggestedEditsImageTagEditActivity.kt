@@ -12,6 +12,7 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.databinding.ActivitySuggestedEditsFeedCardImageTagsBinding
 import org.wikipedia.dataclient.mwapi.MwQueryPage
+import org.wikipedia.descriptions.DescriptionEditActivity
 import org.wikipedia.json.JsonUtil
 import org.wikipedia.settings.Prefs
 import org.wikipedia.util.DimenUtil
@@ -42,7 +43,7 @@ class SuggestedEditsImageTagEditActivity : BaseActivity(), SuggestedEditsItemFra
     }
 
     override fun getLangCode(): String {
-        return WikipediaApp.getInstance().language().appLanguageCode
+        return WikipediaApp.instance.languageState.appLanguageCode
     }
 
     override fun getSinglePage(): MwQueryPage? {
@@ -51,7 +52,7 @@ class SuggestedEditsImageTagEditActivity : BaseActivity(), SuggestedEditsItemFra
 
     override fun updateActionButton() {
         if (suggestedEditsImageTagsFragment != null) {
-            binding.addContributionLandscapeImage.setBackgroundColor(ResourceUtil.getThemedColor(this, R.attr.colorAccent))
+            binding.addContributionLandscapeImage.setBackgroundColor(ResourceUtil.getThemedColor(this, R.attr.progressive_color))
             binding.addContributionButton.isEnabled = suggestedEditsImageTagsFragment!!.publishEnabled()
             binding.addContributionLandscapeImage.isEnabled = suggestedEditsImageTagsFragment!!.publishEnabled()
             binding.addContributionButton.alpha = if (suggestedEditsImageTagsFragment!!.publishEnabled()) 1f else 0.5f
@@ -69,7 +70,7 @@ class SuggestedEditsImageTagEditActivity : BaseActivity(), SuggestedEditsItemFra
     }
 
     override fun nextPage(sourceFragment: Fragment?) {
-        setResult(RESULT_OK)
+        setResult(RESULT_OK, Intent().putExtra(Constants.INTENT_EXTRA_ACTION, DescriptionEditActivity.Action.ADD_IMAGE_TAGS))
         finish()
     }
 
@@ -86,7 +87,6 @@ class SuggestedEditsImageTagEditActivity : BaseActivity(), SuggestedEditsItemFra
     companion object {
         private const val ARG_PAGE = "imageTagPage"
 
-        @JvmStatic
         fun newIntent(context: Context, page: MwQueryPage, invokeSource: Constants.InvokeSource): Intent {
             return Intent(context, SuggestedEditsImageTagEditActivity::class.java)
                     .putExtra(ARG_PAGE, JsonUtil.encodeToString(page))

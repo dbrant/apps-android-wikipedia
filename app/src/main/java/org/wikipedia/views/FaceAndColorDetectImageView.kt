@@ -21,12 +21,16 @@ import org.wikipedia.util.CenterCropWithFaceTransformation
 import org.wikipedia.util.WhiteBackgroundTransformation
 import java.util.*
 
-class FaceAndColorDetectImageView constructor(context: Context, attrs: AttributeSet? = null) : AppCompatImageView(context, attrs) {
+class FaceAndColorDetectImageView : AppCompatImageView {
 
     interface OnImageLoadListener {
         fun onImageLoaded(palette: Palette, bmpWidth: Int, bmpHeight: Int)
         fun onImageFailed()
     }
+
+    constructor(context: Context) : super(context)
+    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+    constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle)
 
     private fun shouldDetectFace(uri: Uri): Boolean {
         // TODO: not perfect; should ideally detect based on MIME type.
@@ -34,8 +38,7 @@ class FaceAndColorDetectImageView constructor(context: Context, attrs: Attribute
         return path.endsWith(".jpg") || path.endsWith(".jpeg")
     }
 
-    @JvmOverloads
-    fun loadImage(uri: Uri?, roundedCorners: Boolean = false, cropped: Boolean = true, listener: OnImageLoadListener? = null) {
+    fun loadImage(uri: Uri?, roundedCorners: Boolean = false, cropped: Boolean = true, emptyPlaceholder: Boolean = false, listener: OnImageLoadListener? = null) {
         val placeholder = ViewUtil.getPlaceholderDrawable(context)
         if (!Prefs.isImageDownloadEnabled || uri == null) {
             setImageDrawable(placeholder)
@@ -43,7 +46,7 @@ class FaceAndColorDetectImageView constructor(context: Context, attrs: Attribute
         }
         var builder = Glide.with(this)
                 .load(uri)
-                .placeholder(placeholder)
+                .placeholder(if (emptyPlaceholder) null else placeholder)
                 .error(placeholder)
                 .downsample(DownsampleStrategy.CENTER_INSIDE)
         if (listener != null) {
@@ -80,8 +83,8 @@ class FaceAndColorDetectImageView constructor(context: Context, attrs: Attribute
     }
 
     companion object {
-        private val FACE_DETECT_TRANSFORM = CenterCropWithFaceTransformation()
-        private val FACE_DETECT_TRANSFORM_AND_ROUNDED_CORNERS = MultiTransformation(FACE_DETECT_TRANSFORM, ViewUtil.ROUNDED_CORNERS)
-        private val CENTER_CROP_WHITE_BACKGROUND = MultiTransformation(CenterCrop(), WhiteBackgroundTransformation())
+        private val FACE_DETECT_TRANSFORM by lazy { CenterCropWithFaceTransformation() }
+        private val FACE_DETECT_TRANSFORM_AND_ROUNDED_CORNERS by lazy { MultiTransformation(FACE_DETECT_TRANSFORM, ViewUtil.ROUNDED_CORNERS) }
+        private val CENTER_CROP_WHITE_BACKGROUND by lazy { MultiTransformation(CenterCrop(), WhiteBackgroundTransformation()) }
     }
 }

@@ -10,6 +10,7 @@ import org.wikipedia.R
 import org.wikipedia.databinding.ViewReadingListHeaderBinding
 import org.wikipedia.readinglist.database.ReadingList
 import org.wikipedia.util.GradientUtil
+import org.wikipedia.util.ResourceUtil
 import org.wikipedia.views.ViewUtil
 
 class ReadingListHeaderView : FrameLayout {
@@ -24,9 +25,10 @@ class ReadingListHeaderView : FrameLayout {
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     init {
-        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        binding.readingListHeaderImageGradient.background = GradientUtil.getPowerGradient(R.color.black54, Gravity.TOP)
         if (!isInEditMode) {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            binding.readingListHeaderImageGradient.background = GradientUtil.getPowerGradient(
+                ResourceUtil.getThemedColor(context, R.attr.overlay_color), Gravity.TOP)
             clearThumbnails()
         }
     }
@@ -52,15 +54,10 @@ class ReadingListHeaderView : FrameLayout {
     private fun updateThumbnails() {
         readingList?.let {
             clearThumbnails()
-            val thumbUrls = arrayOfNulls<String>(imageViews.size)
-            var thumbUrlsIndex = 0
-            it.pages.forEach { page ->
-                if (!page.thumbUrl.isNullOrEmpty() && thumbUrlsIndex < imageViews.size) {
-                    thumbUrls[thumbUrlsIndex++] = page.thumbUrl
-                }
-            }
-            thumbUrls.forEachIndexed { i, url ->
-                ViewUtil.loadImage(imageViews[i], url)
+            val thumbUrls = it.pages.mapNotNull { page -> page.thumbUrl }
+                .filterNot { url -> url.isEmpty() }
+            (imageViews zip thumbUrls).forEach { (imageView, url) ->
+                ViewUtil.loadImage(imageView, url)
             }
         }
     }

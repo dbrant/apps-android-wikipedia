@@ -1,14 +1,15 @@
 package org.wikipedia.feed.topread
 
+import android.app.ActivityOptions
 import android.os.Bundle
+import android.util.Pair
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityOptionsCompat
 import androidx.core.os.bundleOf
-import androidx.core.util.Pair
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
@@ -34,23 +35,21 @@ class TopReadFragment : Fragment() {
 
     private var _binding: FragmentMostReadBinding? = null
     private val binding get() = _binding!!
-    private val bottomSheetPresenter = ExclusiveBottomSheetPresenter()
+    private val viewModel: TopReadViewModel by viewModels { TopReadViewModel.Factory(requireActivity().intent.extras!!) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         super.onCreateView(inflater, container, savedInstanceState)
         _binding = FragmentMostReadBinding.inflate(inflater, container, false)
 
-        val card = requireActivity().intent.getParcelableExtra<TopReadListCard>(TopReadArticlesActivity.MOST_READ_CARD)!!
+        val card = viewModel.card
 
-        appCompatActivity.setSupportActionBar(binding.toolbar)
         appCompatActivity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        appCompatActivity.supportActionBar?.title = ""
-        binding.toolbarTitle.text = getString(R.string.top_read_activity_title, card.subtitle())
+        appCompatActivity.supportActionBar?.title = getString(R.string.top_read_activity_title, card.subtitle())
 
         L10nUtil.setConditionalLayoutDirection(binding.root, card.wikiSite().languageCode)
 
         binding.mostReadRecyclerView.layoutManager = LinearLayoutManager(context)
-        binding.mostReadRecyclerView.addItemDecoration(DrawableItemDecoration(requireContext(), R.attr.list_separator_drawable))
+        binding.mostReadRecyclerView.addItemDecoration(DrawableItemDecoration(requireContext(), R.attr.list_divider))
         binding.mostReadRecyclerView.isNestedScrollingEnabled = false
         binding.mostReadRecyclerView.adapter = RecyclerAdapter(card.items(), Callback())
 
@@ -89,7 +88,7 @@ class TopReadFragment : Fragment() {
         }
 
         override fun onSelectPage(card: Card, entry: HistoryEntry, sharedElements: Array<Pair<View, String>>) {
-            val options = ActivityOptionsCompat.makeSceneTransitionAnimation(requireActivity(), *sharedElements)
+            val options = ActivityOptions.makeSceneTransitionAnimation(requireActivity(), *sharedElements)
             val intent = PageActivity.newIntentForNewTab(requireContext(), entry, entry.title)
             if (sharedElements.isNotEmpty()) {
                 intent.putExtra(Constants.INTENT_EXTRA_HAS_TRANSITION_ANIM, true)
@@ -102,13 +101,13 @@ class TopReadFragment : Fragment() {
                 ReadingListBehaviorsUtil.addToDefaultList(requireActivity(),
                     entry.title, InvokeSource.MOST_READ_ACTIVITY) { readingListId -> onMovePageToList(readingListId, entry) }
             } else {
-                bottomSheetPresenter.show(childFragmentManager,
+                ExclusiveBottomSheetPresenter.show(childFragmentManager,
                     AddToReadingListDialog.newInstance(entry.title, InvokeSource.MOST_READ_ACTIVITY))
             }
         }
 
         override fun onMovePageToList(sourceReadingListId: Long, entry: HistoryEntry) {
-            bottomSheetPresenter.show(childFragmentManager,
+            ExclusiveBottomSheetPresenter.show(childFragmentManager,
                 MoveToReadingListDialog.newInstance(sourceReadingListId, entry.title, InvokeSource.MOST_READ_ACTIVITY))
         }
     }
@@ -116,7 +115,7 @@ class TopReadFragment : Fragment() {
     companion object {
         fun newInstance(card: TopReadListCard): TopReadFragment {
             return TopReadFragment().apply {
-                arguments = bundleOf(TopReadArticlesActivity.MOST_READ_CARD to card)
+                arguments = bundleOf(TopReadArticlesActivity.TOP_READ_CARD to card)
             }
         }
     }

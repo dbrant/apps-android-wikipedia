@@ -9,7 +9,6 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.json.UriSerializer
 import org.wikipedia.language.AppLanguageLookUpTable
 import org.wikipedia.language.LanguageUtil
-import org.wikipedia.page.PageTitle
 import org.wikipedia.util.UriUtil
 
 /**
@@ -46,11 +45,11 @@ data class WikiSite(
     constructor(uri: Uri) : this(uri, "") {
         val tempUri = ensureScheme(uri)
         var authority = tempUri.authority.orEmpty()
-        if (("wikipedia.org" == authority || "www.wikipedia.org" == authority) &&
+        if ((BASE_DOMAIN == authority || ("www." + BASE_DOMAIN) == authority) &&
             tempUri.path?.startsWith("/wiki") == true
         ) {
             // Special case for Wikipedia only: assume English subdomain when none given.
-            authority = "en.wikipedia.org"
+            authority = "en." + BASE_DOMAIN
         }
 
         // Unconditionally transform any mobile authority to canonical.
@@ -63,8 +62,8 @@ data class WikiSite(
         }
 
         // Use default subdomain in authority to prevent error when requesting endpoints. e.g. zh-tw.wikipedia.org
-        if (authority.contains("wikipedia.org") && subdomain().isNotEmpty()) {
-            authority = subdomain() + ".wikipedia.org"
+        if (authority.contains(BASE_DOMAIN) && subdomain().isNotEmpty()) {
+            authority = subdomain() + "." + BASE_DOMAIN
         }
         this.uri = Uri.Builder().scheme(tempUri.scheme).encodedAuthority(authority).build()
     }
@@ -105,35 +104,23 @@ data class WikiSite(
         return url() + path(segment)
     }
 
-    // TODO: this method doesn't have much to do with WikiSite. Move to PageTitle?
-    fun titleForInternalLink(internalLink: String?): PageTitle {
-        // Strip the /wiki/ from the href
-        return PageTitle(UriUtil.removeInternalLinkPrefix(internalLink.orEmpty()), this)
-    }
-
-    // TODO: this method doesn't have much to do with WikiSite. Move to PageTitle?
-    fun titleForUri(uri: Uri): PageTitle {
-        var path = uri.path
-        if (!uri.fragment.isNullOrEmpty()) {
-            path += "#" + uri.fragment
-        }
-        return titleForInternalLink(path)
-    }
-
     fun dbName(): String {
-        return subdomain().replace("-".toRegex(), "_") + "wiki"
+        return (if (uri.authority.orEmpty().contains("wikidata")) {
+            "wikidata"
+        } else {
+            subdomain().replace("-".toRegex(), "_")
+        }) + "wiki"
     }
 
     companion object {
         const val DEFAULT_SCHEME = "https"
+        const val BASE_DOMAIN = "wikipedia.org"
         private var DEFAULT_BASE_URL: String? = null
 
-        @JvmStatic
         fun supportedAuthority(authority: String): Boolean {
             return authority.endsWith(Uri.parse(DEFAULT_BASE_URL).authority!!)
         }
 
-        @JvmStatic
         fun setDefaultBaseUrl(url: String) {
             DEFAULT_BASE_URL = url.ifEmpty { Service.WIKIPEDIA_URL }
         }
@@ -156,10 +143,10 @@ data class WikiSite(
         }
 
         private fun languageCodeToSubdomain(languageCode: String): String {
-            return WikipediaApp.getInstance().language().getDefaultLanguageCode(languageCode) ?: normalizeLanguageCode(languageCode)
+            return WikipediaApp.instance.languageState.getDefaultLanguageCode(languageCode) ?: normalizeLanguageCode(languageCode)
         }
 
-        private fun authorityToLanguageCode(authority: String): String {
+        fun authorityToLanguageCode(authority: String): String {
             val parts = authority.split("\\.".toRegex()).toTypedArray()
             val minLengthForSubdomain = 3
             return if (parts.size < minLengthForSubdomain ||

@@ -29,7 +29,7 @@ class SearchActionProvider(context: Context,
         binding.searchInput.inputType = EditorInfo.TYPE_CLASS_TEXT
         binding.searchInput.isSubmitButtonEnabled = false
         binding.searchInput.queryHint = searchHintString
-        binding.searchInput.setSearchHintTextColor(getThemedColor(context, R.attr.material_theme_de_emphasised_color))
+        binding.searchInput.setSearchHintTextColor(getThemedColor(context, R.attr.secondary_color))
         binding.searchInput.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(s: String): Boolean {
                 return false
@@ -56,5 +56,13 @@ class SearchActionProvider(context: Context,
 
     override fun overridesItemVisibility(): Boolean {
         return true
+    }
+
+    fun selectAllQueryTexts() {
+        binding.searchInput.selectAllQueryTexts()
+    }
+
+    fun setQueryText(text: String?) {
+        binding.searchInput.setQuery(text, false)
     }
 }

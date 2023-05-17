@@ -6,6 +6,9 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.auth.AccountUtil
@@ -28,6 +31,9 @@ import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.ObservableWebView
 import retrofit2.Response
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class PageFragmentLoadState(private var model: PageViewModel,
                             private var fragment: PageFragment,
@@ -41,7 +47,7 @@ class PageFragmentLoadState(private var model: PageViewModel,
     }
 
     private var networkErrorCallback: ErrorCallback? = null
-    private val app = WikipediaApp.getInstance()
+    private val app = WikipediaApp.instance
     private val disposables = CompositeDisposable()
 
     fun load(pushBackStack: Boolean) {
@@ -122,7 +128,7 @@ class PageFragmentLoadState(private var model: PageViewModel,
     private fun pageLoadCheckReadingLists() {
         model.title?.let {
             disposables.clear()
-            disposables.add(Completable.fromAction { model.readingListPage = AppDatabase.getAppDatabase().readingListPageDao().findPageInAnyList(it) }
+            disposables.add(Completable.fromAction { model.readingListPage = AppDatabase.instance.readingListPageDao().findPageInAnyList(it) }
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .doAfterTerminate { pageLoadFromNetwork { fragment.onPageLoadError(it) } }
@@ -132,14 +138,13 @@ class PageFragmentLoadState(private var model: PageViewModel,
 
     private fun pageLoadFromNetwork(errorCallback: ErrorCallback) {
         model.title?.let { title ->
-            fragment.updateBookmarkAndMenuOptions()
+            fragment.updateQuickActionsAndMenuOptions()
             networkErrorCallback = errorCallback
             if (!fragment.isAdded) {
                 return
             }
             fragment.requireActivity().invalidateOptionsMenu()
             fragment.callback()?.onPageUpdateProgressBar(true)
-            app.sessionFunnel.leadSectionFetchStart()
             model.page = null
             val delayLoadHtml = title.prefixedText.contains(":")
             if (!delayLoadHtml) {
@@ -160,8 +165,8 @@ class PageFragmentLoadState(private var model: PageViewModel,
                             title.wikiSite.languageCode, UriUtil.encodeURL(title.prefixedText)),
                     if (app.isOnline && AccountUtil.isLoggedIn) ServiceFactory.get(title.wikiSite).getWatchedInfo(title.prefixedText)
                     else if (app.isOnline && !AccountUtil.isLoggedIn) AnonymousNotificationHelper.observableForAnonUserInfo(title.wikiSite)
-                    else Observable.just(MwQueryResponse()), { first, second -> Pair(first, second) })
-                    .subscribeOn(Schedulers.io())
+                    else Observable.just(MwQueryResponse())) { first, second -> Pair(first, second) }
+                .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ pair ->
                         val pageSummaryResponse = pair.first
@@ -173,7 +178,7 @@ class PageFragmentLoadState(private var model: PageViewModel,
                         }
                         createPageModel(pageSummaryResponse, isWatched, hasWatchlistExpiry)
                         if (OfflineCacheInterceptor.SAVE_HEADER_SAVE == pageSummaryResponse.headers()[OfflineCacheInterceptor.SAVE_HEADER]) {
-                            showPageOfflineMessage(pageSummaryResponse.raw().header("date", ""))
+                            showPageOfflineMessage(pageSummaryResponse.headers().getInstant("date"))
                         }
                         if (delayLoadHtml) {
                             bridge.resetHtml(title)
@@ -192,29 +197,24 @@ class PageFragmentLoadState(private var model: PageViewModel,
     }
 
     private fun checkAnonNotifications(title: PageTitle) {
-        disposables.add(ServiceFactory.get(title.wikiSite).getLastModified(UserTalkAliasData.valueFor(title.wikiSite.languageCode) + ":" + Prefs.lastAnonUserWithMessages)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({
-                    if (AnonymousNotificationHelper.anonTalkPageHasRecentMessage(it, title)) {
-                        fragment.showAnonNotification()
-                    }
-                }, { L.e(it) })
-        )
+        CoroutineScope(Dispatchers.Main).launch {
+            val response = ServiceFactory.get(title.wikiSite).getLastModified(UserTalkAliasData.valueFor(title.wikiSite.languageCode) + ":" + Prefs.lastAnonUserWithMessages)
+            if (AnonymousNotificationHelper.anonTalkPageHasRecentMessage(response, title)) {
+                fragment.showAnonNotification()
+            }
+        }
     }
 
-    private fun showPageOfflineMessage(dateHeader: String?) {
-        if (!fragment.isAdded || dateHeader.isNullOrEmpty()) {
+    private fun showPageOfflineMessage(dateHeader: Instant?) {
+        if (!fragment.isAdded || dateHeader == null) {
             return
         }
-        try {
-            val dateStr = DateUtil.getShortDateString(DateUtil.getHttpLastModifiedDate(dateHeader))
-            Toast.makeText(fragment.requireContext().applicationContext,
-                    fragment.getString(R.string.page_offline_notice_last_date, dateStr),
-                    Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            // ignore
-        }
+        // TODO: Use LocalDate.ofInstant() instead once it is available in SDK 34.
+        val localDate = LocalDateTime.ofInstant(dateHeader, ZoneId.systemDefault()).toLocalDate()
+        val dateStr = DateUtil.getShortDateString(localDate)
+        Toast.makeText(fragment.requireContext().applicationContext,
+            fragment.getString(R.string.page_offline_notice_last_date, dateStr),
+            Toast.LENGTH_LONG).show()
     }
 
     private fun createPageModel(response: Response<PageSummary>,
@@ -234,7 +234,7 @@ class PageFragmentLoadState(private var model: PageViewModel,
                 title.fragment = response.raw().request.url.fragment
             }
             if (title.description.isNullOrEmpty()) {
-                app.sessionFunnel.noDescription()
+                app.appSessionEvent.noDescription()
             }
             if (!title.isMainPage) {
                 title.displayText = page?.displayTitle.orEmpty()
@@ -250,13 +250,11 @@ class PageFragmentLoadState(private var model: PageViewModel,
             }
 
             // Update our tab list to prevent ZH variants issue.
-            if (app.tabList[app.tabCount - 1] != null) {
-                app.tabList[app.tabCount - 1].setBackStackPositionTitle(title)
-            }
+            app.tabList.getOrNull(app.tabCount - 1)?.setBackStackPositionTitle(title)
 
             // Save the thumbnail URL to the DB
             val pageImage = PageImage(title, pageSummary?.thumbnailUrl)
-            Completable.fromAction { AppDatabase.getAppDatabase().pageImagesDao().insertPageImage(pageImage) }.subscribeOn(Schedulers.io()).subscribe()
+            Completable.fromAction { AppDatabase.instance.pageImagesDao().insertPageImage(pageImage) }.subscribeOn(Schedulers.io()).subscribe()
             title.thumbUrl = pageImage.imageName
         }
     }

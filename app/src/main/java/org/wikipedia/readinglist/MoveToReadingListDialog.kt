@@ -11,15 +11,17 @@ import androidx.core.os.bundleOf
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
-import org.wikipedia.analytics.ReadingListsFunnel
 import org.wikipedia.database.AppDatabase
 import org.wikipedia.page.PageTitle
 import org.wikipedia.readinglist.database.ReadingList
 import org.wikipedia.util.log.L
-import java.util.*
 
 class MoveToReadingListDialog : AddToReadingListDialog() {
     private var sourceReadingList: ReadingList? = null
@@ -28,25 +30,24 @@ class MoveToReadingListDialog : AddToReadingListDialog() {
         val parentView = super.onCreateView(inflater, container, savedInstanceState)
         parentView.findViewById<TextView>(R.id.dialog_title).setText(R.string.reading_list_move_to)
         val sourceReadingListId = requireArguments().getLong(SOURCE_READING_LIST_ID)
-        sourceReadingList = AppDatabase.getAppDatabase().readingListDao().getListById(sourceReadingListId, false)
-        if (sourceReadingList == null) {
-            dismiss()
+
+        CoroutineScope(Dispatchers.Main).launch(CoroutineExceptionHandler { _, exception ->
+            L.w(exception)
+        }) {
+            sourceReadingList = AppDatabase.instance.readingListDao().getListById(sourceReadingListId, false)
+            if (sourceReadingList == null) {
+                dismiss()
+            }
         }
+
         return parentView
     }
 
-    override fun logClick(savedInstanceState: Bundle?) {
-        if (savedInstanceState == null) {
-            ReadingListsFunnel().logMoveClick(invokeSource)
-        }
-    }
-
     override fun commitChanges(readingList: ReadingList, titles: List<PageTitle>) {
-        disposables.add(Observable.fromCallable { AppDatabase.getAppDatabase().readingListPageDao().movePagesToListAndDeleteSourcePages(sourceReadingList!!, readingList, titles) }
+        disposables.add(Observable.fromCallable { AppDatabase.instance.readingListPageDao().movePagesToListAndDeleteSourcePages(sourceReadingList!!, readingList, titles) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ movedTitlesList ->
-                    ReadingListsFunnel().logMoveToList(readingList, readingLists.size, invokeSource)
                     showViewListSnackBar(readingList, if (movedTitlesList.size == 1) getString(R.string.reading_list_article_moved_to_named, movedTitlesList[0], readingList.title) else getString(R.string.reading_list_articles_moved_to_named, movedTitlesList.size, readingList.title))
                     dismiss()
                 }) { obj -> L.w(obj) })
@@ -55,15 +56,12 @@ class MoveToReadingListDialog : AddToReadingListDialog() {
     companion object {
         private const val SOURCE_READING_LIST_ID = "sourceReadingListId"
 
-        @JvmStatic
         fun newInstance(sourceReadingListId: Long,
                         title: PageTitle,
                         source: InvokeSource): MoveToReadingListDialog {
             return newInstance(sourceReadingListId, listOf(title), source, true, null)
         }
 
-        @JvmStatic
-        @JvmOverloads
         fun newInstance(sourceReadingListId: Long,
                         titles: List<PageTitle>,
                         source: InvokeSource,

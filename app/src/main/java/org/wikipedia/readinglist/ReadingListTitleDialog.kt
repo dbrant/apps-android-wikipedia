@@ -5,11 +5,11 @@ import org.wikipedia.R
 import org.wikipedia.views.TextInputDialog
 
 object ReadingListTitleDialog {
-    fun interface Callback {
+    interface Callback {
         fun onSuccess(text: String, description: String)
+        fun onCancel()
     }
 
-    @JvmStatic
     fun readingListTitleDialog(activity: Activity,
                                title: String,
                                description: String?,
@@ -47,7 +47,9 @@ object ReadingListTitleDialog {
                     callback?.onSuccess(text.toString().trim(), secondaryText.toString().trim())
                 }
 
-                override fun onCancel() {}
+                override fun onCancel() {
+                    callback?.onCancel()
+                }
             }
             textInputDialog.showSecondaryText(true)
         }

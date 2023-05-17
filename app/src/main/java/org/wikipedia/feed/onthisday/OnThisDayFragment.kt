@@ -20,10 +20,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
-import org.wikipedia.analytics.OnThisDayFunnel
 import org.wikipedia.databinding.FragmentOnThisDayBinding
-import org.wikipedia.databinding.ViewOnThisDayEventBinding
+import org.wikipedia.databinding.ViewEventsLayoutBinding
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.page.PageSummary
@@ -43,7 +41,6 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
     private lateinit var date: Calendar
     private lateinit var wiki: WikiSite
     private lateinit var invokeSource: InvokeSource
-    private var funnel: OnThisDayFunnel? = null
     private var yearOnCardView = 0
     private var positionToScrollTo = 0
     private val disposables = CompositeDisposable()
@@ -89,7 +86,6 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
     private fun updateContents(age: Int) {
         val today = DateUtil.getDefaultDateFor(age)
         requestEvents(today[Calendar.MONTH], today[Calendar.DATE])
-        funnel = OnThisDayFunnel(WikipediaApp.getInstance(), wiki, invokeSource)
     }
 
     private fun requestEvents(month: Int, date: Int) {
@@ -117,7 +113,7 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
                     binding.eventsRecycler.adapter = RecyclerAdapter(onThisDayResponse.allEvents(), wiki)
                     val events = onThisDayResponse.allEvents()
                     positionToScrollTo = events.indices.find { yearOnCardView == events[it].year } ?: 0
-                    val beginningYear = events[events.size - 1].year
+                    val beginningYear = events.last().year
                     binding.dayInfo.text = getString(R.string.events_count_text, events.size.toString(),
                         DateUtil.yearToStringWithEra(beginningYear), events[0].year)
                 }
@@ -134,7 +130,7 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
         appCompatActivity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         appCompatActivity.supportActionBar?.title = ""
         binding.collapsingToolbarLayout.setCollapsedTitleTextColor(
-            ResourceUtil.getThemedColor(requireContext(), R.attr.material_theme_primary_color)
+            ResourceUtil.getThemedColor(requireContext(), R.attr.primary_color)
         )
         binding.day.text = DateUtil.getMonthOnlyDateString(date.time)
         maybeHideDateIndicator()
@@ -162,10 +158,6 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
     override fun onDestroyView() {
         disposables.clear()
         binding.eventsRecycler.adapter = null
-        if (binding.eventsRecycler.adapter != null) {
-            funnel?.done(binding.eventsRecycler.adapter!!.itemCount)
-            funnel = null
-        }
         _binding = null
         super.onDestroyView()
     }
@@ -204,7 +196,7 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
                     .inflate(R.layout.view_on_this_day_footer, viewGroup, false)
                 FooterViewHolder(itemView)
             } else {
-                val itemView = ViewOnThisDayEventBinding.inflate(LayoutInflater.from(viewGroup.context),
+                val itemView = ViewEventsLayoutBinding.inflate(LayoutInflater.from(viewGroup.context),
                     viewGroup, false)
                 EventsViewHolder(itemView, wiki)
             }
@@ -213,7 +205,6 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             if (holder is EventsViewHolder) {
                 holder.setFields(events[position])
-                funnel?.scrolledToPosition(position)
             }
         }
 
@@ -233,37 +224,39 @@ class OnThisDayFragment : Fragment(), CustomDatePicker.Callback {
         }
     }
 
-    private inner class EventsViewHolder(private val otdEventBinding: ViewOnThisDayEventBinding, private val wiki: WikiSite) : RecyclerView.ViewHolder(otdEventBinding.root) {
+    private inner class EventsViewHolder(eventBinding: ViewEventsLayoutBinding, private val wiki: WikiSite) : RecyclerView.ViewHolder(eventBinding.root) {
+
+        private val otdEventLayout = eventBinding.otdEventLayout
 
         init {
-            otdEventBinding.text.setTextIsSelectable(true)
+            otdEventLayout.text.setTextIsSelectable(true)
         }
 
         fun setFields(event: OnThisDay.Event) {
-            otdEventBinding.text.text = event.text
-            otdEventBinding.text.visibility = if (event.text.isEmpty()) View.GONE else View.VISIBLE
-            otdEventBinding.year.text = DateUtil.yearToStringWithEra(event.year)
-            otdEventBinding.yearsText.text = DateUtil.getYearDifferenceString(event.year, wiki.languageCode)
+            otdEventLayout.text.text = event.text
+            otdEventLayout.text.visibility = if (event.text.isEmpty()) View.GONE else View.VISIBLE
+            otdEventLayout.year.text = DateUtil.yearToStringWithEra(event.year)
+            otdEventLayout.yearsText.text = DateUtil.getYearDifferenceString(event.year, wiki.languageCode)
             setPagesViewPager(event)
         }
 
         private fun setPagesViewPager(event: OnThisDay.Event) {
             event.pages()?.let {
                 val viewPagerAdapter = ViewPagerAdapter(childFragmentManager, it, wiki)
-                otdEventBinding.pagesPager.adapter = viewPagerAdapter
-                otdEventBinding.pagesPager.offscreenPageLimit = 2
-                TabLayoutMediator(otdEventBinding.pagesIndicator, otdEventBinding.pagesPager) { _, _ -> }.attach()
-                otdEventBinding.pagesPager.visibility = View.VISIBLE
-                otdEventBinding.pagesIndicator.visibility = if (it.size == 1) View.GONE else View.VISIBLE
+                otdEventLayout.pagesPager.adapter = viewPagerAdapter
+                otdEventLayout.pagesPager.offscreenPageLimit = 2
+                TabLayoutMediator(otdEventLayout.pagesIndicator, otdEventLayout.pagesPager) { _, _ -> }.attach()
+                otdEventLayout.pagesPager.visibility = View.VISIBLE
+                otdEventLayout.pagesIndicator.visibility = if (it.size == 1) View.GONE else View.VISIBLE
             } ?: run {
-                otdEventBinding.pagesPager.visibility = View.GONE
-                otdEventBinding.pagesIndicator.visibility = View.GONE
+                otdEventLayout.pagesPager.visibility = View.GONE
+                otdEventLayout.pagesIndicator.visibility = View.GONE
             }
         }
 
         fun animateRadioButton() {
             val pulse = AnimationUtils.loadAnimation(context, R.anim.pulse)
-            otdEventBinding.radioImageView.startAnimation(pulse)
+            otdEventLayout.radioImageView.startAnimation(pulse)
         }
     }
 

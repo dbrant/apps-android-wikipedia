@@ -7,6 +7,7 @@
     <string name="donate_url">https://donate.wikimedia.org/?utm_medium=WikipediaApp&amp;utm_campaign=Android&amp;utm_source=%1$s&amp;uselang=%2$s</string>
     <string name="suggested_edits_survey_url">@null</string>
     <string name="talk_pages_survey_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Team/Android/Communication/UsertestingOctober2021</string>
+    <string name="survey_privacy_policy_url">https://foundation.wikimedia.org/wiki/Legal:Wikipedia_Android_App_Onboarding_Survey_Privacy_Statement</string>
 
     <!-- Accounts -->
     <string name="account_name">@string/wikimedia</string>
@@ -16,25 +17,6 @@
     <string name="prov_share_image">sfia1</string>
     <string name="prov_share_text">sfta1</string>
     <string name="prov_share_link">sfla1</string>
-
-    <!-- Search -->
-    <string name="intent_share_search_label">@string/search_hint</string>
-
-    <!-- Long press menu -->
-    <string name="menu_long_press_share_page">@string/menu_page_share</string>
-    <string name="menu_long_press_add_to_list">@string/menu_page_add_to_list</string>
-    <string name="menu_long_press_add_to_default_list">@string/menu_page_add_to_default_list</string>
-
-    <!-- Link preview menu -->
-    <string name="menu_link_preview_copy_link">@string/menu_long_press_copy_page</string>
-    <string name="menu_link_preview_share_page">@string/menu_page_share</string>
-    <string name="menu_link_preview_add_to_list">@string/menu_page_add_to_list</string>
-    <string name="menu_link_preview_add_to_default_list">@string/menu_page_add_to_default_list</string>
-
-    <!-- The Feed -->
-    <string name="nav_item_feed">@string/feed</string>
-    <string name="feed_undo_dismiss_card">@string/reading_list_item_delete_undo</string>
-    <!-- /The Feed -->
 
     <!-- Find in page -->
     <string name="find_in_page_result">%1$d/%2$d</string>
@@ -53,9 +35,6 @@
     ]]></string>
     <!-- /Description editing -->
 
-    <!-- Bullet Point -->
-    <string name="reading_lists_onboarding_bullet_point">\u2022 &#160;&#160;&#160;</string>
-
     <!-- Transition names -->
     <string name="transition_news_item">newsItemTransition</string>
     <string name="transition_search_bar">searchBarTransition</string>
@@ -71,11 +50,13 @@
     <string name="text_size_percent">%d%%</string>
     <string name="onboarding_option_string">%1$s.\t\t%2$s</string>
     <string name="language_data">multilingual</string>
-    <string name="empty" />
     <string name="suggested_edits_image_file_page_commons_link">https://commons.wikimedia.org/wiki/%s</string>
     <string name="page_moved">move</string>
     <string name="page_deleted">delete</string>
     <string name="page_protected">protect</string>
+    <string name="meta_edit_summary_url">https://meta.wikimedia.org/wiki/Help:Edit_summary</string>
+    <string name="meta_minor_edit_url">https://meta.wikimedia.org/wiki/Help:Minor_edit</string>
+    <string name="meta_watching_pages_url">https://www.mediawiki.org/wiki/Help:Watching_pages</string>
 
     <!-- Font family -->
     <string name="font_family_sans_serif">sans-serif</string>
@@ -84,4 +65,5 @@
     <!-- Tag ids for SwipeableItemTouchHelper -->
     <string name="tag_icon_key">tagIconKey</string>
     <string name="tag_text_key">tagTextKey</string>
+
 </resources>

@@ -1,9 +1,11 @@
-apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-parcelize'
-apply plugin: 'kotlinx-serialization'
-apply plugin: 'kotlin-kapt'
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+    id 'kotlinx-serialization'
+}
 
 // Copy the signing.properties.sample file to ~/.sign/signing.properties and adjust the values.
 final File PROD_PROPS_FILE = new File(System.getProperty('user.home'), '.sign/signing.properties')
@@ -11,23 +13,18 @@ final File REPO_PROPS_FILE = new File('repo.properties')
 final Properties PROD_PROPS = loadProperties(PROD_PROPS_FILE)
 final Properties REPO_PROPS = loadProperties(REPO_PROPS_FILE)
 
-
-def static getDate() {
-    def date = new Date()
-    def formattedDate = date.format('yyyy-MM-dd')
-    return formattedDate
+static def computeVersionName(versionCode, label) {
+    return "2.7.${versionCode}-${label}-${(new Date()).format('yyyy-MM-dd')}"
 }
 
-def computeVersionName(label) {
-    return "2.7.${android.defaultConfig.versionCode}-${label}-${date}"
-}
-
-final JavaVersion JAVA_VERSION = JavaVersion.VERSION_1_8
+final JavaVersion JAVA_VERSION = JavaVersion.VERSION_17
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
+
         sourceCompatibility = JAVA_VERSION
         targetCompatibility = JAVA_VERSION
     }
@@ -39,21 +36,20 @@ android {
     defaultConfig {
         applicationId 'org.wikipedia'
         minSdkVersion 21
-        targetSdkVersion 31
-        versionCode 50388
+        targetSdkVersion 33
+        versionCode 50443
         testApplicationId 'org.wikipedia.test'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
 
         vectorDrawables.useSupportLibrary = true
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = ["room.schemaLocation": "$projectDir/schemas".toString()]
+        kapt {
+            arguments {
+                arg("room.schemaLocation", "$projectDir/schemas".toString())
             }
         }
 
-        dimension 'default'
         signingConfig signingConfigs.debug
 
         buildConfigField "String", "DEFAULT_RESTBASE_URI_FORMAT", '"%1$s://%2$s/api/rest_v1/"'
@@ -78,11 +74,7 @@ android {
         dev { java.srcDirs += 'src/extra/java' }
         custom { java.srcDirs += 'src/extra/java' }
 
-        test {
-            java.srcDirs += 'src/testlib/java'
-        }
         androidTest {
-            java.srcDirs += 'src/testlib/java'
             assets.srcDirs += files("$projectDir/schemas".toString())
         }
     }
@@ -113,7 +105,7 @@ android {
 
     productFlavors {
         dev {
-            versionName computeVersionName('dev')
+            versionName computeVersionName(defaultConfig.versionCode, 'dev')
             applicationIdSuffix '.dev'
             buildConfigField "String", "META_WIKI_BASE_URI", '"https://meta.wikimedia.beta.wmflabs.org"'
             buildConfigField "String", "EVENTGATE_ANALYTICS_EXTERNAL_BASE_URI", '"https://intake-analytics.wikimedia.beta.wmflabs.org"'
@@ -125,24 +117,24 @@ android {
             buildConfigField "String", "TEST_LOGIN_PASSWORD", TEST_LOGIN_PASSWORD != null ? "\"${TEST_LOGIN_PASSWORD}\"" : '"Bar"'
         }
         prod {
-            versionName computeVersionName('r')
+            versionName computeVersionName(defaultConfig.versionCode, 'r')
             signingConfig signingConfigs.prod
         }
         alpha {
-            versionName computeVersionName('alpha')
+            versionName computeVersionName(defaultConfig.versionCode, 'alpha')
             applicationIdSuffix '.alpha'
         }
         beta {
-            versionName computeVersionName('beta')
+            versionName computeVersionName(defaultConfig.versionCode, 'beta')
             applicationIdSuffix '.beta'
             signingConfig signingConfigs.prod
         }
         fdroid {
-            versionName computeVersionName('fdroid')
+            versionName computeVersionName(defaultConfig.versionCode, 'fdroid')
             signingConfig signingConfigs.prod
         }
         custom {
-            versionName computeVersionName(customChannel)
+            versionName computeVersionName(defaultConfig.versionCode, customChannel)
             // next line is for injecting a custom channel value into the custom/AndroidManifest.xml
             manifestPlaceholders = [customChannel:getProperty('customChannel').toString()]
             signingConfig signingConfigs.prod
@@ -161,6 +153,7 @@ android {
             enableSplit false
         }
     }
+    namespace 'org.wikipedia'
 }
 
 configurations {
@@ -177,36 +170,40 @@ dependencies {
     // use http://gradleplease.appspot.com/ or http://search.maven.org/.
     // Debug with ./gradlew -q app:dependencies --configuration compile
 
-    String okHttpVersion = '4.8.1'
+    String okHttpVersion = '4.10.0'
     String retrofitVersion = '2.9.0'
-    String glideVersion = '4.11.0'
-    String mockitoVersion = '3.4.0'
-    String leakCanaryVersion = '2.7'
+    String glideVersion = '4.13.2'
+    String mockitoVersion = '5.2.0'
+    String leakCanaryVersion = '2.10'
     String kotlinCoroutinesVersion = '1.3.9'
-    String firebaseMessagingVersion = '23.0.0'
-    String mlKitVersion = '17.0.1'
-    String roomVersion = "2.3.0"
-    String espressoVersion = '3.4.0'
-    String serialization_version = '1.2.1'
+    String firebaseMessagingVersion = '23.1.2'
+    String mlKitVersion = '17.0.4'
+    String roomVersion = "2.5.1"
+    String espressoVersion = '3.5.1'
+    String serialization_version = '1.4.0'
+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinCoroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version"
 
-    implementation "com.google.android.material:material:1.4.0"
-    implementation 'androidx.appcompat:appcompat:1.4.0'
-    implementation "androidx.core:core-ktx:1.7.0"
-    implementation "androidx.browser:browser:1.4.0"
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
-    implementation "androidx.fragment:fragment-ktx:1.3.6"
+    implementation "com.google.android.material:material:1.8.0"
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation "androidx.core:core-ktx:1.10.0"
+    implementation "androidx.browser:browser:1.5.0"
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation "androidx.fragment:fragment-ktx:1.5.6"
+    implementation "androidx.paging:paging-runtime-ktx:3.1.1"
     implementation "androidx.palette:palette-ktx:1.0.0"
-    implementation "androidx.preference:preference-ktx:1.1.1"
-    implementation "androidx.recyclerview:recyclerview:1.2.1"
+    implementation "androidx.preference:preference-ktx:1.2.0"
+    implementation "androidx.recyclerview:recyclerview:1.3.0"
     implementation "androidx.viewpager2:viewpager2:1.0.0"
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
     implementation 'com.android.installreferrer:installreferrer:2.2'
-    implementation 'androidx.drawerlayout:drawerlayout:1.1.1'
+    implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
+    implementation 'androidx.work:work-runtime-ktx:2.8.1'
 
     implementation ('com.github.michael-rapp:chrome-like-tab-switcher:0.4.6') {
         exclude group: 'org.jetbrains'
@@ -214,22 +211,22 @@ dependencies {
 
     implementation "com.github.bumptech.glide:glide:$glideVersion"
     implementation "com.github.bumptech.glide:okhttp3-integration:$glideVersion"
-    kapt("com.github.bumptech.glide:compiler:$glideVersion")
+    kapt "com.github.bumptech.glide:compiler:$glideVersion"
 
     implementation "com.squareup.okhttp3:logging-interceptor:$okHttpVersion"
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
     implementation "com.squareup.retrofit2:adapter-rxjava3:$retrofitVersion"
-    implementation "io.reactivex.rxjava3:rxjava:3.0.4"
-    implementation "io.reactivex.rxjava3:rxandroid:3.0.0"
-    implementation 'org.apache.commons:commons-lang3:3.9'
-    implementation 'org.jsoup:jsoup:1.12.1'
+    implementation "io.reactivex.rxjava3:rxjava:3.1.6"
+    implementation "io.reactivex.rxjava3:rxandroid:3.0.2"
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.jsoup:jsoup:1.15.4'
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
     implementation "com.github.skydoves:balloon:1.3.4"
     implementation "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0"
 
     implementation("androidx.room:room-runtime:$roomVersion")
     annotationProcessor "androidx.room:room-compiler:$roomVersion"
-    kapt("androidx.room:room-compiler:$roomVersion")
+    kapt "androidx.room:room-compiler:$roomVersion"
     implementation("androidx.room:room-ktx:$roomVersion")
     implementation "androidx.room:room-rxjava3:$roomVersion"
 
@@ -252,10 +249,9 @@ dependencies {
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation "org.mockito:mockito-inline:$mockitoVersion"
-    testImplementation 'org.robolectric:robolectric:4.5.1'
+    testImplementation 'org.robolectric:robolectric:4.9.2'
     testImplementation "com.squareup.okhttp3:okhttp:$okHttpVersion"
     testImplementation "com.squareup.okhttp3:mockwebserver:$okHttpVersion"
-    testImplementation "commons-io:commons-io:2.6"
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testImplementation "androidx.room:room-testing:$roomVersion"
 
@@ -263,10 +259,10 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-intents:$espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-web:$espressoVersion"
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.2.0'
-    androidTestImplementation "android.arch.persistence.room:testing:1.1.1"
-    androidTestUtil 'androidx.test:orchestrator:1.4.0'
+    androidTestImplementation "androidx.room:room-testing:$roomVersion"
+    androidTestUtil 'androidx.test:orchestrator:1.4.2'
 }
 
 private setSigningConfigKey(config, Properties props) {

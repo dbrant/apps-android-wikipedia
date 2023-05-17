@@ -1,6 +1,7 @@
 package org.wikipedia.theme
 
 import android.content.DialogInterface
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -9,8 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
-import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
+import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.button.MaterialButton
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -20,17 +21,14 @@ import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil
-import org.wikipedia.analytics.AppearanceChangeFunnel
+import org.wikipedia.analytics.eventplatform.AppearanceSettingInteractionEvent
 import org.wikipedia.databinding.DialogThemeChooserBinding
 import org.wikipedia.events.WebViewInvalidateEvent
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment
 import org.wikipedia.settings.Prefs
-import org.wikipedia.util.DeviceUtil
-import org.wikipedia.util.DimenUtil.getDimension
-import org.wikipedia.util.DimenUtil.getFloat
-import org.wikipedia.util.DimenUtil.roundedDpToPx
-import org.wikipedia.util.FeedbackUtil.setButtonLongPressToast
-import org.wikipedia.util.ResourceUtil.getThemedColor
+import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.ResourceUtil
 
 class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     private var _binding: DialogThemeChooserBinding? = null
@@ -38,68 +36,99 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
 
     interface Callback {
         fun onToggleDimImages()
+        fun onToggleReadingFocusMode()
         fun onCancelThemeChooser()
+        fun onEditingPrefsChanged()
     }
 
     private enum class FontSizeAction {
         INCREASE, DECREASE, RESET
     }
 
-    private var app = WikipediaApp.getInstance()
-    private lateinit var funnel: AppearanceChangeFunnel
+    private var app = WikipediaApp.instance
+    private lateinit var appearanceSettingInteractionEvent: AppearanceSettingInteractionEvent
     private lateinit var invokeSource: InvokeSource
     private val disposables = CompositeDisposable()
     private var updatingFont = false
+    private var isEditing = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = DialogThemeChooserBinding.inflate(inflater, container, false)
+        isEditing = requireArguments().getBoolean(EXTRA_IS_EDITING)
+        updateComponents()
+
+        binding.textSettingsCategory.text = getString(if (isEditing) R.string.theme_category_editing else R.string.theme_category_reading)
         binding.buttonDecreaseTextSize.setOnClickListener(FontSizeButtonListener(FontSizeAction.DECREASE))
         binding.buttonIncreaseTextSize.setOnClickListener(FontSizeButtonListener(FontSizeAction.INCREASE))
-        setButtonLongPressToast(binding.buttonDecreaseTextSize, binding.buttonIncreaseTextSize)
+        FeedbackUtil.setButtonLongPressToast(binding.buttonDecreaseTextSize, binding.buttonIncreaseTextSize)
         binding.buttonThemeLight.setOnClickListener(ThemeButtonListener(Theme.LIGHT))
         binding.buttonThemeDark.setOnClickListener(ThemeButtonListener(Theme.DARK))
         binding.buttonThemeBlack.setOnClickListener(ThemeButtonListener(Theme.BLACK))
         binding.buttonThemeSepia.setOnClickListener(ThemeButtonListener(Theme.SEPIA))
         binding.buttonFontFamilySansSerif.setOnClickListener(FontFamilyListener())
         binding.buttonFontFamilySerif.setOnClickListener(FontFamilyListener())
+
         binding.themeChooserDarkModeDimImagesSwitch.setOnCheckedChangeListener { _, b -> onToggleDimImages(b) }
         binding.themeChooserMatchSystemThemeSwitch.setOnCheckedChangeListener { _, b -> onToggleMatchSystemTheme(b) }
+        binding.themeChooserReadingFocusModeSwitch.setOnCheckedChangeListener { _, b -> onToggleReadingFocusMode(b) }
+
         binding.textSizeSeekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, value: Int, fromUser: Boolean) {
                 if (!fromUser) {
                     return
                 }
-                val currentMultiplier = Prefs.textSizeMultiplier
-                val changed = app.setFontSizeMultiplier(binding.textSizeSeekBar.value)
-                if (changed) {
-                    updatingFont = true
+                val currentMultiplier: Int
+                if (isEditing) {
+                    currentMultiplier = Prefs.editingTextSizeMultiplier
+                    Prefs.editingTextSizeMultiplier = binding.textSizeSeekBar.value
+                    callback()?.onEditingPrefsChanged()
                     updateFontSize()
-                    funnel.logFontSizeChange(currentMultiplier.toFloat(), Prefs.textSizeMultiplier.toFloat())
+                } else {
+                    currentMultiplier = Prefs.textSizeMultiplier
+                    val changed = app.setFontSizeMultiplier(binding.textSizeSeekBar.value)
+                    if (changed) {
+                        updatingFont = true
+                        updateFontSize()
+                    }
                 }
+                appearanceSettingInteractionEvent.logFontSizeChange(currentMultiplier.toFloat(), Prefs.textSizeMultiplier.toFloat())
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
-        updateComponents()
-        disableBackgroundDim()
-        requireDialog().window?.let {
-            DeviceUtil.setNavigationBarColor(it, getThemedColor(requireContext(), R.attr.paper_color))
+
+        binding.syntaxHighlightSwitch.setOnCheckedChangeListener { _, isChecked ->
+            Prefs.editSyntaxHighlightEnabled = isChecked
+            callback()?.onEditingPrefsChanged()
+        }
+        binding.monospaceFontSwitch.setOnCheckedChangeListener { _, isChecked ->
+            Prefs.editMonoSpaceFontEnabled = isChecked
+            callback()?.onEditingPrefsChanged()
+        }
+        binding.showLineNumbersSwitch.setOnCheckedChangeListener { _, isChecked ->
+            Prefs.editLineNumbersEnabled = isChecked
+            callback()?.onEditingPrefsChanged()
+        }
+        binding.typingSuggestionsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            Prefs.editTypingSuggestionsEnabled = isChecked
+            callback()?.onEditingPrefsChanged()
         }
 
-        disposables.add(WikipediaApp.getInstance().bus.subscribe(EventBusConsumer()))
+        disposables.add(WikipediaApp.instance.bus.subscribe(EventBusConsumer()))
+
         return binding.root
     }
 
     override fun onStart() {
         super.onStart()
-        BottomSheetBehavior.from(requireView().parent as View).peekHeight = roundedDpToPx(getDimension(R.dimen.themeChooserSheetPeekHeight))
+        BottomSheetBehavior.from(requireView().parent as View).peekHeight = (DimenUtil.displayHeightPx * 0.75).toInt()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         invokeSource = requireArguments().getSerializable(Constants.INTENT_EXTRA_INVOKE_SOURCE) as InvokeSource
-        funnel = AppearanceChangeFunnel(app, app.wikiSite, invokeSource)
+        appearanceSettingInteractionEvent = AppearanceSettingInteractionEvent(invokeSource)
     }
 
     override fun onDestroyView() {
@@ -111,6 +140,18 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
         callback()?.onCancelThemeChooser()
+    }
+
+    private fun updateForEditing() {
+        binding.themeChooserDarkModeDimImagesSwitch.isVisible = !isEditing
+        binding.readingFocusModeContainer.isVisible = !isEditing
+        binding.themeChooserReadingFocusModeDescription.isVisible = !isEditing
+        binding.fontFamilyContainer.isVisible = !isEditing
+
+        binding.syntaxHighlightSwitch.isVisible = isEditing
+        binding.monospaceFontSwitch.isVisible = isEditing
+        binding.showLineNumbersSwitch.isVisible = isEditing
+        binding.typingSuggestionsSwitch.isVisible = isEditing
     }
 
     private fun onToggleDimImages(enabled: Boolean) {
@@ -142,15 +183,25 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
         conditionallyDisableThemeButtons()
     }
 
+    private fun onToggleReadingFocusMode(enabled: Boolean) {
+        Prefs.readingFocusModeEnabled = enabled
+        appearanceSettingInteractionEvent.logReadingFocusMode(enabled)
+        callback()?.onToggleReadingFocusMode()
+    }
+
     private fun conditionallyDisableThemeButtons() {
-        binding.buttonThemeLight.alpha = if (isMatchingSystemThemeEnabled && app.currentTheme.isDark) 0.2f else 1.0f
-        binding.buttonThemeSepia.alpha = if (isMatchingSystemThemeEnabled && app.currentTheme.isDark) 0.2f else 1.0f
-        binding.buttonThemeDark.alpha = if (isMatchingSystemThemeEnabled && !app.currentTheme.isDark) 0.2f else 1.0f
-        binding.buttonThemeBlack.alpha = if (isMatchingSystemThemeEnabled && !app.currentTheme.isDark) 0.2f else 1.0f
+        updateThemeButtonAlpha(binding.buttonThemeLight, isMatchingSystemThemeEnabled && app.currentTheme.isDark)
+        updateThemeButtonAlpha(binding.buttonThemeSepia, isMatchingSystemThemeEnabled && app.currentTheme.isDark)
+        updateThemeButtonAlpha(binding.buttonThemeDark, isMatchingSystemThemeEnabled && !app.currentTheme.isDark)
+        updateThemeButtonAlpha(binding.buttonThemeBlack, isMatchingSystemThemeEnabled && !app.currentTheme.isDark)
         binding.buttonThemeLight.isEnabled = !isMatchingSystemThemeEnabled || !app.currentTheme.isDark
         binding.buttonThemeSepia.isEnabled = !isMatchingSystemThemeEnabled || !app.currentTheme.isDark
         binding.buttonThemeDark.isEnabled = !isMatchingSystemThemeEnabled || app.currentTheme.isDark
         binding.buttonThemeBlack.isEnabled = !isMatchingSystemThemeEnabled || app.currentTheme.isDark
+    }
+
+    private fun updateThemeButtonAlpha(button: View, translucent: Boolean) {
+        button.alpha = if (translucent) 0.2f else 1.0f
     }
 
     private val isMatchingSystemThemeEnabled: Boolean
@@ -162,6 +213,14 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
         updateThemeButtons()
         updateDimImagesSwitch()
         updateMatchSystemThemeSwitch()
+        updateForEditing()
+
+        binding.themeChooserReadingFocusModeSwitch.isChecked = Prefs.readingFocusModeEnabled
+
+        binding.syntaxHighlightSwitch.isChecked = Prefs.editSyntaxHighlightEnabled
+        binding.monospaceFontSwitch.isChecked = Prefs.editMonoSpaceFontEnabled
+        binding.showLineNumbersSwitch.isChecked = Prefs.editLineNumbersEnabled
+        binding.typingSuggestionsSwitch.isChecked = Prefs.editTypingSuggestionsEnabled
     }
 
     private fun updateMatchSystemThemeSwitch() {
@@ -175,10 +234,10 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun updateFontSize() {
-        val multiplier = Prefs.textSizeMultiplier
+        val multiplier = if (isEditing) Prefs.editingTextSizeMultiplier else Prefs.textSizeMultiplier
         binding.textSizeSeekBar.value = multiplier
         val percentStr = getString(R.string.text_size_percent,
-                (100 * (1 + multiplier * getFloat(R.dimen.textSizeMultiplierFactor))).toInt())
+                (100 * (1 + multiplier * DimenUtil.getFloat(R.dimen.textSizeMultiplierFactor))).toInt())
         binding.textSizePercent.text = if (multiplier == 0) getString(R.string.text_size_percent_default, percentStr) else percentStr
         if (updatingFont) {
             binding.fontChangeProgressBar.visibility = View.VISIBLE
@@ -188,8 +247,8 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun updateFontFamily() {
-        binding.buttonFontFamilySansSerif.strokeWidth = if (Prefs.fontFamily == binding.buttonFontFamilySansSerif.tag) BUTTON_STROKE_WIDTH else 0
-        binding.buttonFontFamilySerif.strokeWidth = if (Prefs.fontFamily == binding.buttonFontFamilySerif.tag) BUTTON_STROKE_WIDTH else 0
+        binding.buttonFontFamilySansSerif.strokeColor = ColorStateList.valueOf(ResourceUtil.getThemedColor(requireContext(), if (Prefs.fontFamily == binding.buttonFontFamilySansSerif.tag) R.attr.progressive_color else R.attr.border_color))
+        binding.buttonFontFamilySerif.strokeColor = ColorStateList.valueOf(ResourceUtil.getThemedColor(requireContext(), if (Prefs.fontFamily == binding.buttonFontFamilySerif.tag) R.attr.progressive_color else R.attr.border_color))
     }
 
     private fun updateThemeButtons() {
@@ -205,16 +264,16 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun updateDimImagesSwitch() {
+        val attrColor = if (binding.themeChooserDarkModeDimImagesSwitch.isEnabled) R.attr.secondary_color else R.attr.overlay_color
         binding.themeChooserDarkModeDimImagesSwitch.isChecked = Prefs.dimDarkModeImages
         binding.themeChooserDarkModeDimImagesSwitch.isEnabled = app.currentTheme.isDark
-        binding.themeChooserDarkModeDimImagesSwitch.setTextColor(if (binding.themeChooserDarkModeDimImagesSwitch.isEnabled)
-            getThemedColor(requireContext(), R.attr.section_title_color) else ContextCompat.getColor(requireContext(), R.color.black26))
+        binding.themeChooserDarkModeDimImagesSwitch.setTextColor(ResourceUtil.getThemedColor(requireContext(), attrColor))
     }
 
     private inner class ThemeButtonListener(private val theme: Theme) : View.OnClickListener {
         override fun onClick(v: View) {
             if (app.currentTheme !== theme) {
-                funnel.logThemeChange(app.currentTheme, theme)
+                appearanceSettingInteractionEvent.logThemeChange(app.currentTheme, theme)
                 app.currentTheme = theme
             }
         }
@@ -224,7 +283,7 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
         override fun onClick(v: View) {
             if (v.tag != null) {
                 val newFontFamily = v.tag as String
-                funnel.logFontThemeChange(Prefs.fontFamily, newFontFamily)
+                appearanceSettingInteractionEvent.logFontThemeChange(Prefs.fontFamily, newFontFamily)
                 app.setFontFamily(newFontFamily)
             }
         }
@@ -232,28 +291,41 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
 
     private inner class FontSizeButtonListener(private val action: FontSizeAction) : View.OnClickListener {
         override fun onClick(view: View) {
-            val currentMultiplier = Prefs.textSizeMultiplier
-            val changed = when (action) {
-                FontSizeAction.INCREASE -> {
-                    app.setFontSizeMultiplier(Prefs.textSizeMultiplier + 1)
-                }
-                FontSizeAction.DECREASE -> {
-                    app.setFontSizeMultiplier(Prefs.textSizeMultiplier - 1)
-                }
-                FontSizeAction.RESET -> {
-                    app.setFontSizeMultiplier(0)
-                }
-            }
-            if (changed) {
-                updatingFont = true
+            val currentMultiplier: Int
+            if (isEditing) {
+                currentMultiplier = Prefs.editingTextSizeMultiplier
+                Prefs.editingTextSizeMultiplier = app.constrainFontSizeMultiplier(
+                        when (action) {
+                            FontSizeAction.INCREASE -> currentMultiplier + 1
+                            FontSizeAction.DECREASE -> currentMultiplier - 1
+                            FontSizeAction.RESET -> 0
+                        })
+                callback()?.onEditingPrefsChanged()
                 updateFontSize()
-                funnel.logFontSizeChange(currentMultiplier.toFloat(), Prefs.textSizeMultiplier.toFloat())
+            } else {
+                currentMultiplier = Prefs.textSizeMultiplier
+                val changed = when (action) {
+                    FontSizeAction.INCREASE -> {
+                        app.setFontSizeMultiplier(Prefs.textSizeMultiplier + 1)
+                    }
+                    FontSizeAction.DECREASE -> {
+                        app.setFontSizeMultiplier(Prefs.textSizeMultiplier - 1)
+                    }
+                    FontSizeAction.RESET -> {
+                        app.setFontSizeMultiplier(0)
+                    }
+                }
+                if (changed) {
+                    updatingFont = true
+                    updateFontSize()
+                }
             }
+            appearanceSettingInteractionEvent.logFontSizeChange(currentMultiplier.toFloat(), Prefs.textSizeMultiplier.toFloat())
         }
     }
 
     private inner class EventBusConsumer : Consumer<Any> {
-        override fun accept(event: Any?) {
+        override fun accept(event: Any) {
             if (event is WebViewInvalidateEvent) {
                 updatingFont = false
                 updateComponents()
@@ -266,12 +338,13 @@ class ThemeChooserDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     companion object {
-        private val BUTTON_STROKE_WIDTH = roundedDpToPx(2f)
+        private const val EXTRA_IS_EDITING = "isEditing"
+        private val BUTTON_STROKE_WIDTH = DimenUtil.roundedDpToPx(2f)
 
-        @JvmStatic
-        fun newInstance(source: InvokeSource): ThemeChooserDialog {
+        fun newInstance(source: InvokeSource, isEditing: Boolean = false): ThemeChooserDialog {
             return ThemeChooserDialog().apply {
-                arguments = bundleOf(Constants.INTENT_EXTRA_INVOKE_SOURCE to source)
+                arguments = bundleOf(Constants.INTENT_EXTRA_INVOKE_SOURCE to source,
+                        EXTRA_IS_EDITING to isEditing)
             }
         }
     }

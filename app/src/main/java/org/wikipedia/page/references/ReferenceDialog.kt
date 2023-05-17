@@ -5,10 +5,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayoutMediator
+import org.jsoup.Jsoup
 import org.wikipedia.R
 import org.wikipedia.activity.FragmentUtil.getCallback
 import org.wikipedia.databinding.FragmentReferencesPagerBinding
@@ -19,7 +21,7 @@ import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.L10nUtil
 import org.wikipedia.util.StringUtil
-import java.util.*
+import java.util.Locale
 
 class ReferenceDialog : ExtendedBottomSheetDialogFragment() {
     interface Callback {
@@ -53,10 +55,8 @@ class ReferenceDialog : ExtendedBottomSheetDialogFragment() {
         if (callback()?.referencesGroup?.size == 1) {
             binding.pageIndicatorView.visibility = View.GONE
             binding.indicatorDivider.visibility = View.GONE
-        } else {
-            val behavior = BottomSheetBehavior.from(binding.root.parent as View)
-            behavior.setPeekHeight(DimenUtil.displayHeightPx / 2)
         }
+        BottomSheetBehavior.from(binding.root.parent as View).peekHeight = DimenUtil.displayHeightPx
     }
 
     override fun onDestroyView() {
@@ -69,7 +69,7 @@ class ReferenceDialog : ExtendedBottomSheetDialogFragment() {
         val isLowercase = newLinkText.contains("lower")
         if (newLinkText.contains("alpha ")) {
             val strings = newLinkText.split(" ")
-            var alphaReference = StringUtil.getBase26String(strings[strings.size - 1].replace("]", "").toInt())
+            var alphaReference = StringUtil.getBase26String(strings.last().replace("]", "").toInt())
             alphaReference = if (isLowercase) alphaReference.lowercase(Locale.getDefault()) else alphaReference
             newLinkText = alphaReference
         }
@@ -93,9 +93,26 @@ class ReferenceDialog : ExtendedBottomSheetDialogFragment() {
             binding.referenceText.movementMethod = LinkMovementMethodExt(callback()?.linkHandler)
         }
 
-        fun bindItem(idText: CharSequence?, contents: CharSequence?) {
+        fun bindItem(idText: CharSequence?, reference: PageReferences.Reference) {
             binding.referenceId.text = idText
-            binding.referenceText.text = contents
+            binding.root.post {
+                if (isAdded) {
+                    val contents = StringUtil.fromHtml(StringUtil.removeCiteMarkup(StringUtil.removeStyleTags(reference.html)))
+                    if (contents.isEmpty()) {
+                        // Inspect html for links without anchor text
+                        val links = Jsoup.parse(reference.html).select("a[href]").map { it.attr("href") }
+                        var tags = ""
+                        for (i in links.indices) {
+                            tags = tags.plus("<a href='${links[i]}'>[${i + 1}]</a>")
+                        }
+                        binding.referenceText.text = StringUtil.fromHtml(tags)
+                        binding.referenceExtLink.isVisible = tags.isNotEmpty()
+                        return@post
+                    }
+                    binding.referenceExtLink.isVisible = false
+                    binding.referenceText.text = contents
+                }
+            }
         }
     }
 
@@ -109,8 +126,7 @@ class ReferenceDialog : ExtendedBottomSheetDialogFragment() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.bindItem(processLinkTextWithAlphaReferences(references[position].text),
-                    StringUtil.fromHtml(StringUtil.removeCiteMarkup(StringUtil.removeStyleTags(references[position].html))))
+            holder.bindItem(processLinkTextWithAlphaReferences(references[position].text), references[position])
         }
     }
 

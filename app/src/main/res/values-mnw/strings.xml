@@ -195,7 +195,6 @@
   <string name="page_protected_can_not_edit_anon">သၠးအခေါင် မုက်လိက်ဏအ် ဟွံမွဲကဵု အခေါင် မဒါန်ပလေဝ် နဒဒှ်မၞိဟ်ဓလု၊၊</string>
   <string name="page_protected_can_not_edit_title">မုက်လိက်ဏအ် စဵုဒၞာလဝ်၊၊</string>
   <string name="page_watchlist_overflow_menu_onboarding_tooltip_title">စုတ်ဂွံမင်မွဲ</string>
-  <string name="page_notification_tooltip">တၚ်လလောၚ်တြးမၞးဂမၠိုၚ် နွံမံၚ်ပ္ဍဲဒၞာဲဏအ်</string>
   <string name="settings_item_preferences">ဒၞဲမဖျေဟ်ဒၞာဲ</string>
   <string name="settings_activity_title">ဒၞာဲမဖျေဟ်ဒၞာဲ</string>
   <string name="about_description">ပရူ app ဝဳကဳပဳဒဳယာ</string>
@@ -415,10 +414,6 @@
     <item quantity="one">%1$d ဂှ် လိက်ပရေင် ၁ ဗှ်ကေတ်ဂွံ မ္ၚးလာင်, %3$.2f MB</item>
     <item quantity="other">%1$d %2$d လိက်ပရေင်ဂမၠိုင် ဗှ်ကေတ်ဂွံ မ္ၚးလာင်, %3$.2f MB</item>
   </plurals>
-  <string name="format_reading_list_statistical_summary_singular">၁ လိက်ပရေင်, %1$.2f MB</string>
-  <string name="format_reading_list_statistical_summary_plural">%1$d လိက်ပရေင်, %2$.2f MB</string>
-  <string name="format_reading_list_statistical_detail_singular">%1$d of ၁ လိက်ပရေင် ဗှ်မ္ၚးလာင် ဂွံ, %2$.2f MB</string>
-  <string name="format_reading_list_statistical_detail_plural">%1$d ဒဒက်တဴ %2$d လိက်ပရေင်မဗှ်မ္ၚးလာင်ဂွံ, %3$.2f MB</string>
   <string name="reading_list_sort">ဖျေဟ်ဒၞာဲ</string>
   <string name="reading_list_sort_ellipsis">ဖျေဟ်ဒၞာဲ နကဵု</string>
   <string name="reading_list_sort_by_name">ဖျေဟ်ဒၞာဲ နကဵု ယၟု</string>
@@ -486,7 +481,7 @@
   <string name="reading_list_preference_login_to_enable_sync_dialog_login">လုပ်လံက်အေန်</string>
   <string name="reading_list_turned_sync_off_dialog_title">ကချဳဓရာင် စရင် လိက်ဗွဟ် ကၟာတ်</string>
   <string name="reading_list_turned_sync_off_dialog_text">ကချဳဓရာင် စရင် လိက်ဗွဟ် ဂှ် ကၟာတ်ဒၟံင် သွက် အကံက် မၞး၊ ဂိုင်သိပ် လိက်ပရေင် ပ္ဍဲလံက်အေန် device မၞးဂှ် ကလေင်ကေတ် ဟွံဂွံ၊၊ ပံက် ကချဳဓရာင် ပ္ဍဲ ဒၞာဲမဖျေဟ်ဒၞာဲ၊၊</string>
-  <string name="reading_list_turned_sync_off_dialog_ok">OK</string>
+  <string name="reading_list_turned_sync_off_dialog_ok">အဝ်ခေ</string>
   <string name="reading_list_turned_sync_off_dialog_settings">ဒၞာဲမဖျေဟ်ဒၞာဲ</string>
   <string name="reading_list_prompt_turned_sync_on_dialog_title">ပံက် ကချဳဓရာင် စရင် လိက်ဗွဟ် ဟာ？</string>
   <string name="reading_list_prompt_turned_sync_on_dialog_text">လိက်ပရေင် မဂိုင်သိပ် ပ္ဍဲ စရင် လိက်ဗွဟ်ဂှ် လၟုဟ်ပချဳဓရာင် ပ္ဍဲအကံက် ဝဳကဳပဳဒဳယာ မၞး ဂွံရ၊၊ &lt;a href=\"#faq\"&gt;ဆက် ဗှ်&lt;/a&gt;</string>
@@ -983,7 +978,6 @@
   <string name="talk_reply_hint">ကလေင်ချူပတိုန်ထ္ၜး လညာတ်</string>
   <string name="talk_message_hint">ချူ လညာတ်</string>
   <string name="menu_option_share_edit">ပါ်ပရအ် ပလေဝ်ဒါန်</string>
-  <string name="menu_option_user_profile">စရင်သ္ၚိဇကု %s\'ဂမၠိုင်</string>
   <string name="menu_option_user_contributions">မကၠောန်လဝ် %sဂမၠိုင်</string>
   <string name="watchlist_details_watching_label">ဗဵု</string>
   <string name="watchlist_details_watch_label">မင်မဲ</string>

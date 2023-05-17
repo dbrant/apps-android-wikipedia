@@ -1,59 +1,64 @@
 package org.wikipedia.watchlist
 
+import android.content.Context
 import android.os.Bundle
 import android.view.*
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import androidx.appcompat.view.ActionMode
+import androidx.core.view.MenuItemCompat
+import androidx.core.view.MenuProvider
+import androidx.core.view.isVisible
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
-import org.wikipedia.analytics.WatchlistFunnel
+import org.wikipedia.analytics.eventplatform.WatchlistAnalyticsHelper
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.databinding.FragmentWatchlistBinding
-import org.wikipedia.dataclient.ServiceFactory
-import org.wikipedia.dataclient.WikiSite
-import org.wikipedia.dataclient.mwapi.MwQueryResponse
+import org.wikipedia.databinding.ViewWatchlistSearchBarBinding
 import org.wikipedia.dataclient.mwapi.MwQueryResult
 import org.wikipedia.diff.ArticleEditDetailsActivity
-import org.wikipedia.language.AppLanguageLookUpTable
+import org.wikipedia.history.HistoryEntry
+import org.wikipedia.history.SearchActionModeCallback
 import org.wikipedia.notifications.NotificationActivity
-import org.wikipedia.page.Namespace
+import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
-import org.wikipedia.staticdata.UserTalkAliasData
-import org.wikipedia.talk.TalkTopicsActivity
-import org.wikipedia.util.DateUtil
-import org.wikipedia.util.FeedbackUtil
-import org.wikipedia.util.ResourceUtil
-import org.wikipedia.util.log.L
+import org.wikipedia.staticdata.UserAliasData
+import org.wikipedia.talk.UserTalkPopupHelper
+import org.wikipedia.util.*
 import org.wikipedia.views.NotificationButtonView
+import org.wikipedia.views.SearchAndFilterActionProvider
 import java.util.*
-import kotlin.collections.ArrayList
 
-class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistItemView.Callback, WatchlistLanguagePopupView.Callback {
+class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
     private var _binding: FragmentWatchlistBinding? = null
 
     private lateinit var notificationButtonView: NotificationButtonView
+    private var actionMode: ActionMode? = null
+    private val viewModel: WatchlistViewModel by viewModels()
+    private val searchActionModeCallback = SearchCallback()
     private val binding get() = _binding!!
-    private val disposables = CompositeDisposable()
-    private val totalItems = ArrayList<MwQueryResult.WatchlistItem>()
-    private var filterMode = FILTER_MODE_ALL
-    private var displayLanguages = listOf<String>()
-    private val funnel = WatchlistFunnel()
+
+    private val resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        updateDisplayLanguages()
+        viewModel.fetchWatchlist(actionMode == null)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         super.onCreateView(inflater, container, savedInstanceState)
         _binding = FragmentWatchlistBinding.inflate(inflater, container, false)
 
-        (requireActivity() as AppCompatActivity).supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         (requireActivity() as AppCompatActivity).supportActionBar!!.title = getString(R.string.watchlist_title)
 
         return binding.root
@@ -61,38 +66,54 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
-        binding.watchlistRefreshView.setColorSchemeResources(ResourceUtil.getThemedAttributeId(requireContext(), R.attr.colorAccent))
-        binding.watchlistRefreshView.setOnRefreshListener { fetchWatchlist(true) }
+        binding.watchlistRefreshView.setColorSchemeResources(ResourceUtil.getThemedAttributeId(requireContext(), R.attr.progressive_color))
+        binding.watchlistRefreshView.setOnRefreshListener { viewModel.fetchWatchlist(actionMode == null) }
+        binding.watchlistErrorView.retryClickListener = View.OnClickListener { viewModel.fetchWatchlist(actionMode == null) }
 
         binding.watchlistRecyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         notificationButtonView = NotificationButtonView(requireActivity())
         updateDisplayLanguages()
-        fetchWatchlist(false)
 
-        funnel.logOpenWatchlist()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                viewModel.uiState.collect {
+                    when (it) {
+                        is WatchlistViewModel.UiState.Loading -> onLoading()
+                        is WatchlistViewModel.UiState.Success -> onSuccess()
+                        is WatchlistViewModel.UiState.Error -> onError(it.throwable)
+                    }
+                }
+            }
+        }
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        setHasOptionsMenu(true)
+    override fun onResume() {
+        super.onResume()
+        actionMode?.let {
+            viewModel.updateList(false)
+            if (SearchActionModeCallback.`is`(it)) {
+                searchActionModeCallback.refreshProvider()
+            }
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        disposables.clear()
         _binding = null
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_watchlist, menu)
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        super.onPrepareOptionsMenu(menu)
-        menu.findItem(R.id.menu_change_language).isVisible = WikipediaApp.getInstance().language().appLanguageCodes.size > 1
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        return false
+    }
 
+    override fun onPrepareMenu(menu: Menu) {
         val notificationMenuItem = menu.findItem(R.id.menu_notifications)
         if (AccountUtil.isLoggedIn) {
             notificationMenuItem.isVisible = true
@@ -112,17 +133,6 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
         updateNotificationDot(false)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menu_change_language -> {
-                val overflowView = WatchlistLanguagePopupView(requireContext())
-                overflowView.show(ActivityCompat.requireViewById(requireActivity(), R.id.menu_change_language), this)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
     fun updateNotificationDot(animate: Boolean) {
         if (AccountUtil.isLoggedIn && Prefs.notificationUnreadCount > 0) {
             notificationButtonView.setUnreadCount(Prefs.notificationUnreadCount)
@@ -135,103 +145,48 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
     }
 
     private fun updateDisplayLanguages() {
-        displayLanguages = WikipediaApp.getInstance().language().appLanguageCodes.filterNot { Prefs.watchlistDisabledLanguages.contains(it) }
+        viewModel.displayLanguages = WikipediaApp.instance.languageState.appLanguageCodes.filterNot { Prefs.watchlistExcludedWikiCodes.contains(it) }
     }
 
-    private fun fetchWatchlist(refreshing: Boolean) {
-        disposables.clear()
+    private fun onLoading() {
         binding.watchlistEmptyContainer.visibility = View.GONE
         binding.watchlistRecyclerView.visibility = View.GONE
         binding.watchlistErrorView.visibility = View.GONE
-
-        if (!AccountUtil.isLoggedIn) {
-            return
-        }
-
-        if (displayLanguages.isEmpty()) {
-            binding.watchlistEmptyContainer.visibility = View.VISIBLE
-            binding.watchlistProgressBar.visibility = View.GONE
-            return
-        }
-
-        if (!refreshing) {
-            binding.watchlistProgressBar.visibility = View.VISIBLE
-        }
-
-        val calls = ArrayList<Observable<MwQueryResponse>>()
-
-        displayLanguages.forEach {
-            calls.add(ServiceFactory.get(WikiSite.forLanguageCode(it)).watchlist
-                    .subscribeOn(Schedulers.io()))
-        }
-
-        disposables.add(Observable.zip(calls) { resultList ->
-                    val items = ArrayList<MwQueryResult.WatchlistItem>()
-                    resultList.forEachIndexed { index, result ->
-                        val wiki = WikiSite.forLanguageCode(displayLanguages[index])
-                        (result as MwQueryResponse).query?.watchlist?.forEach { item ->
-                            item.wiki = wiki
-                            items.add(item)
-                        }
-                    }
-                    items
-                }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doAfterTerminate {
-                    binding.watchlistRefreshView.isRefreshing = false
-                    binding.watchlistProgressBar.visibility = View.GONE
-                }
-                .subscribe({ items ->
-                    onSuccess(items)
-                }, { t ->
-                    L.e(t)
-                    onError(t)
-                }))
+        binding.watchlistProgressBar.isVisible = !binding.watchlistRefreshView.isRefreshing
     }
 
-    private fun onSuccess(watchlistItems: List<MwQueryResult.WatchlistItem>) {
-        totalItems.clear()
-        totalItems.addAll(watchlistItems)
-        totalItems.sortByDescending { it.date }
-        onUpdateList(totalItems)
+    private fun onSuccess() {
+        binding.watchlistErrorView.visibility = View.GONE
+        binding.watchlistRefreshView.isRefreshing = false
+        binding.watchlistProgressBar.visibility = View.GONE
+        binding.watchlistRecyclerView.adapter = RecyclerAdapter(viewModel.finalList)
+        WatchlistAnalyticsHelper.logWatchlistItemCountOnLoad(requireContext(), viewModel.finalList.size)
+        binding.watchlistRecyclerView.visibility = View.VISIBLE
+
+        if (viewModel.finalList.filterNot { it == "" }.isEmpty()) {
+            binding.watchlistEmptyContainer.visibility = if (actionMode == null && viewModel.filtersCount() == 0) View.VISIBLE else View.GONE
+            binding.watchlistSearchEmptyContainer.visibility = if (viewModel.filtersCount() != 0) View.VISIBLE else View.GONE
+            binding.watchlistSearchEmptyText.visibility = if (actionMode != null) View.VISIBLE else View.GONE
+            setUpEmptySearchMessage()
+        } else {
+            binding.watchlistEmptyContainer.visibility = View.GONE
+            binding.watchlistSearchEmptyContainer.visibility = View.GONE
+            binding.watchlistSearchEmptyText.visibility = View.GONE
+        }
     }
 
     private fun onError(t: Throwable) {
+        binding.watchlistRefreshView.isRefreshing = false
+        binding.watchlistProgressBar.visibility = View.GONE
         binding.watchlistErrorView.setError(t)
         binding.watchlistErrorView.visibility = View.VISIBLE
     }
 
-    private fun onUpdateList(watchlistItems: List<MwQueryResult.WatchlistItem>) {
-        val items = ArrayList<Any>()
-        items.add("") // placeholder for header
-
-        val calendar = Calendar.getInstance()
-        var curDay = -1
-
-        for (item in watchlistItems) {
-            if ((filterMode == FILTER_MODE_ALL) ||
-                    (filterMode == FILTER_MODE_PAGES && Namespace.of(item.ns).main()) ||
-                    (filterMode == FILTER_MODE_TALK && Namespace.of(item.ns).talk()) ||
-                    (filterMode == FILTER_MODE_OTHER && !Namespace.of(item.ns).main() && !Namespace.of(item.ns).talk())) {
-
-                calendar.time = item.date
-                if (calendar.get(Calendar.DAY_OF_YEAR) != curDay) {
-                    curDay = calendar.get(Calendar.DAY_OF_YEAR)
-                    items.add(item.date)
-                }
-
-                items.add(item)
-            }
-        }
-
-        if (filterMode == FILTER_MODE_ALL && items.size < 2) {
-            binding.watchlistRecyclerView.visibility = View.GONE
-            binding.watchlistEmptyContainer.visibility = View.VISIBLE
-        } else {
-            binding.watchlistEmptyContainer.visibility = View.GONE
-            binding.watchlistRecyclerView.adapter = RecyclerAdapter(items)
-            binding.watchlistRecyclerView.visibility = View.VISIBLE
+    private fun setUpEmptySearchMessage() {
+        val filtersStr = resources.getQuantityString(R.plurals.watchlist_number_of_filters, viewModel.filtersCount(), viewModel.filtersCount())
+        binding.watchlistEmptySearchMessage.text = StringUtil.fromHtml(getString(R.string.watchlist_empty_search_message, "<a href=\"#\">$filtersStr</a>"))
+        binding.watchlistEmptySearchMessage.movementMethod = LinkMovementMethodExt { _ ->
+            resultLauncher.launch(WatchlistFilterActivity.newIntent(requireContext()))
         }
     }
 
@@ -246,14 +201,38 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
     internal inner class WatchlistDateViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bindItem(date: Date) {
             val textView = itemView.findViewById<TextView>(R.id.dateText)
-            textView.text = DateUtil.getMonthOnlyDateString(date)
+            textView.text = DateUtil.getShortDateString(date)
         }
     }
 
-    internal inner class WatchlistHeaderViewHolder(view: WatchlistHeaderView) : RecyclerView.ViewHolder(view) {
-        fun bindItem() {
-            (itemView as WatchlistHeaderView).callback = this@WatchlistFragment
-            itemView.enableByFilterMode(filterMode)
+    inner class WatchlistSearchBarHolder constructor(private val itemBinding: ViewWatchlistSearchBarBinding) : RecyclerView.ViewHolder(itemBinding.root) {
+        init {
+            itemBinding.root.setCardBackgroundColor(ResourceUtil.getThemedColor(requireContext(), R.attr.background_color))
+
+            itemBinding.root.setOnClickListener {
+                if (actionMode == null) {
+                    actionMode = (requireActivity() as WatchlistActivity).startSupportActionMode(searchActionModeCallback)
+                    viewModel.updateList(false)
+                }
+            }
+
+            itemBinding.filterButton.setOnClickListener {
+                resultLauncher.launch(WatchlistFilterActivity.newIntent(it.context))
+            }
+
+            FeedbackUtil.setButtonLongPressToast(itemBinding.filterButton)
+        }
+
+        fun updateFilterIconAndCount() {
+            val filterCount = viewModel.filtersCount()
+            if (filterCount == 0) {
+                itemBinding.filterCount.visibility = View.GONE
+                ImageViewCompat.setImageTintList(itemBinding.filterButton, ResourceUtil.getThemedColorStateList(requireContext(), R.attr.primary_color))
+            } else {
+                itemBinding.filterCount.visibility = View.VISIBLE
+                itemBinding.filterCount.text = filterCount.toString()
+                ImageViewCompat.setImageTintList(itemBinding.filterButton, ResourceUtil.getThemedColorStateList(requireContext(), R.attr.progressive_color))
+            }
         }
     }
 
@@ -269,8 +248,8 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
         }
 
         override fun getItemViewType(position: Int): Int {
-            if (position == 0) {
-                return VIEW_TYPE_HEADER
+            if (position == 0 && actionMode == null) {
+                return VIEW_TYPE_SEARCH_BAR
             }
             return if (items[position] is Date) {
                 VIEW_TYPE_DATE
@@ -281,8 +260,8 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             return when (viewType) {
-                VIEW_TYPE_HEADER -> {
-                    WatchlistHeaderViewHolder(WatchlistHeaderView(requireContext()))
+                VIEW_TYPE_SEARCH_BAR -> {
+                    WatchlistSearchBarHolder(ViewWatchlistSearchBarBinding.inflate(layoutInflater, parent, false))
                 }
                 VIEW_TYPE_DATE -> {
                     WatchlistDateViewHolder(LayoutInflater.from(requireContext()).inflate(R.layout.item_watchlist_date, parent, false))
@@ -295,66 +274,89 @@ class WatchlistFragment : Fragment(), WatchlistHeaderView.Callback, WatchlistIte
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             when (holder) {
-                is WatchlistHeaderViewHolder -> {
-                    holder.bindItem()
-                }
-                is WatchlistDateViewHolder -> {
-                    holder.bindItem((items[position] as Date))
-                }
-                else -> {
-                    (holder as WatchlistItemViewHolder).bindItem((items[position] as MwQueryResult.WatchlistItem))
-                }
+                is WatchlistSearchBarHolder -> holder.updateFilterIconAndCount()
+                is WatchlistDateViewHolder -> holder.bindItem(items[position] as Date)
+                else -> (holder as WatchlistItemViewHolder).bindItem((items[position] as MwQueryResult.WatchlistItem))
             }
         }
     }
 
-    override fun onSelectFilterAll() {
-        filterMode = FILTER_MODE_ALL
-        onUpdateList(totalItems)
-    }
+    private inner class SearchCallback : SearchActionModeCallback() {
 
-    override fun onSelectFilterTalk() {
-        filterMode = FILTER_MODE_TALK
-        onUpdateList(totalItems)
-    }
+        var searchAndFilterActionProvider: SearchAndFilterActionProvider? = null
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            searchAndFilterActionProvider = SearchAndFilterActionProvider(requireContext(), searchHintString,
+                object : SearchAndFilterActionProvider.Callback {
+                    override fun onQueryTextChange(s: String) {
+                        onQueryChange(s)
+                    }
 
-    override fun onSelectFilterPages() {
-        filterMode = FILTER_MODE_PAGES
-        onUpdateList(totalItems)
-    }
+                    override fun onQueryTextFocusChange() {
+                    }
 
-    override fun onSelectFilterOther() {
-        filterMode = FILTER_MODE_OTHER
-        onUpdateList(totalItems)
-    }
+                    override fun onFilterIconClick() {
+                        DeviceUtil.hideSoftKeyboard(requireActivity())
+                        startActivity(WatchlistFilterActivity.newIntent(requireContext()))
+                    }
 
-    override fun onLanguageChanged() {
-        updateDisplayLanguages()
-        funnel.logChangeLanguage(displayLanguages)
-        fetchWatchlist(false)
+                    override fun getExcludedFilterCount(): Int {
+                        return viewModel.filtersCount()
+                    }
+
+                    override fun getFilterIconContentDescription(): Int {
+                        return R.string.watchlist_search_bar_filter_hint
+                    }
+                })
+
+            val menuItem = menu.add(searchHintString)
+
+            MenuItemCompat.setActionProvider(menuItem, searchAndFilterActionProvider)
+
+            actionMode = mode
+            return super.onCreateActionMode(mode, menu)
+        }
+
+        override fun onQueryChange(s: String) {
+            viewModel.updateSearchQuery(s.trim())
+            viewModel.updateList(false)
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode) {
+            super.onDestroyActionMode(mode)
+            actionMode = null
+            viewModel.updateSearchQuery(null)
+            viewModel.updateList(true)
+        }
+
+        override fun getSearchHintString(): String {
+            return getString(R.string.watchlist_search)
+        }
+
+        override fun getParentContext(): Context {
+            return requireContext()
+        }
+
+        fun refreshProvider() {
+            searchAndFilterActionProvider?.updateFilterIconAndText()
+        }
     }
 
     override fun onItemClick(item: MwQueryResult.WatchlistItem) {
         if (item.logtype.isNotEmpty()) {
             return
         }
-        startActivity(ArticleEditDetailsActivity.newIntent(requireContext(), item.title,
-                item.revid, item.wiki!!.languageCode))
+        startActivity(ArticleEditDetailsActivity.newIntent(requireContext(),
+                PageTitle(item.title, item.wiki!!), item.pageId, item.revid))
     }
 
-    override fun onUserClick(item: MwQueryResult.WatchlistItem) {
-        startActivity(TalkTopicsActivity.newIntent(requireContext(),
-                PageTitle(UserTalkAliasData.valueFor(AppLanguageLookUpTable.FALLBACK_LANGUAGE_CODE) + ":" + item.user, item.wiki!!),
-                Constants.InvokeSource.WATCHLIST_ACTIVITY))
+    override fun onUserClick(item: MwQueryResult.WatchlistItem, view: View) {
+        UserTalkPopupHelper.show(requireActivity() as AppCompatActivity,
+                PageTitle(UserAliasData.valueFor(item.wiki!!.languageCode), item.user, item.wiki!!),
+            item.isAnon, view, Constants.InvokeSource.WATCHLIST_ACTIVITY, HistoryEntry.SOURCE_WATCHLIST, revisionId = item.revid, pageId = item.pageId)
     }
 
     companion object {
-        const val FILTER_MODE_ALL = 0
-        const val FILTER_MODE_TALK = 1
-        const val FILTER_MODE_PAGES = 2
-        const val FILTER_MODE_OTHER = 3
-
-        const val VIEW_TYPE_HEADER = 0
+        const val VIEW_TYPE_SEARCH_BAR = 0
         const val VIEW_TYPE_DATE = 1
         const val VIEW_TYPE_ITEM = 2
 
