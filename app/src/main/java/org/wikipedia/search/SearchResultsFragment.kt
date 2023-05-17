@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.ViewCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -227,9 +228,11 @@ class SearchResultsFragment : Fragment() {
             }
 
             if (type === SearchResult.SearchResultType.SEARCH) {
-                itemBinding.pageListIcon.visibility = View.GONE
+                itemBinding.pageListIcon.isVisible = false
+                itemBinding.infoButton.isVisible = true
             } else {
-                itemBinding.pageListIcon.visibility = View.VISIBLE
+                itemBinding.infoButton.isVisible = false
+                itemBinding.pageListIcon.isVisible = true
                 itemBinding.pageListIcon.setImageResource(if (type === SearchResult.SearchResultType.HISTORY) R.drawable.ic_history_24 else if (type === SearchResult.SearchResultType.TAB_LIST) R.drawable.ic_tab_one_24px else R.drawable.ic_bookmark_white_24dp)
             }
             // highlight search term within the text

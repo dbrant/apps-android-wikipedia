@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -220,7 +219,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
                 valueText.visibility = View.VISIBLE
                 valueImage.visibility = View.GONE
             }
-            itemView.setBackgroundColor(ContextCompat.getColor(requireContext(), if (position % 2 == 0) R.color.gray200 else android.R.color.transparent))
+            itemView.setBackgroundColor(ResourceUtil.getThemedColor(requireContext(), if (position % 2 == 0) R.attr.background_color else R.attr.paper_color))
         }
     }
 
