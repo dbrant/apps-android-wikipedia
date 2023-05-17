@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="27dp"
-    android:background="?attr/chip_background_color"
+    android:background="?attr/border_color"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -21,7 +21,7 @@
         android:paddingTop="8dp">
 
         <include
-            android:id="@+id/year_layout"
+            android:id="@+id/otdEventLayout"
             layout="@layout/view_on_this_day_event" />
     </FrameLayout>
 </LinearLayout>

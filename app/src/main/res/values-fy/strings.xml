@@ -42,7 +42,7 @@
   <string name="dialog_message_clear_history_no">Nee</string>
   <string name="share_via">Diele fia</string>
   <string name="image_share_via">Diele fia</string>
-  <string name="search_redirect_from">Trochwiisd fan %s</string>
+  <string name="search_redirect_from">Trochferwiisd fan %s</string>
   <string name="menu_page_show_tabs">Tabblêden werjaan</string>
   <string name="menu_page_other_languages">Taal feroarje</string>
   <string name="menu_page_find_in_page">Yn artikel sykje</string>
@@ -394,10 +394,6 @@
     <item quantity="one">%1$d fan 1 artikel ôfline beskikber, %3$.2f MB</item>
     <item quantity="other">%1$d fan %2$d artikels ôfline beskikber, %3$.2f MB</item>
   </plurals>
-  <string name="format_reading_list_statistical_summary_singular">1 artikel, %1$.2f MB</string>
-  <string name="format_reading_list_statistical_summary_plural">%1$d artikels, %2$.2f MB</string>
-  <string name="format_reading_list_statistical_detail_singular">%1$d fan 1 artikel ôfline beskikber, %2$.2f MB</string>
-  <string name="format_reading_list_statistical_detail_plural">%1$d fan %2$d artikels ôfline beskikber, %3$.2f MB</string>
   <string name="reading_list_sort">Sortearje</string>
   <string name="reading_list_sort_ellipsis">Sortearje op …</string>
   <string name="reading_list_sort_by_name">Sortearje op namme</string>
@@ -938,7 +934,6 @@
   <string name="talk_message_empty">It berjocht kin net leech wêze.</string>
   <string name="talk_subject_empty">It ûnderwerp kin net leech wêze.</string>
   <string name="menu_option_share_edit">Bewurking diele</string>
-  <string name="menu_option_user_profile">Meidoggerside %s</string>
   <string name="menu_option_user_contributions">Bydragen fan %s</string>
   <string name="watchlist_details_watching_label">Folge</string>
   <string name="watchlist_details_watch_label">Folgje</string>

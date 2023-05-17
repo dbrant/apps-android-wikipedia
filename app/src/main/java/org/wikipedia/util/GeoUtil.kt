@@ -7,9 +7,9 @@ import android.location.Location
 import android.net.Uri
 import org.wikipedia.R
 import org.wikipedia.feed.announcement.GeoIPCookieUnmarshaller
+import org.wikipedia.settings.Prefs
 
 object GeoUtil {
-    @JvmStatic
     fun sendGeoIntent(activity: Activity,
                       location: Location,
                       placeName: String?) {
@@ -25,10 +25,13 @@ object GeoUtil {
         }
     }
 
-    @JvmStatic
-    val geoIPCountry: String?
+    val geoIPCountry
         get() = try {
-            GeoIPCookieUnmarshaller.unmarshal().country()
+            if (!Prefs.geoIPCountryOverride.isNullOrEmpty()) {
+                Prefs.geoIPCountryOverride
+            } else {
+                GeoIPCookieUnmarshaller.unmarshal().country()
+            }
         } catch (e: IllegalArgumentException) {
             // For our purposes, don't care about malformations in the GeoIP cookie for now.
             null

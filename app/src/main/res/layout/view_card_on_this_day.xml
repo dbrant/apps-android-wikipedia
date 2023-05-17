@@ -24,14 +24,14 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
             android:layout_marginEnd="12dp"
-            android:background="?attr/chip_background_color"
+            android:background="?attr/border_color"
             android:clipChildren="false"
             android:clipToPadding="false"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
             <FrameLayout
-                android:id="@+id/click_container"
+                android:id="@+id/on_this_day_card_view_click_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="1dp"

@@ -2,17 +2,17 @@ package org.wikipedia.feed.configure
 
 import android.os.Bundle
 import android.view.*
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
-import org.wikipedia.analytics.FeedConfigureFunnel
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.databinding.FragmentFeedConfigureBinding
 import org.wikipedia.dataclient.ServiceFactory
@@ -25,22 +25,20 @@ import org.wikipedia.views.DefaultViewHolder
 import org.wikipedia.views.DrawableItemDecoration
 import java.util.*
 
-class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
+class ConfigureFragment : Fragment(), MenuProvider, ConfigureItemView.Callback {
 
     private var _binding: FragmentFeedConfigureBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var itemTouchHelper: ItemTouchHelper
-    private lateinit var funnel: FeedConfigureFunnel
     private val orderedContentTypes = mutableListOf<FeedContentType>()
     private val disposables = CompositeDisposable()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentFeedConfigureBinding.inflate(inflater, container, false)
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         setupRecyclerView()
-        funnel = FeedConfigureFunnel(WikipediaApp.getInstance(), WikipediaApp.getInstance().wikiSite,
-            requireActivity().intent.getIntExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE, -1))
 
         disposables.add(ServiceFactory.getRest(WikiSite("wikimedia.org")).feedAvailability
             .subscribeOn(Schedulers.io())
@@ -74,11 +72,6 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setHasOptionsMenu(true)
-    }
-
     override fun onPause() {
         super.onPause()
         FeedContentType.saveState()
@@ -86,17 +79,14 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
 
     override fun onDestroyView() {
         disposables.clear()
-        if (orderedContentTypes.isNotEmpty()) {
-            funnel.done(orderedContentTypes)
-        }
         super.onDestroyView()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_feed_configure, menu)
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.menu_feed_configure, menu)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    override fun onMenuItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_feed_configure_select_all -> {
                 FeedContentType.values().map { it.isEnabled = true }
@@ -117,7 +107,7 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
                 touch()
                 true
             }
-            else -> super.onOptionsItemSelected(item)
+            else -> false
         }
     }
 
@@ -141,7 +131,7 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
             if (supportedLanguages.isEmpty()) {
                 continue
             }
-            val atLeastOneSupported = WikipediaApp.getInstance().language().appLanguageCodes.any { supportedLanguages.contains(it) }
+            val atLeastOneSupported = WikipediaApp.instance.languageState.appLanguageCodes.any { supportedLanguages.contains(it) }
             if (!atLeastOneSupported) {
                 i.remove()
             }
@@ -154,7 +144,7 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
         val adapter = ConfigureItemAdapter()
         binding.contentTypesRecycler.adapter = adapter
         binding.contentTypesRecycler.layoutManager = LinearLayoutManager(activity)
-        binding.contentTypesRecycler.addItemDecoration(DrawableItemDecoration(requireContext(), R.attr.list_separator_drawable))
+        binding.contentTypesRecycler.addItemDecoration(DrawableItemDecoration(requireContext(), R.attr.list_divider))
         itemTouchHelper = ItemTouchHelper(RearrangeableItemTouchHelperCallback(adapter))
         itemTouchHelper.attachToRecyclerView(binding.contentTypesRecycler)
     }
@@ -181,6 +171,7 @@ class ConfigureFragment : Fragment(), ConfigureItemView.Callback {
 
     private inner class ConfigureItemHolder constructor(itemView: ConfigureItemView) : DefaultViewHolder<ConfigureItemView>(itemView) {
         fun bindItem(contentType: FeedContentType) {
+            view.contentDescription = getString(contentType.titleId) + ", " + getString(contentType.subtitleId)
             view.setContents(contentType)
         }
     }

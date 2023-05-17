@@ -2,9 +2,11 @@ package org.wikipedia.dataclient.mwapi
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.wikipedia.dataclient.growthtasks.GrowthImageSuggestion
 import org.wikipedia.dataclient.page.Protection
 import org.wikipedia.gallery.ImageInfo
 import org.wikipedia.page.Namespace
+import org.wikipedia.util.DateUtil
 
 @Serializable
 class MwQueryPage {
@@ -14,12 +16,12 @@ class MwQueryPage {
     @SerialName("videoinfo") private val videoInfo: List<ImageInfo>? = null
     @SerialName("watchlistexpiry") private val watchlistExpiry: String? = null
     @SerialName("pageviews") val pageViewsMap: Map<String, Long?> = emptyMap()
-    @SerialName("imagelabels") val imageLabels: List<ImageLabel> = emptyList()
     @SerialName("pageid") val pageId = 0
     @SerialName("pageprops") val pageProps: PageProps? = null
+    @SerialName("entityterms") val entityTerms: EntityTerms? = null
 
     private val ns = 0
-    private var coordinates: List<Coordinates>? = null
+    val coordinates: List<Coordinates>? = null
     private val thumbnail: Thumbnail? = null
     private val varianttitles: Map<String, String>? = null
     private val actions: Map<String, List<MwServiceError>>? = null
@@ -28,7 +30,6 @@ class MwQueryPage {
     var title: String = ""
     val langlinks: List<LangLink> = emptyList()
     val revisions: List<Revision> = emptyList()
-    val categories: List<Category>? = null
     val protection: List<Protection> = emptyList()
     val extract: String? = null
     val description: String? = null
@@ -39,15 +40,13 @@ class MwQueryPage {
     val watched = false
     val lastrevid: Long = 0
 
+    val tasktype: String? = null
+    val difficulty: String? = null
+    val qualityGateIds: List<String>? = null
+    val growthimagesuggestiondata: List<GrowthImageSuggestion>? = null
+
     fun namespace(): Namespace {
         return Namespace.of(ns)
-    }
-
-    fun coordinates(): List<Coordinates>? {
-        // TODO: Handle null values in lists during deserialization, perhaps with a new
-        // @RequiredElements annotation and corresponding TypeAdapter
-        coordinates = coordinates?.filterNotNull()
-        return coordinates
     }
 
     fun thumbUrl(): String? {
@@ -79,19 +78,22 @@ class MwQueryPage {
 
     @Serializable
     class Revision {
-
-        @SerialName("contentformat") private val contentFormat: String? = null
-        @SerialName("contentmodel") private val contentModel: String? = null
-        @SerialName("timestamp") val timeStamp: String = ""
-
         private val slots: Map<String, RevisionSlot>? = null
-        private val minor = false
+        val minor = false
         @SerialName("revid") val revId: Long = 0
         @SerialName("parentid") val parentRevId: Long = 0
         @SerialName("anon") val isAnon = false
+        @SerialName("timestamp") val timeStamp: String = ""
+        val size = 0
         val user: String = ""
-        val content: String = ""
         val comment: String = ""
+        val parsedcomment: String = ""
+
+        val contentMain get() = getContentFromSlot("main")
+
+        var diffSize = 0
+
+        val localDateTime by lazy { DateUtil.iso8601LocalDateTimeParse(timeStamp) }
 
         fun getContentFromSlot(slot: String): String {
             return slots?.get(slot)?.content.orEmpty()
@@ -107,7 +109,7 @@ class MwQueryPage {
     class LangLink(val lang: String = "", val title: String = "")
 
     @Serializable
-    class Coordinates(val lat: Double? = null, val lon: Double? = null)
+    class Coordinates(val lat: Double = 0.0, val lon: Double = 0.0)
 
     @Serializable
     internal class Thumbnail(val source: String? = null,
@@ -123,31 +125,9 @@ class MwQueryPage {
     }
 
     @Serializable
-    class Category(val ns: Int = 0, val title: String = "", val hidden: Boolean = false)
-
-    @Serializable
-    class ImageLabel {
-
-        @SerialName("wikidata_id") var wikidataId: String? = ""
-        private val confidence: Confidence? = null
-        val state: String = ""
-        var label: String = ""
-        var description: String? = ""
-        var isSelected = false
-        var isCustom = false
-
-        constructor()
-        constructor(wikidataId: String, label: String, description: String?) {
-            this.wikidataId = wikidataId
-            this.label = label
-            this.description = description
-            isCustom = true
-        }
-
-        val confidenceScore: Float
-            get() = confidence?.google ?: 0f
+    class EntityTerms {
+        val alias: List<String> = emptyList()
+        val label: List<String> = emptyList()
+        val description: List<String> = emptyList()
     }
-
-    @Serializable
-    class Confidence(val google: Float = 0f)
 }

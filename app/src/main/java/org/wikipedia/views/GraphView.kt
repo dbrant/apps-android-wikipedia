@@ -9,8 +9,8 @@ import org.wikipedia.R
 import org.wikipedia.util.ResourceUtil
 
 class GraphView(context: Context, attributeSet: AttributeSet) : View(context, attributeSet) {
-    private val gradientColor1 = ResourceUtil.getThemedColor(context, R.attr.colorAccent)
-    private val gradientColor2 = ContextCompat.getColor(context, R.color.green50)
+    private val gradientColor1 = ResourceUtil.getThemedColor(context, R.attr.progressive_color)
+    private val gradientColor2 = ContextCompat.getColor(context, R.color.green600)
     private val dataSet = mutableListOf<Float>()
     private var maxX = 0f
     private var maxY = 0f
@@ -24,9 +24,14 @@ class GraphView(context: Context, attributeSet: AttributeSet) : View(context, at
         isAntiAlias = true
     }
 
+    init {
+        // The y = 0 is on the top of the canvas.
+        scaleY = -1f
+    }
+
     fun setData(list: List<Float>) {
         maxX = list.size.toFloat()
-        maxY = list.maxByOrNull { it } ?: 0f
+        maxY = list.maxOrNull() ?: 0f
         dataSet.clear()
         dataSet.addAll(list)
         invalidate()

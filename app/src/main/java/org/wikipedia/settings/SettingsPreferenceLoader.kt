@@ -2,14 +2,13 @@ package org.wikipedia.settings
 
 import android.content.DialogInterface
 import android.content.Intent
-import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
-import org.wikipedia.analytics.LoginFunnel
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.feed.configure.ConfigureActivity
 import org.wikipedia.login.LoginActivity
@@ -21,12 +20,12 @@ import org.wikipedia.theme.ThemeFittingRoomActivity
 internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : BasePreferenceLoader(fragment) {
     override fun loadPreferences() {
         loadPreferences(R.xml.preferences)
-        if (ReadingListSyncAdapter.isDisabledByRemoteConfig) {
+        if (RemoteConfig.config.disableReadingListSync) {
             findPreference(R.string.preference_category_sync).isVisible = false
             findPreference(R.string.preference_key_sync_reading_lists).isVisible = false
         }
         findPreference(R.string.preference_key_sync_reading_lists).onPreferenceChangeListener = SyncReadingListsListener()
-        findPreference(R.string.preference_key_eventlogging_opt_in).onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _: Preference, newValue: Any ->
+        findPreference(R.string.preference_key_eventlogging_opt_in).onPreferenceChangeListener = Preference.OnPreferenceChangeListener { preference: Preference, newValue: Any ->
             if (!(newValue as Boolean)) {
                 Prefs.appInstallId = null
             }
@@ -45,7 +44,7 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
             true
         }
         findPreference(R.string.preference_key_color_theme).let {
-            it.setSummary(WikipediaApp.getInstance().currentTheme.nameId)
+            it.setSummary(WikipediaApp.instance.currentTheme.nameId)
             it.onPreferenceClickListener = Preference.OnPreferenceClickListener {
                 activity.startActivity(ThemeFittingRoomActivity.newIntent(activity))
                 true
@@ -64,7 +63,7 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
 
     fun updateLanguagePrefSummary() {
         // TODO: resolve RTL vs LTR with multiple languages (e.g. list contains English and Hebrew)
-        findPreference(R.string.preference_key_language).summary = WikipediaApp.getInstance().language().appLanguageLocalizedNames
+        findPreference(R.string.preference_key_language).summary = WikipediaApp.instance.languageState.appLanguageLocalizedNames
     }
 
     private inner class SyncReadingListsListener : Preference.OnPreferenceChangeListener {
@@ -74,7 +73,7 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
                     (preference as SwitchPreferenceCompat).isChecked = true
                     ReadingListSyncAdapter.setSyncEnabledWithSetup()
                 } else {
-                    AlertDialog.Builder(activity)
+                    MaterialAlertDialogBuilder(activity)
                             .setTitle(activity.getString(R.string.preference_dialog_of_turning_off_reading_list_sync_title, AccountUtil.userName))
                             .setMessage(activity.getString(R.string.preference_dialog_of_turning_off_reading_list_sync_text, AccountUtil.userName))
                             .setPositiveButton(R.string.reading_lists_confirm_remote_delete_yes, DeleteRemoteListsYesListener(preference))
@@ -82,13 +81,13 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
                             .show()
                 }
             } else {
-                AlertDialog.Builder(activity)
+                MaterialAlertDialogBuilder(activity)
                         .setTitle(R.string.reading_list_preference_login_to_enable_sync_dialog_title)
                         .setMessage(R.string.reading_list_preference_login_to_enable_sync_dialog_text)
                         .setPositiveButton(R.string.reading_list_preference_login_to_enable_sync_dialog_login
                         ) { _: DialogInterface, _: Int ->
                             val loginIntent = LoginActivity.newIntent(activity,
-                                    LoginFunnel.SOURCE_SETTINGS)
+                                    LoginActivity.SOURCE_SETTINGS)
                             activity.startActivity(loginIntent)
                         }
                         .setNegativeButton(R.string.reading_list_preference_login_to_enable_sync_dialog_cancel, null)

@@ -5,9 +5,9 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.auth.AccountUtil
@@ -28,13 +28,13 @@ class LogoutPreference : Preference {
         super.onBindViewHolder(holder)
         holder.itemView.isClickable = false
         holder.itemView.findViewById<TextView>(R.id.accountName).text = AccountUtil.userName
-        holder.itemView.findViewById<Button>(R.id.logoutButton).setOnClickListener {
+        holder.itemView.findViewById<Button>(R.id.logoutButton).setOnClickListener { view ->
             activity?.let {
-                AlertDialog.Builder(it)
+                MaterialAlertDialogBuilder(it)
                     .setMessage(R.string.logout_prompt)
                     .setNegativeButton(R.string.logout_dialog_cancel_button_text, null)
                     .setPositiveButton(R.string.preference_title_logout) { _, _ ->
-                        WikipediaApp.getInstance().logOut()
+                        WikipediaApp.instance.logOut()
                         Prefs.readingListsLastSyncTime = null
                         Prefs.isReadingListSyncEnabled = false
                         Prefs.isSuggestedEditsHighestPriorityEnabled = false

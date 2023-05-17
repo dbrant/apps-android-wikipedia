@@ -9,24 +9,17 @@ import android.graphics.drawable.ShapeDrawable.ShaderFactory
 import android.graphics.drawable.shapes.RectShape
 import android.view.Gravity
 import androidx.annotation.ColorInt
-import androidx.annotation.ColorRes
-import androidx.core.content.ContextCompat
-import org.wikipedia.WikipediaApp
+import androidx.core.graphics.component1
+import androidx.core.graphics.component2
+import androidx.core.graphics.component3
+import androidx.core.graphics.component4
 import kotlin.math.pow
 
 object GradientUtil {
     private const val GRADIENT_NUM_STOPS = 8
     private const val GRADIENT_POWER = 3
 
-    @JvmStatic
-    fun getPowerGradient(@ColorRes baseColor: Int, gravity: Int): Drawable {
-        val drawable = PaintDrawable()
-        drawable.shape = RectShape()
-        setPowerGradient(drawable, ContextCompat.getColor(WikipediaApp.getInstance(), baseColor), gravity)
-        return drawable
-    }
-
-    fun getPowerGradientInt(@ColorInt baseColor: Int, gravity: Int): Drawable {
+    fun getPowerGradient(@ColorInt baseColor: Int, gravity: Int): Drawable {
         val drawable = PaintDrawable()
         drawable.shape = RectShape()
         setPowerGradient(drawable, baseColor, gravity)
@@ -43,10 +36,7 @@ object GradientUtil {
      */
     private fun setPowerGradient(drawable: PaintDrawable, @ColorInt baseColor: Int, gravity: Int) {
         val stopColors = IntArray(GRADIENT_NUM_STOPS)
-        val red = Color.red(baseColor)
-        val green = Color.green(baseColor)
-        val blue = Color.blue(baseColor)
-        val alpha = Color.alpha(baseColor)
+        val (alpha, red, green, blue) = baseColor
         for (i in 0 until GRADIENT_NUM_STOPS) {
             val x = i * 1f / (GRADIENT_NUM_STOPS - 1)
             val opacity = (x.toDouble().pow(GRADIENT_POWER.toDouble())).toFloat().coerceIn(0.0f, 1.0f)

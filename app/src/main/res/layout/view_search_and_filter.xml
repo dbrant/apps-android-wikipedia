@@ -24,16 +24,16 @@
         app:defaultQueryHint="@string/notifications_search" />
 
     <TextView
-        android:id="@+id/notification_filter_count"
+        android:id="@+id/filter_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="14sp"
         android:textStyle="bold"
         android:layout_marginEnd="6dp"
-        android:textColor="?attr/colorAccent" />
+        android:textColor="?attr/progressive_color" />
 
     <ImageView
-        android:id="@+id/notification_filter_icon"
+        android:id="@+id/filter_icon"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="end"
@@ -43,5 +43,5 @@
         android:focusable="true"
         android:scaleType="center"
         app:srcCompat="@drawable/ic_baseline_tune_24"
-        app:tint="?attr/chip_text_color" />
+        app:tint="?attr/primary_color" />
 </LinearLayout>

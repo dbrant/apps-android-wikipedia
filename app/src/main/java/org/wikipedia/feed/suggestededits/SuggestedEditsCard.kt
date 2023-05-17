@@ -3,11 +3,14 @@ package org.wikipedia.feed.suggestededits
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.dataclient.WikiSite
+import org.wikipedia.dataclient.mwapi.MwQueryPage
 import org.wikipedia.feed.model.CardType
 import org.wikipedia.feed.model.WikiSiteCard
 import org.wikipedia.util.DateUtil
 
-class SuggestedEditsCard(wiki: WikiSite,
+class SuggestedEditsCard(val summaryList: List<SuggestedEditsFeedClient.SuggestedEditsSummary>?,
+                         val imageTagsPage: MwQueryPage?,
+                         wiki: WikiSite,
                          val age: Int) : WikiSiteCard(wiki) {
 
     override fun type(): CardType {
@@ -15,7 +18,7 @@ class SuggestedEditsCard(wiki: WikiSite,
     }
 
     override fun title(): String {
-        return WikipediaApp.getInstance().getString(R.string.suggested_edits_feed_card_title)
+        return WikipediaApp.instance.getString(R.string.suggested_edits_feed_card_title)
     }
 
     override fun subtitle(): String {
@@ -23,6 +26,6 @@ class SuggestedEditsCard(wiki: WikiSite,
     }
 
     fun footerActionText(): String {
-        return WikipediaApp.getInstance().getString(R.string.suggested_card_more_edits)
+        return WikipediaApp.instance.getString(R.string.suggested_card_more_edits)
     }
 }

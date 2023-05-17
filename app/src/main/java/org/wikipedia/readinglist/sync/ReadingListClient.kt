@@ -6,10 +6,10 @@ import org.wikipedia.dataclient.okhttp.HttpStatusException
 import org.wikipedia.readinglist.sync.SyncedReadingLists.*
 import retrofit2.Response
 import java.io.IOException
-import java.util.*
+import java.time.Instant
 
 class ReadingListClient(private val wiki: WikiSite) {
-    var lastDateHeader: String? = null
+    var lastDateHeader: Instant? = null
         private set
 
     /**
@@ -147,20 +147,13 @@ class ReadingListClient(private val wiki: WikiSite) {
 
     @Throws(Throwable::class)
     fun addPagesToList(csrfToken: String, listId: Long, entries: List<RemoteReadingListEntry>): List<Long> {
-        val maxBatchSize = 50
-        var batchIndex = 0
         val ids = mutableListOf<Long>()
-        val currentBatch = mutableListOf<RemoteReadingListEntry>()
-        while (true) {
-            currentBatch.clear()
-            while (batchIndex < entries.size && currentBatch.size < maxBatchSize) {
-                currentBatch.add(entries[batchIndex++])
-            }
-            if (currentBatch.isEmpty()) {
+        for (batch in entries.chunked(50)) {
+            if (batch.isEmpty()) {
                 break
             }
             try {
-                val response = ServiceFactory.getRest(wiki).addEntriesToReadingList(listId, csrfToken, RemoteReadingListEntryBatch(currentBatch)).execute()
+                val response = ServiceFactory.getRest(wiki).addEntriesToReadingList(listId, csrfToken, RemoteReadingListEntryBatch(batch)).execute()
                 val idResponse = response.body() ?: throw IOException("Incorrect response format.")
                 saveLastDateHeader(response)
                 for (id in idResponse.batch) {
@@ -195,7 +188,7 @@ class ReadingListClient(private val wiki: WikiSite) {
     }
 
     private fun saveLastDateHeader(response: Response<*>) {
-        lastDateHeader = response.headers()["date"]
+        lastDateHeader = response.headers().getInstant("date")
     }
 
     companion object {

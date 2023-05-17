@@ -1,18 +1,15 @@
 package org.wikipedia.feed.onthisday
 
 import android.app.Activity
+import android.app.ActivityOptions
 import android.content.Context
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityOptionsCompat
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
-import org.wikipedia.analytics.FeedFunnel
 import org.wikipedia.databinding.ViewCardOnThisDayBinding
-import org.wikipedia.feed.model.CardType
 import org.wikipedia.feed.view.CardFooterView
 import org.wikipedia.feed.view.DefaultFeedCardView
 import org.wikipedia.feed.view.FeedAdapter
@@ -31,18 +28,15 @@ import org.wikipedia.views.ImageZoomHelper
 class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(context), CardFooterView.Callback {
 
     private val binding = ViewCardOnThisDayBinding.inflate(LayoutInflater.from(context), this, true)
-    private val funnel = FeedFunnel(WikipediaApp.getInstance())
-    private val bottomSheetPresenter = ExclusiveBottomSheetPresenter()
     private var age = 0
 
     init {
-        binding.clickContainer.setOnClickListener { view -> onCardClicked(view) }
+        binding.onThisDayCardViewClickContainer.setOnClickListener { view -> onCardClicked(view) }
     }
 
     override fun onFooterClicked() {
         card?.let {
-            funnel.cardClicked(CardType.ON_THIS_DAY, it.wikiSite().languageCode)
-            val options = ActivityOptionsCompat.makeSceneTransitionAnimation((context as Activity),
+            val options = ActivityOptions.makeSceneTransitionAnimation(context as Activity,
                 binding.cardHeader.titleView, context.getString(R.string.transition_on_this_day))
             context.startActivity(OnThisDayActivity.newIntent(context, age, -1,
                 it.wikiSite(), InvokeSource.ON_THIS_DAY_CARD_FOOTER), options.toBundle())
@@ -90,8 +84,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
     private fun onCardClicked(view: View) {
         card?.let {
             val isYearClicked = view.id == R.id.year
-            funnel.cardClicked(CardType.ON_THIS_DAY, it.wikiSite().languageCode)
-            val options = ActivityOptionsCompat.makeSceneTransitionAnimation((context as Activity),
+            val options = ActivityOptions.makeSceneTransitionAnimation(context as Activity,
                 binding.cardHeader.titleView, context.getString(R.string.transition_on_this_day))
             context.startActivity(OnThisDayActivity.newIntent(context, age, if (isYearClicked) it.year() else -1, it.wikiSite(),
                     if (isYearClicked) InvokeSource.ON_THIS_DAY_CARD_YEAR else InvokeSource.ON_THIS_DAY_CARD_BODY), options.toBundle()
@@ -102,31 +95,31 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
     private fun updateOtdEventUI(card: OnThisDayCard) {
         binding.eventLayout.pagesPager.visibility = GONE
         card.pages()?.let { pages ->
-            binding.eventLayout.page.root.visibility = VISIBLE
+            binding.eventLayout.onThisDayPage.root.visibility = VISIBLE
             val chosenPage = pages.find { it.thumbnailUrl != null }
             chosenPage?.let { page ->
                 if (page.thumbnailUrl.isNullOrEmpty()) {
-                    binding.eventLayout.page.imageContainer.visibility = GONE
+                    binding.eventLayout.onThisDayPage.imageContainer.visibility = GONE
                 } else {
-                    binding.eventLayout.page.imageContainer.visibility = VISIBLE
-                    binding.eventLayout.page.image.loadImage(Uri.parse(page.thumbnailUrl))
-                    ImageZoomHelper.setViewZoomable(binding.eventLayout.page.image)
+                    binding.eventLayout.onThisDayPage.imageContainer.visibility = VISIBLE
+                    binding.eventLayout.onThisDayPage.image.loadImage(Uri.parse(page.thumbnailUrl))
+                    ImageZoomHelper.setViewZoomable(binding.eventLayout.onThisDayPage.image)
                 }
-                binding.eventLayout.page.description.text = page.description
-                binding.eventLayout.page.description.visibility =
+                binding.eventLayout.onThisDayPage.description.text = page.description
+                binding.eventLayout.onThisDayPage.description.visibility =
                     if (page.description.isNullOrEmpty()) GONE else VISIBLE
-                binding.eventLayout.page.title.maxLines =
+                binding.eventLayout.onThisDayPage.title.maxLines =
                     if (page.description.isNullOrEmpty()) 2 else 1
-                binding.eventLayout.page.title.text = StringUtil.fromHtml(page.displayTitle)
-                binding.eventLayout.page.root.setOnClickListener {
+                binding.eventLayout.onThisDayPage.title.text = StringUtil.fromHtml(page.displayTitle)
+                binding.eventLayout.onThisDayPage.root.setOnClickListener {
                     callback?.onSelectPage(card,
                         HistoryEntry(page.getPageTitle(card.wikiSite()), HistoryEntry.SOURCE_ON_THIS_DAY_CARD),
-                        TransitionUtil.getSharedElements(context, binding.eventLayout.page.image)
+                        TransitionUtil.getSharedElements(context, binding.eventLayout.onThisDayPage.image)
                     )
                 }
-                binding.eventLayout.page.root.setOnLongClickListener { view ->
+                binding.eventLayout.onThisDayPage.root.setOnLongClickListener { view ->
                     if (ImageZoomHelper.isZooming) {
-                        ImageZoomHelper.dispatchCancelEvent(binding.eventLayout.page.root)
+                        ImageZoomHelper.dispatchCancelEvent(binding.eventLayout.onThisDayPage.root)
                     } else {
                         val pageTitle = page.getPageTitle(card.wikiSite())
                         val entry = HistoryEntry(pageTitle, HistoryEntry.SOURCE_ON_THIS_DAY_CARD)
@@ -137,7 +130,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
                                     entry,
                                     TransitionUtil.getSharedElements(
                                         context,
-                                        binding.eventLayout.page.image
+                                        binding.eventLayout.onThisDayPage.image
                                     )
                                 )
                             }
@@ -152,7 +145,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
                                         context as AppCompatActivity, entry.title,
                                         InvokeSource.ON_THIS_DAY_CARD_BODY
                                     ) { readingListId ->
-                                        bottomSheetPresenter.show(
+                                        ExclusiveBottomSheetPresenter.show(
                                             (context as AppCompatActivity).supportFragmentManager,
                                             MoveToReadingListDialog.newInstance(
                                                 readingListId,
@@ -162,7 +155,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
                                         )
                                     }
                                 } else {
-                                    bottomSheetPresenter.show(
+                                    ExclusiveBottomSheetPresenter.show(
                                         (context as AppCompatActivity).supportFragmentManager,
                                         AddToReadingListDialog.newInstance(
                                             entry.title,
@@ -177,7 +170,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
                                 entry: HistoryEntry
                             ) {
                                 page?.let {
-                                    bottomSheetPresenter.show(
+                                    ExclusiveBottomSheetPresenter.show(
                                         (context as AppCompatActivity).supportFragmentManager,
                                         MoveToReadingListDialog.newInstance(
                                             it.listId,
@@ -193,7 +186,7 @@ class OnThisDayCardView(context: Context) : DefaultFeedCardView<OnThisDayCard>(c
                 }
             }
         } ?: run {
-            binding.eventLayout.page.root.visibility = GONE
+            binding.eventLayout.onThisDayPage.root.visibility = GONE
         }
     }
 }

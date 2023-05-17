@@ -1,7 +1,7 @@
 package org.wikipedia.history
 
-import android.app.AlertDialog
 import android.content.Context
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -13,16 +13,22 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMarginsRelative
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.wikipedia.BackPressedHandler
 import org.wikipedia.Constants
 import org.wikipedia.R
@@ -39,8 +45,10 @@ import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.log.L
-import org.wikipedia.views.*
-import java.util.*
+import org.wikipedia.views.DefaultViewHolder
+import org.wikipedia.views.PageItemView
+import org.wikipedia.views.SwipeableItemTouchHelperCallback
+import org.wikipedia.views.WikiCardView
 
 class HistoryFragment : Fragment(), BackPressedHandler {
     interface Callback {
@@ -85,11 +93,6 @@ class HistoryFragment : Fragment(), BackPressedHandler {
                 (requireActivity() as MainActivity).updateToolbarElevation(binding.historyList.computeVerticalScrollOffset() != 0)
             }
         })
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setHasOptionsMenu(true)
     }
 
     override fun onResume() {
@@ -138,10 +141,13 @@ class HistoryFragment : Fragment(), BackPressedHandler {
     }
 
     private fun onClearHistoryClick() {
-        disposables.add(AppDatabase.getAppDatabase().historyEntryDao().deleteAll()
-                .subscribeOn(Schedulers.io())
-                .doAfterTerminate { reloadHistoryItems() }
-                .subscribe())
+        lifecycleScope.launch {
+            try {
+                AppDatabase.instance.historyEntryDao().deleteAll()
+            } finally {
+                reloadHistoryItems()
+            }
+        }
     }
 
     private fun finishActionMode() {
@@ -174,7 +180,7 @@ class HistoryFragment : Fragment(), BackPressedHandler {
 
     fun refresh() {
         adapter.notifyDataSetChanged()
-        if (!WikipediaApp.getInstance().isOnline && Prefs.showHistoryOfflineArticlesToast) {
+        if (!WikipediaApp.instance.isOnline && Prefs.showHistoryOfflineArticlesToast) {
             Toast.makeText(requireContext(), R.string.history_offline_articles_toast, Toast.LENGTH_SHORT).show()
             Prefs.showHistoryOfflineArticlesToast = false
         }
@@ -187,9 +193,11 @@ class HistoryFragment : Fragment(), BackPressedHandler {
 
     private fun deleteSelectedPages() {
         val selectedEntryList = mutableListOf<HistoryEntry>()
-        for (entry in selectedEntries) {
-            selectedEntryList.add(entry)
-            AppDatabase.getAppDatabase().historyEntryDao().delete(entry)
+        selectedEntryList.addAll(selectedEntries)
+        runBlocking(Dispatchers.IO) {
+            for (entry in selectedEntries) {
+                AppDatabase.instance.historyEntryDao().delete(entry)
+            }
         }
         selectedEntries.clear()
         if (selectedEntryList.isNotEmpty()) {
@@ -200,17 +208,19 @@ class HistoryFragment : Fragment(), BackPressedHandler {
 
     private fun showDeleteItemsUndoSnackbar(entries: List<HistoryEntry>) {
         val message = if (entries.size == 1) getString(R.string.history_item_deleted, entries[0].title.displayText) else getString(R.string.history_items_deleted, entries.size)
-        val snackbar = FeedbackUtil.makeSnackbar(requireActivity(), message, FeedbackUtil.LENGTH_DEFAULT)
+        val snackbar = FeedbackUtil.makeSnackbar(requireActivity(), message)
         snackbar.setAction(R.string.history_item_delete_undo) {
-            AppDatabase.getAppDatabase().historyEntryDao().insert(entries)
-            reloadHistoryItems()
+            lifecycleScope.launch(Dispatchers.Main) {
+                AppDatabase.instance.historyEntryDao().insert(entries)
+                reloadHistoryItems()
+            }
         }
         snackbar.show()
     }
 
     private fun reloadHistoryItems() {
         disposables.clear()
-        disposables.add(Observable.fromCallable { AppDatabase.getAppDatabase().historyEntryWithImageDao().filterHistoryItems(currentSearchQuery.orEmpty()) }
+        disposables.add(Observable.fromCallable { AppDatabase.instance.historyEntryWithImageDao().filterHistoryItems(currentSearchQuery.orEmpty()) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ items -> onLoadItemsFinished(items) }) { t ->
@@ -262,7 +272,7 @@ class HistoryFragment : Fragment(), BackPressedHandler {
                         top = DimenUtil.roundedDpToPx(3f))
                 }
             }
-            searchCardView.setCardBackgroundColor(ResourceUtil.getThemedColor(requireContext(), R.attr.color_group_22))
+            searchCardView.setCardBackgroundColor(ResourceUtil.getThemedColor(requireContext(), R.attr.background_color))
         }
 
         init {
@@ -271,6 +281,7 @@ class HistoryFragment : Fragment(), BackPressedHandler {
             historyFilterButton = itemView.findViewById(R.id.history_filter)
             clearHistoryButton = itemView.findViewById(R.id.history_delete)
             searchCardView.setOnClickListener { (requireParentFragment() as MainFragment).openSearchActivity(Constants.InvokeSource.NAV_MENU, null, it) }
+            voiceSearchButton.isVisible = WikipediaApp.instance.voiceRecognitionAvailable
             voiceSearchButton.setOnClickListener { (requireParentFragment() as MainFragment).onFeedVoiceSearchRequested() }
             historyFilterButton.setOnClickListener {
                 if (actionMode == null) {
@@ -280,11 +291,11 @@ class HistoryFragment : Fragment(), BackPressedHandler {
             }
             clearHistoryButton.setOnClickListener {
                 if (selectedEntries.size == 0) {
-                    AlertDialog.Builder(requireContext())
+                    MaterialAlertDialogBuilder(requireContext())
                             .setTitle(R.string.dialog_title_clear_history)
                             .setMessage(R.string.dialog_message_clear_history)
                             .setPositiveButton(R.string.dialog_message_clear_history_yes) { _, _ -> onClearHistoryClick() }
-                            .setNegativeButton(R.string.dialog_message_clear_history_no, null).create().show()
+                            .setNegativeButton(R.string.dialog_message_clear_history_no, null).show()
                 } else {
                     deleteSelectedPages()
                 }
@@ -301,6 +312,7 @@ class HistoryFragment : Fragment(), BackPressedHandler {
             this.entry = entry
             view.item = entry
             view.setTitle(entry.title.displayText)
+            view.setTitleTypeface(Typeface.NORMAL)
             view.setDescription(entry.title.description)
             view.setImageUrl(entry.title.thumbUrl)
             view.isSelected = selectedEntries.contains(entry)
@@ -311,6 +323,8 @@ class HistoryFragment : Fragment(), BackPressedHandler {
             selectedEntries.add(entry)
             deleteSelectedPages()
         }
+
+        override fun isSwipeable(): Boolean { return true }
     }
 
     private inner class HistoryEntryItemAdapter : RecyclerView.Adapter<DefaultViewHolder<*>>() {

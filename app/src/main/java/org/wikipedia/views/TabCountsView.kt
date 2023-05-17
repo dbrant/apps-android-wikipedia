@@ -1,15 +1,12 @@
 package org.wikipedia.views
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.FrameLayout
-import androidx.annotation.ColorInt
-import androidx.core.view.ViewCompat
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.databinding.ViewTabsCountBinding
@@ -22,12 +19,12 @@ class TabCountsView constructor(context: Context, attrs: AttributeSet? = null) :
 
     init {
         layoutParams = ViewGroup.LayoutParams(DimenUtil.roundedDpToPx(48.0f), ViewGroup.LayoutParams.MATCH_PARENT)
-        setBackgroundResource(ResourceUtil.getThemedAttributeId(context, R.attr.selectableItemBackgroundBorderless))
+        setBackgroundResource(ResourceUtil.getThemedAttributeId(context, androidx.appcompat.R.attr.selectableItemBackgroundBorderless))
         isFocusable = true
     }
 
     fun updateTabCount(animation: Boolean) {
-        val count = WikipediaApp.getInstance().tabCount
+        val count = WikipediaApp.instance.tabCount
         binding.tabsCountText.text = count.toString()
 
         var tabTextSize = TAB_COUNT_TEXT_SIZE_MEDIUM
@@ -43,11 +40,6 @@ class TabCountsView constructor(context: Context, attrs: AttributeSet? = null) :
         if (animation) {
             startAnimation(AnimationUtils.loadAnimation(context, R.anim.tab_list_zoom_enter))
         }
-    }
-
-    fun setColor(@ColorInt color: Int) {
-        binding.tabsCountText.setTextColor(color)
-        ViewCompat.setBackgroundTintList(binding.tabsCountText, ColorStateList.valueOf(color))
     }
 
     companion object {

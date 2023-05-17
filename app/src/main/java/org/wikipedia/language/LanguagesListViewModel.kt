@@ -5,9 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
@@ -19,12 +17,10 @@ import java.util.*
 
 class LanguagesListViewModel : ViewModel() {
 
-    private val suggestedLanguageCodes = WikipediaApp.getInstance().language().remainingAvailableLanguageCodes
-    private val nonSuggestedLanguageCodes = WikipediaApp.getInstance().language()
-        .appMruLanguageCodes.toMutableList().also {
-                it.removeAll(suggestedLanguageCodes)
-                it.removeAll(WikipediaApp.getInstance().language().appLanguageCodes)
-            }
+    private val suggestedLanguageCodes = WikipediaApp.instance.languageState.remainingAvailableLanguageCodes
+    private val nonSuggestedLanguageCodes = WikipediaApp.instance.languageState.appMruLanguageCodes.filterNot {
+            suggestedLanguageCodes.contains(it) || WikipediaApp.instance.languageState.appLanguageCodes.contains(it)
+        }
 
     private val handler = CoroutineExceptionHandler { _, throwable ->
         L.e(throwable)
@@ -38,11 +34,9 @@ class LanguagesListViewModel : ViewModel() {
 
     private fun fetchData() {
         viewModelScope.launch(handler) {
-            withContext(Dispatchers.IO) {
-                val siteMatrix = ServiceFactory.get(WikipediaApp.getInstance().wikiSite).getSiteMatrix()
-                val sites = SiteMatrix.getSites(siteMatrix)
-                siteListData.postValue(Resource.Success(sites))
-            }
+            val siteMatrix = ServiceFactory.get(WikipediaApp.instance.wikiSite).getSiteMatrix()
+            val sites = SiteMatrix.getSites(siteMatrix)
+            siteListData.postValue(Resource.Success(sites))
         }
     }
 
@@ -63,7 +57,7 @@ class LanguagesListViewModel : ViewModel() {
                                              results: MutableList<LanguageListItem>) {
         var first = true
         for (code in codes) {
-            val localizedName = StringUtils.stripAccents(WikipediaApp.getInstance().language().getAppLanguageLocalizedName(code).orEmpty())
+            val localizedName = StringUtils.stripAccents(WikipediaApp.instance.languageState.getAppLanguageLocalizedName(code).orEmpty())
             val canonicalName = StringUtils.stripAccents(getCanonicalName(code).orEmpty())
             if (filter.isEmpty() || code.contains(filter) ||
                     localizedName.lowercase(Locale.getDefault()).contains(filter) ||
@@ -78,8 +72,12 @@ class LanguagesListViewModel : ViewModel() {
     }
 
     fun getCanonicalName(code: String): String? {
-        return siteListData.value?.data?.find { it.code == code }?.localname.orEmpty()
-                .ifEmpty { WikipediaApp.getInstance().language().getAppLanguageCanonicalName(code) }
+        val value = siteListData.value
+        if (value !is Resource.Success) {
+            return null
+        }
+        return value.data.find { it.code == code }?.localname.orEmpty()
+                .ifEmpty { WikipediaApp.instance.languageState.getAppLanguageCanonicalName(code) }
     }
 
     class LanguageListItem(val code: String, val isHeader: Boolean = false)
