@@ -30,10 +30,10 @@ class WhoDiedClient : FeedClient {
                     for (el in elements) {
                         val links = el.getElementsByTag("a")
                         if (links.isNotEmpty()) {
-                            val title = links.first().attr("title")
-                            val href = links.first().attr("href")
-                            if (!href.contains("&redlink")) {
-                                titles.add(title)
+                            val title = links.first()?.attr("title")
+                            val href = links.first()?.attr("href")
+                            if (!href.orEmpty().contains("&redlink")) {
+                                titles.add(title.orEmpty())
                             }
                         }
                         if (titles.size > 10) {

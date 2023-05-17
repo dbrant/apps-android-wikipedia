@@ -6,11 +6,10 @@ import org.wikipedia.feed.model.CardType
 import org.wikipedia.feed.model.ListCard
 import org.wikipedia.util.DateUtil.getFeedCardDateString
 import org.wikipedia.util.L10nUtil.getStringForArticleLanguage
-import java.util.*
 
 class WhoDiedCard(itemCards: List<WhoDiedItemCard>, wiki: WikiSite) : ListCard<WhoDiedItemCard>(itemCards, wiki) {
     override fun subtitle(): String {
-        return getFeedCardDateString(Date())
+        return getFeedCardDateString(0)
     }
 
     override fun dismissHashCode(): Int {

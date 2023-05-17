@@ -527,7 +527,7 @@ interface Service {
     @get:Headers("Cache-Control: no-cache")
     val watchToken: Observable<MwQueryResponse>
 
-    @get:GET("/wiki/Deaths_in_2021")
+    @get:GET("/wiki/Deaths_in_2023")
     val listOfDeaths: Observable<ResponseBody>
 
     @GET(MW_API_PREFIX + "action=query&prop=pageimages|pageprops|pageterms|description")
