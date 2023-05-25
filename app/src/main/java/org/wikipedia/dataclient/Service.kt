@@ -347,7 +347,7 @@ interface Service {
     ): MwQueryResponse
 
     @GET(MW_API_PREFIX + "action=query&prop=pageviews")
-    fun getPageViewsForTitles(@Query("titles") titles: String): Observable<MwQueryResponse>
+    suspend fun getPageViewsForTitles(@Query("titles") titles: String): MwQueryResponse
 
     @get:GET(MW_API_PREFIX + "action=query&meta=wikimediaeditortaskscounts|userinfo&uiprop=groups|blockinfo|editcount|latestcontrib")
     val editorTaskCounts: Observable<MwQueryResponse>
@@ -389,7 +389,7 @@ interface Service {
     ): Observable<Claims>
 
     @GET(MW_API_PREFIX + "action=wbgetentities&props=descriptions|labels|sitelinks")
-    fun getWikidataLabelsAndDescriptions(@Query("ids") idList: String): Observable<Entities>
+    suspend fun getWikidataLabelsAndDescriptions(@Query("ids") idList: String): Entities
 
     @POST(MW_API_PREFIX + "action=wbsetclaim&errorlang=uselang")
     @FormUrlEncoded
@@ -411,6 +411,15 @@ interface Service {
         @Field("summary") summary: String?,
         @Field("token") token: String,
         @Field("assert") user: String?
+    ): Observable<EntityPostResponse>
+
+    @POST(MW_API_PREFIX + "action=wbsetdescription&errorlang=uselang")
+    @FormUrlEncoded
+    fun postDescriptionEditX(
+        @Field("id") id: String,
+        @Field("language") language: String,
+        @Field("value") newDescription: String,
+        @Field("token") token: String,
     ): Observable<EntityPostResponse>
 
     @POST(MW_API_PREFIX + "action=wbsetlabel&errorlang=uselang")
@@ -595,9 +604,9 @@ interface Service {
     ): ParamInfoResponse
 
     companion object {
-        const val WIKIPEDIA_URL = "https://wikipedia.org/"
-        const val WIKIDATA_URL = "https://www.wikidata.org/"
-        const val COMMONS_URL = "https://commons.wikimedia.org/"
+        const val WIKIPEDIA_URL = "https://wikipedia.beta.wmflabs.org/" // "https://wikipedia.org/"
+        const val WIKIDATA_URL = "https://wikidata.beta.wmflabs.org/" // "https://www.wikidata.org/"
+        const val COMMONS_URL = "https://commons.wikimedia.beta.wmflabs.org/" // "https://commons.wikimedia.org/"
         const val URL_FRAGMENT_FROM_COMMONS = "/wikipedia/commons/"
         const val MW_API_PREFIX = "w/api.php?format=json&formatversion=2&errorformat=html&errorsuselocal=1&"
         const val PREFERRED_THUMB_SIZE = 320

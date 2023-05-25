@@ -9,10 +9,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.forEach
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.wikipedia.BuildConfig
+import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.csrf.CsrfTokenClient
 import org.wikipedia.databinding.ActivityAboutBinding
+import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.richtext.setHtml
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.log.L
@@ -35,6 +40,32 @@ class AboutActivity : BaseActivity() {
         makeEverythingClickable(binding.aboutContainer)
 
         binding.sendFeedbackText.setOnClickListener {
+
+
+            CsrfTokenClient.getToken(Constants.wikidataWikiSite)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ token ->
+
+                    ServiceFactory.get(Constants.wikidataWikiSite)
+                        .postDescriptionEditX("Q428725", "en", "Test!!", token)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe({ response ->
+                            L.d("Success!")
+                        }, { t ->
+                            L.e(t)
+                        })
+
+                    L.d("Success!")
+                }, { t ->
+                    L.e(t)
+                })
+
+
+
+
+            /*
             val intent = Intent()
                     .setAction(Intent.ACTION_SENDTO)
                     .setData(Uri.parse("mailto:android-support@wikimedia.org?subject=Android App ${BuildConfig.VERSION_NAME} Feedback"))
@@ -43,6 +74,8 @@ class AboutActivity : BaseActivity() {
             } catch (e: Exception) {
                 L.e(e)
             }
+
+             */
         }
     }
 

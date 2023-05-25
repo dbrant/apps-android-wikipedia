@@ -100,9 +100,7 @@ class SuggestedEditsTasksFragmentViewModel : ViewModel() {
             )
             revertSeverity = UserContribStats.getRevertSeverity()
 
-            withContext(Dispatchers.IO) {
-                totalPageviews = UserContribStats.getPageViewsObservable(wikidataResponse).blockingSingle()
-            }
+            totalPageviews = UserContribStats.getPageViewsObservable(wikidataResponse)
 
             _uiState.value = UiState.Success()
         }
