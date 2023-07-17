@@ -1,8 +1,5 @@
 package org.wikipedia.usercontrib
 
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -26,24 +23,21 @@ object UserContribStats {
     var totalImageCaptionEdits: Int = 0
     var totalImageTagEdits: Int = 0
 
-    fun getEditCountsObservable(): Observable<MwQueryResponse> {
-        return ServiceFactory.get(Constants.wikidataWikiSite).editorTaskCounts
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext {
-                    if (it.query?.userInfo?.isBlocked != true) {
-                        val editorTaskCounts = it.query?.editorTaskCounts!!
-                        totalEdits = editorTaskCounts.totalEdits
-                        totalDescriptionEdits = editorTaskCounts.totalDescriptionEdits
-                        totalImageCaptionEdits = editorTaskCounts.totalImageCaptionEdits
-                        totalImageTagEdits = editorTaskCounts.totalDepictsEdits
-                        totalReverts = editorTaskCounts.totalReverts
-                        maybePauseAndGetEndDate()
-                    }
-                }
+    suspend fun verifyEditCountsAndPauseState() {
+        val response = ServiceFactory.get(Constants.wikidataWikiSite).getEditorTaskCounts()
+        if (response.query?.userInfo?.isBlocked != true) {
+            response.query?.editorTaskCounts?.let {
+                totalEdits = it.totalEdits
+                totalDescriptionEdits = it.totalDescriptionEdits
+                totalImageCaptionEdits = it.totalImageCaptionEdits
+                totalImageTagEdits = it.totalDepictsEdits
+                totalReverts = it.totalReverts
+                maybePauseAndGetEndDate()
+            }
+        }
     }
 
-    suspend fun getPageViewsObservable(response: MwQueryResponse): Long {
+    suspend fun getPageViews(response: MwQueryResponse): Long {
         val qLangMap = mutableMapOf<String, MutableSet<String>>()
 
         for (userContribution in response.query!!.userContributions) {
