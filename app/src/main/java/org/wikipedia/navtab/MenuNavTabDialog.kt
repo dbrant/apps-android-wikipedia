@@ -1,6 +1,5 @@
 package org.wikipedia.navtab
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,12 +11,13 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
+import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.databinding.ViewMainDrawerBinding
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment
+import org.wikipedia.util.CustomTabsUtil
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.ResourceUtil.getThemedColorStateList
-import org.wikipedia.util.UriUtil.visitInExternalBrowser
 
 class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
     interface Callback {
@@ -70,10 +70,10 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
         }
 
         binding.mainDrawerDonateContainer.setOnClickListener {
+            DonorExperienceEvent.logAction("donate_start_click", "more_menu")
             BreadCrumbLogEvent.logClick(requireActivity(), binding.mainDrawerDonateContainer)
-            visitInExternalBrowser(requireContext(),
-                    Uri.parse(getString(R.string.donate_url,
-                            BuildConfig.VERSION_NAME, WikipediaApp.instance.languageState.systemLanguageCode)))
+            CustomTabsUtil.openInCustomTab(requireContext(), getString(R.string.donate_url,
+                WikipediaApp.instance.languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
             dismiss()
         }
 
@@ -98,7 +98,6 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
             binding.mainDrawerAccountName.text = AccountUtil.userName
             binding.mainDrawerAccountName.visibility = View.VISIBLE
             binding.mainDrawerLoginButton.visibility = View.GONE
-            binding.mainDrawerLoginOpenExternalIcon.visibility = View.VISIBLE
             binding.mainDrawerTalkContainer.visibility = View.VISIBLE
             binding.mainDrawerWatchlistContainer.visibility = View.VISIBLE
             binding.mainDrawerContribsContainer.visibility = View.VISIBLE
@@ -109,7 +108,6 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
             binding.mainDrawerLoginButton.textAlignment = View.TEXT_ALIGNMENT_TEXT_START
             binding.mainDrawerLoginButton.text = getString(R.string.main_drawer_login)
             binding.mainDrawerLoginButton.setTextColor(getThemedColorStateList(requireContext(), R.attr.progressive_color))
-            binding.mainDrawerLoginOpenExternalIcon.visibility = View.GONE
             binding.mainDrawerTalkContainer.visibility = View.GONE
             binding.mainDrawerWatchlistContainer.visibility = View.GONE
             binding.mainDrawerContribsContainer.visibility = View.GONE

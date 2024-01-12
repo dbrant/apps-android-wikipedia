@@ -9,13 +9,16 @@ import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import com.google.android.material.textfield.TextInputLayout
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.auth.AccountUtil
 import org.wikipedia.auth.AccountUtil.updateAccount
 import org.wikipedia.createaccount.CreateAccountActivity
 import org.wikipedia.databinding.ActivityLoginBinding
+import org.wikipedia.extensions.parcelableExtra
 import org.wikipedia.login.LoginClient.LoginFailedException
 import org.wikipedia.notifications.PollNotificationWorker
 import org.wikipedia.page.PageTitle
@@ -78,6 +81,13 @@ class LoginActivity : BaseActivity() {
             Prefs.isSuggestedEditsHighestPriorityEnabled = true
         }
 
+        if (AccountUtil.isTemporaryAccount) {
+            binding.footerContainer.tempAccountInfoContainer.isVisible = true
+            binding.footerContainer.tempAccountInfoText.text = getString(R.string.temp_account_login_status, AccountUtil.userName)
+        } else {
+            binding.footerContainer.tempAccountInfoContainer.isVisible = false
+        }
+
         // always go to account creation before logging in, unless we arrived here through the
         // system account creation workflow
         if (savedInstanceState == null && !intent.hasExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)) {
@@ -109,8 +119,8 @@ class LoginActivity : BaseActivity() {
     private fun setAllViewsClickListener() {
         binding.loginButton.setOnClickListener { validateThenLogin() }
         binding.loginCreateAccountButton.setOnClickListener { startCreateAccountActivity() }
-        binding.inflateLoginAndAccount.privacyPolicyLink.setOnClickListener { FeedbackUtil.showPrivacyPolicy(this) }
-        binding.inflateLoginAndAccount.forgotPasswordLink.setOnClickListener {
+        binding.footerContainer.privacyPolicyLink.setOnClickListener { FeedbackUtil.showPrivacyPolicy(this) }
+        binding.footerContainer.forgotPasswordLink.setOnClickListener {
             val title = PageTitle("Special:PasswordReset", WikipediaApp.instance.wikiSite)
             visitInExternalBrowser(this, Uri.parse(title.uri))
         }
@@ -179,7 +189,7 @@ class LoginActivity : BaseActivity() {
         override fun success(result: LoginResult) {
             showProgressBar(false)
             if (result.pass()) {
-                val response = intent.extras?.getParcelable<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
+                val response = intent.parcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
                 updateAccount(response, result)
                 onLoginSuccess()
             } else if (result.fail()) {

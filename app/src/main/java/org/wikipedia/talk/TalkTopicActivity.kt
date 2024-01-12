@@ -30,15 +30,13 @@ import org.wikipedia.history.HistoryEntry
 import org.wikipedia.history.SearchActionModeCallback
 import org.wikipedia.login.LoginActivity
 import org.wikipedia.page.*
-import org.wikipedia.page.linkpreview.LinkPreviewDialog
-import org.wikipedia.readinglist.AddToReadingListDialog
 import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.UserAliasData
 import org.wikipedia.util.*
 import org.wikipedia.views.SearchActionProvider
 import org.wikipedia.views.ViewUtil
 
-class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
+class TalkTopicActivity : BaseActivity() {
     private lateinit var binding: ActivityTalkTopicBinding
     private lateinit var linkHandler: TalkLinkHandler
 
@@ -180,7 +178,8 @@ class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
                 true
             }
             R.id.menu_edit_source -> {
-                requestEditSource.launch(EditSectionActivity.newIntent(this, viewModel.sectionId, null, viewModel.pageTitle))
+                requestEditSource.launch(EditSectionActivity.newIntent(this, viewModel.sectionId, null,
+                    viewModel.pageTitle, Constants.InvokeSource.TALK_TOPIC_ACTIVITY))
                 true
             }
             R.id.menu_talk_topic_expand -> {
@@ -428,27 +427,7 @@ class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
                 .show()
     }
 
-    override fun onLinkPreviewLoadPage(title: PageTitle, entry: HistoryEntry, inNewTab: Boolean) {
-        startActivity(if (inNewTab) PageActivity.newIntentForNewTab(this, entry, title) else
-            PageActivity.newIntentForCurrentTab(this, entry, title, false))
-    }
-
-    override fun onLinkPreviewCopyLink(title: PageTitle) {
-        ClipboardUtil.setPlainText(this, text = title.uri)
-        FeedbackUtil.showMessage(this, R.string.address_copied)
-    }
-
-    override fun onLinkPreviewAddToList(title: PageTitle) {
-        ExclusiveBottomSheetPresenter.show(supportFragmentManager,
-                AddToReadingListDialog.newInstance(title, Constants.InvokeSource.TALK_TOPIC_ACTIVITY))
-    }
-
-    override fun onLinkPreviewShareLink(title: PageTitle) {
-        ShareUtil.shareText(this, title)
-    }
-
     companion object {
-        const val EXTRA_PAGE_TITLE = "pageTitle"
         const val EXTRA_TOPIC_NAME = "topicName"
         const val EXTRA_TOPIC_ID = "topicId"
         const val EXTRA_REPLY_ID = "replyId"
@@ -462,7 +441,7 @@ class TalkTopicActivity : BaseActivity(), LinkPreviewDialog.Callback {
                       searchQuery: String?,
                       invokeSource: Constants.InvokeSource): Intent {
             return Intent(context, TalkTopicActivity::class.java)
-                    .putExtra(EXTRA_PAGE_TITLE, pageTitle)
+                    .putExtra(Constants.ARG_TITLE, pageTitle)
                     .putExtra(EXTRA_TOPIC_NAME, topicName)
                     .putExtra(EXTRA_TOPIC_ID, topicId)
                     .putExtra(EXTRA_REPLY_ID, replyId)

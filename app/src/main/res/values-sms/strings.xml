@@ -60,7 +60,6 @@
   <string name="edit_history_link_text">Čuäʹjet muʹttemhistoria.</string>
   <string name="map_view_link_text">Čuäʹjet kaartâst</string>
   <string name="other_languages_indication_text">Looǥǥ jeeʹres ǩiõʹlle</string>
-  <string name="content_license_cc_by_sa">CC BY-SA 3.0</string>
   <string name="preference_title_language">Wikipedia ǩiõl</string>
   <string name="langlinks_filter_hint">Ooccmõš</string>
   <string name="langlinks_activity_title">Jeeʹres ǩiõl</string>
@@ -84,7 +83,9 @@
   <string name="reset_password_hint">Ođđ peittsääʹnn</string>
   <string name="reset_password_button">Ruõkk da ǩeeʹrjtõõđ sizz</string>
   <string name="preference_title_logout">Ǩeeʹrjtõõđ åålǥas</string>
+  <string name="toast_logout_complete">Leäk ǩeeʹrjtõõttâm åålǥas</string>
   <string name="logout_dialog_cancel_button_text">Jõõsk</string>
+  <string name="logged_out_in_background_title">Leäk ǩeeʹrjtõõttâm åålǥas</string>
   <string name="logged_out_in_background_login">Ǩeeʹrjtõõđ sizz</string>
   <string name="logged_out_in_background_cancel">Jõõsk</string>
   <string name="wp_stylized">&lt;big&gt;W&lt;/big&gt;IKIPEDI&lt;big&gt;A&lt;/big&gt;</string>
@@ -283,7 +284,7 @@
   <string name="suggested_edits_label">Eʹtǩǩuum muttâz</string>
   <string name="suggested_edits_learn_more">Lââʹssteâđ</string>
   <string name="suggested_edits_last_edited">Mââimõssân muttum</string>
-  <string name="suggested_edits_task_new">ođđ</string>
+  <string name="suggested_edits_task_new" fuzzy="true">ođđ</string>
   <string name="suggested_edits_reactivation_notification_title">Eʹtǩǩuum muttâz</string>
   <string name="suggested_edits_contribution_language_label">Ǩiõll</string>
   <string name="suggested_edits_contribution_image_label">Snimldõk</string>
@@ -314,9 +315,10 @@
   <string name="wikitext_template">Mall</string>
   <string name="wikitext_reference">Teâttkäivv</string>
   <string name="insert_media_search_description">Vaʹlljed teâttõõzz Wikimedia Commonsist</string>
-  <string name="insert_media_settings_caption">Kartt- leʹbe snimldõkteʹkstt</string>
+  <string name="insert_media_settings_caption" fuzzy="true">Kartt- leʹbe snimldõkteʹkstt</string>
   <string name="insert_media_advanced_settings">Lââʹssasetõõzz</string>
   <string name="insert_media_advanced_settings_image_type_thumbnail">Snimldõõǥǥâž</string>
+  <string name="insert_media_insert_button">Lââʹzzet</string>
   <string name="main_tooltip_text">Tiõrv %s! Tiõʹđžiǩ-a ton, što puk vuäiʹtte Wikipedia muʹtted?</string>
   <string name="main_tooltip_text_v2">Tiõʹđžiǩ-a ton, što puk vuäiʹtte Wikipedia muʹtted?</string>
   <string name="main_tooltip_watchlist_title">Valvvâmlistt</string>
@@ -346,7 +348,7 @@
   <string name="menu_option_view_user_talk">Čuäʹjet saǥstõõllâmseeid</string>
   <string name="revision_diff_compare">Verddõõl versioid</string>
   <string name="revision_diff_compare_title">Verddõõl versioid: %s</string>
-  <string name="revision_undo_title">Kååʹmet muttâz</string>
+  <string name="revision_undo_title" fuzzy="true">Kååʹmet muttâz</string>
   <string name="revision_undo_success">Versio kååʹmteš.</string>
   <string name="revision_rollback_success">Muttâz lie kååʹmtum.</string>
   <string name="revision_compare_button">Verddõõl</string>

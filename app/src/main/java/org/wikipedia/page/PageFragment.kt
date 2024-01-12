@@ -7,7 +7,14 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
-import android.view.*
+import android.view.ActionMode
+import android.view.ActionProvider
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -23,6 +30,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textview.MaterialTextView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -34,11 +42,16 @@ import kotlinx.serialization.json.float
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.wikipedia.*
+import org.wikipedia.BackPressedHandler
+import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
+import org.wikipedia.LongPressHandler
+import org.wikipedia.R
+import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil.getCallback
 import org.wikipedia.analytics.eventplatform.ArticleFindInPageInteractionEvent
 import org.wikipedia.analytics.eventplatform.ArticleInteractionEvent
+import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
 import org.wikipedia.analytics.eventplatform.EventPlatformClient
 import org.wikipedia.analytics.eventplatform.WatchlistAnalyticsHelper
 import org.wikipedia.analytics.metricsplatform.ArticleFindInPageInteraction
@@ -54,15 +67,13 @@ import org.wikipedia.databinding.GroupFindReferencesInPageBinding
 import org.wikipedia.dataclient.RestService
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
+import org.wikipedia.dataclient.donate.CampaignCollection
 import org.wikipedia.dataclient.mwapi.MwQueryPage
 import org.wikipedia.dataclient.okhttp.HttpStatusException
 import org.wikipedia.dataclient.okhttp.OkHttpWebViewClient
-import org.wikipedia.dataclient.watch.Watch
 import org.wikipedia.descriptions.DescriptionEditActivity
 import org.wikipedia.diff.ArticleEditDetailsActivity
 import org.wikipedia.edit.EditHandler
-import org.wikipedia.feed.announcement.Announcement
-import org.wikipedia.feed.announcement.AnnouncementClient
 import org.wikipedia.gallery.GalleryActivity
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.json.JsonUtil
@@ -71,9 +82,10 @@ import org.wikipedia.main.MainActivity
 import org.wikipedia.media.AvPlayer
 import org.wikipedia.navtab.NavTab
 import org.wikipedia.notifications.PollNotificationWorker
-import org.wikipedia.page.PageCacher.loadIntoCache
 import org.wikipedia.page.action.PageActionItem
+import org.wikipedia.page.campaign.CampaignDialog
 import org.wikipedia.page.edithistory.EditHistoryListActivity
+import org.wikipedia.page.issues.PageIssuesDialog
 import org.wikipedia.page.leadimages.LeadImagesHandler
 import org.wikipedia.page.references.PageReferences
 import org.wikipedia.page.references.ReferenceDialog
@@ -86,7 +98,15 @@ import org.wikipedia.settings.Prefs
 import org.wikipedia.suggestededits.PageSummaryForEdit
 import org.wikipedia.talk.TalkTopicsActivity
 import org.wikipedia.theme.ThemeChooserDialog
-import org.wikipedia.util.*
+import org.wikipedia.util.ActiveTimer
+import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.GeoUtil
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.ShareUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.util.ThrowableUtil
+import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.ObservableWebView
 import org.wikipedia.views.PageActionOverflowView
@@ -94,7 +114,8 @@ import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
 import org.wikipedia.wiktionary.WiktionaryDialog
-import java.util.*
+import java.time.Duration
+import java.time.Instant
 
 class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.CommunicationBridgeListener, ThemeChooserDialog.Callback,
     ReferenceDialog.Callback, WiktionaryDialog.Callback, WatchlistExpiryDialog.Callback {
@@ -109,8 +130,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         fun onPageUpdateProgressBar(visible: Boolean)
         fun onPageStartSupportActionMode(callback: ActionMode.Callback)
         fun onPageHideSoftKeyboard()
-        fun onPageAddToReadingList(title: PageTitle, source: InvokeSource)
-        fun onPageMoveToReadingList(sourceReadingListId: Long, title: PageTitle, source: InvokeSource, showDefaultList: Boolean)
         fun onPageWatchlistExpirySelect(expiry: WatchlistExpiry)
         fun onPageLoadError(title: PageTitle)
         fun onPageLoadErrorBackPressed()
@@ -141,7 +160,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
     internal var metricsPlatformArticleEventToolbarInteraction = ArticleToolbarInteraction(this)
     private var pageRefreshed = false
     private var errorState = false
-    private var watchlistExpiryChanged = false
     private var scrolledUpForThemeChange = false
     private var references: PageReferences? = null
     private var avPlayer: AvPlayer? = null
@@ -343,7 +361,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         shareHandler.showWiktionaryDefinition(term)
     }
 
-    override fun onExpirySelect(expiry: WatchlistExpiry) {
+    override fun onExpiryChanged(expiry: WatchlistExpiry) {
         callback()?.onPageWatchlistExpirySelect(expiry)
         dismissBottomSheet()
     }
@@ -510,7 +528,15 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             // add the requested page to its backstack
             tab.backStack.add(PageBackStackItem(title, entry))
             if (!isForeground) {
-                loadIntoCache(title)
+                lifecycleScope.launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+                    ServiceFactory.get(title.wikiSite).getInfoByPageIdsOrTitles(null, title.prefixedText)
+                        .query?.firstPage()?.let { page ->
+                            WikipediaApp.instance.tabList.find { it.backStackPositionTitle == title }?.backStackPositionTitle?.apply {
+                                thumbUrl = page.thumbUrl()
+                                description = page.description
+                            }
+                        }
+                }
             }
             requireActivity().invalidateOptionsMenu()
         } else {
@@ -615,46 +641,44 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         webView.visibility = View.INVISIBLE
     }
 
-    private fun showWatchlistSnackbar(expiry: WatchlistExpiry, watch: Watch) {
+    @Suppress("KotlinConstantConditions")
+    private fun showWatchlistSnackbar() {
         title?.let {
-            model.isWatched = watch.watched
-            model.hasWatchlistExpiry = expiry !== WatchlistExpiry.NEVER
-            if (watch.unwatched) {
+            if (!model.isWatched) {
                 FeedbackUtil.showMessage(this, getString(R.string.watchlist_page_removed_from_watchlist_snackbar, it.displayText))
-            } else if (watch.watched) {
+            } else if (model.isWatched) {
                 val snackbar = FeedbackUtil.makeSnackbar(requireActivity(), getString(R.string.watchlist_page_add_to_watchlist_snackbar,
-                    it.displayText, getString(expiry.stringId)))
-                if (!watchlistExpiryChanged) {
-                    snackbar.setAction(R.string.watchlist_page_add_to_watchlist_snackbar_action) {
-                        watchlistExpiryChanged = true
-                        ExclusiveBottomSheetPresenter.show(childFragmentManager, WatchlistExpiryDialog.newInstance(expiry))
-                    }
+                    it.displayText, getString(WatchlistExpiry.NEVER.stringId)))
+                snackbar.setAction(R.string.watchlist_page_add_to_watchlist_snackbar_action) { _ ->
+                    ExclusiveBottomSheetPresenter.show(childFragmentManager, WatchlistExpiryDialog.newInstance(it, WatchlistExpiry.NEVER))
                 }
                 snackbar.show()
             }
         }
     }
 
+    fun updateWatchlistExpiry(expiry: WatchlistExpiry) {
+        model.hasWatchlistExpiry = expiry !== WatchlistExpiry.NEVER
+    }
+
     private fun maybeShowAnnouncement() {
-        title?.let {
-            if (Prefs.hasVisitedArticlePage) {
-                disposables.add(ServiceFactory.getRest(it.wikiSite).announcements
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe({ list ->
-                        val country = GeoUtil.geoIPCountry
-                        val now = Date()
-                        for (announcement in list.items) {
-                            if (AnnouncementClient.shouldShow(announcement, country, now) &&
-                                announcement.placement == Announcement.PLACEMENT_ARTICLE &&
-                                !Prefs.announcementShownDialogs.contains(announcement.id)) {
-                                val dialog = AnnouncementDialog(requireActivity(), announcement)
-                                dialog.setCancelable(false)
-                                dialog.show()
-                                break
-                            }
+        title?.let { pageTitle ->
+            // Check if the pause time is older than 1 day.
+            val dateDiff = Duration.between(Instant.ofEpochMilli(Prefs.announcementPauseTime), Instant.now())
+            if (Prefs.hasVisitedArticlePage && dateDiff.toDays() >= 1) {
+                lifecycleScope.launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+                    val campaignList = CampaignCollection.getActiveCampaigns()
+                    val availableCampaign = campaignList.find { campaign -> campaign.assets[app.appOrSystemLanguageCode] != null }
+                    availableCampaign?.let {
+                        if (!Prefs.announcementShownDialogs.contains(it.id)) {
+                            DonorExperienceEvent.logImpression("article_banner",
+                                it.id, pageTitle.wikiSite.languageCode)
+                            val dialog = CampaignDialog(requireActivity(), it)
+                            dialog.setCancelable(false)
+                            dialog.show()
                         }
-                    }) { caught -> L.d(caught) })
+                    }
+                }
             }
         }
     }
@@ -755,7 +779,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         bridge.addListener("back_link") { _, messagePayload ->
             messagePayload?.let { payload ->
                 val backLinks = payload["backLinks"]?.jsonArray
-                if (backLinks != null && !backLinks.isEmpty()) {
+                if (!backLinks.isNullOrEmpty()) {
                     val backLinksList = backLinks.map { it.jsonObject["id"]?.jsonPrimitive?.content }
                     showFindReferenceInPage(payload["referenceId"]?.jsonPrimitive?.content.orEmpty(), backLinksList, payload["referenceText"]?.jsonPrimitive?.content.orEmpty())
                 }
@@ -816,8 +840,22 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     "coordinate" -> {
                         model.page?.let { page ->
                             page.pageProperties.geo?.let { geo ->
-                                GeoUtil.sendGeoIntent(requireActivity(), geo, page.displayTitle)
+                                GeoUtil.sendGeoIntent(requireActivity(), geo, StringUtil.fromHtml(page.displayTitle).toString())
                             }
+                        }
+                    }
+                    "pageIssues" -> {
+                        val array = payload["payload"]
+                        if (array != null && array.jsonArray.isNotEmpty() && model.title != null) {
+                            val issues = array.jsonArray.mapNotNull {
+                                it.jsonObject["html"]?.jsonPrimitive?.content
+                            }
+                            PageIssuesDialog(requireActivity(), model.title!!.wikiSite, issues) { url, title, linkText ->
+                                linkHandler.onUrlClick(url, title, linkText)
+                            }
+                                .setTitle(R.string.page_issues_title)
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show()
                         }
                     }
                     "disambiguation" -> {
@@ -829,7 +867,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
         bridge.addListener("read_more_titles_retrieved") { _, _ -> }
         bridge.addListener("view_license") { _, _ ->
-            UriUtil.visitInExternalBrowser(requireContext(), Uri.parse(getString(R.string.cc_by_sa_3_url)))
+            UriUtil.visitInExternalBrowser(requireContext(), Uri.parse(getString(R.string.cc_by_sa_4_url)))
         }
         bridge.addListener("view_in_browser") { _, _ ->
             model.title?.let {
@@ -838,12 +876,13 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
     }
 
-    fun reloadFromBackstack() {
-        pageFragmentLoadState.setTab(currentTab)
-        if (!pageFragmentLoadState.backStackEmpty()) {
-            pageFragmentLoadState.loadFromBackStack()
-        } else {
-            callback()?.onPageLoadMainPageInForegroundTab()
+    fun reloadFromBackstack(forceReload: Boolean = true) {
+        if (pageFragmentLoadState.setTab(currentTab) || forceReload) {
+            if (!pageFragmentLoadState.backStackEmpty()) {
+                pageFragmentLoadState.loadFromBackStack()
+            } else {
+                callback()?.onPageLoadMainPageInForegroundTab()
+            }
         }
     }
 
@@ -852,7 +891,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         binding.pageRefreshContainer.setProgressViewOffset(false, -swipeOffset, swipeOffset)
     }
 
-    fun onPageMetadataLoaded() {
+    fun onPageMetadataLoaded(redirectedFrom: String? = null) {
         updateQuickActionsAndMenuOptions()
         if (model.page == null) {
             return
@@ -864,6 +903,9 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         binding.pageRefreshContainer.isEnabled = true
         binding.pageRefreshContainer.isRefreshing = false
         requireActivity().invalidateOptionsMenu()
+        redirectedFrom?.let {
+            FeedbackUtil.showMessage(requireActivity(), getString(R.string.redirected_from_snackbar, it), Snackbar.LENGTH_SHORT)
+        }
         model.readingListPage?.let { page ->
             model.title?.let { title ->
                 disposables.add(Completable.fromAction {
@@ -952,7 +994,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         sidePanelHandler.setEnabled(false)
         errorState = false
         binding.pageError.visibility = View.GONE
-        watchlistExpiryChanged = false
         model.title = title
         model.curEntry = entry
         model.page = null
@@ -1034,8 +1075,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     return@evaluate
                 }
                 val articleFindInPageInteractionEvent = ArticleFindInPageInteractionEvent(model.page?.pageProperties?.pageId ?: -1)
-                val metricsPlatformArticleEventFindInPageInteraction = ArticleFindInPageInteraction(this)
-                val findInPageActionProvider = FindInWebPageActionProvider(this, articleFindInPageInteractionEvent)
+                val articleFindInPageInteractionEventMetricsPlatform = ArticleFindInPageInteraction(this)
+                val findInPageActionProvider = FindInWebPageActionProvider(this, articleFindInPageInteractionEvent, articleFindInPageInteractionEventMetricsPlatform)
                 startSupportActionMode(object : ActionMode.Callback {
                     override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                         val menuItem = menu.add(R.string.menu_page_find_in_page)
@@ -1060,8 +1101,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                         }
                         articleFindInPageInteractionEvent.pageHeight = webView.contentHeight
                         articleFindInPageInteractionEvent.logDone()
-                        metricsPlatformArticleEventFindInPageInteraction.pageHeight = webView.contentHeight
-                        metricsPlatformArticleEventFindInPageInteraction.logDone()
+                        articleFindInPageInteractionEventMetricsPlatform.pageHeight = webView.contentHeight
+                        articleFindInPageInteractionEventMetricsPlatform.logDone()
                         webView.clearMatches()
                         callback()?.onPageHideSoftKeyboard()
                         callback()?.onPageSetToolbarElevationEnabled(true)
@@ -1169,36 +1210,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         callback()?.onPageStartSupportActionMode(actionModeCallback)
     }
 
-    fun addToReadingList(title: PageTitle, source: InvokeSource, addToDefault: Boolean) {
-        if (addToDefault) {
-            var finalPageTitle = title
-            // Make sure handle redirected title before saving into database
-            disposables.add(ServiceFactory.getRest(title.wikiSite).getSummary(null, title.prefixedText)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doAfterTerminate {
-                    ReadingListBehaviorsUtil.addToDefaultList(requireActivity(), finalPageTitle, source) { readingListId ->
-                        moveToReadingList(readingListId, finalPageTitle, source, false) }
-                }
-                .subscribe({
-                    finalPageTitle = it.getPageTitle(title.wikiSite)
-                }, {
-                    L.e(it)
-                }))
-        } else {
-            callback()?.onPageAddToReadingList(title, source)
-        }
-    }
-
-    fun moveToReadingList(sourceReadingListId: Long, title: PageTitle, source: InvokeSource, showDefaultList: Boolean) {
-        callback()?.onPageMoveToReadingList(sourceReadingListId, title, source, showDefaultList)
-    }
-
     fun callback(): Callback? {
         return getCallback(this, Callback::class.java)
     }
 
-    fun updateWatchlist(expiry: WatchlistExpiry, unwatch: Boolean) {
+    fun updateWatchlist() {
         title?.let {
             disposables.add(ServiceFactory.get(it.wikiSite).watchToken
                 .subscribeOn(Schedulers.io())
@@ -1207,22 +1223,20 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     if (watchToken.isNullOrEmpty()) {
                         throw RuntimeException("Received empty watch token.")
                     }
-                    ServiceFactory.get(it.wikiSite).postWatch(if (unwatch) 1 else null, null, it.prefixedText, expiry.expiry, watchToken)
+                    ServiceFactory.get(it.wikiSite).postWatch(if (model.isWatched) 1 else null, null, it.prefixedText, WatchlistExpiry.NEVER.expiry, watchToken)
                 }
                 .observeOn(AndroidSchedulers.mainThread())
                 .doAfterTerminate { updateQuickActionsAndMenuOptions() }
                 .subscribe({ watchPostResponse ->
                     watchPostResponse.getFirst()?.let { watch ->
-                        // Reset to make the "Change" button visible.
-                        if (watchlistExpiryChanged && unwatch) {
-                            watchlistExpiryChanged = false
-                        }
-                        if (unwatch) {
+                        if (model.isWatched) {
                             WatchlistAnalyticsHelper.logRemovedFromWatchlistSuccess(it, requireContext())
                         } else {
                             WatchlistAnalyticsHelper.logAddedToWatchlistSuccess(it, requireContext())
                         }
-                        showWatchlistSnackbar(expiry, watch)
+                        model.isWatched = watch.watched
+                        updateWatchlistExpiry(WatchlistExpiry.NEVER)
+                        showWatchlistSnackbar()
                     }
                 }) { caught -> L.d(caught) })
         }
@@ -1333,21 +1347,21 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
 
                     override fun onAddRequest(entry: HistoryEntry, addToDefault: Boolean) {
                         title?.run {
-                            addToReadingList(this, InvokeSource.BOOKMARK_BUTTON, addToDefault)
+                            ReadingListBehaviorsUtil.addToDefaultList(requireActivity(), this, addToDefault, InvokeSource.BOOKMARK_BUTTON)
                         }
                     }
 
                     override fun onMoveRequest(page: ReadingListPage?, entry: HistoryEntry) {
                         page?.let { readingListPage ->
                             title?.run {
-                                moveToReadingList(readingListPage.listId, this, InvokeSource.BOOKMARK_BUTTON, true)
+                                ReadingListBehaviorsUtil.moveToList(requireActivity(), readingListPage.listId, this, InvokeSource.BOOKMARK_BUTTON)
                             }
                         }
                     }
                 }).show(historyEntry)
             } else {
                 title?.run {
-                    addToReadingList(this, InvokeSource.BOOKMARK_BUTTON, true)
+                    ReadingListBehaviorsUtil.addToDefaultList(requireActivity(), this, true, InvokeSource.BOOKMARK_BUTTON)
                 }
             }
             articleInteractionEvent?.logSaveClick()
@@ -1408,7 +1422,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 articleInteractionEvent?.logWatchClick()
                 metricsPlatformArticleEventToolbarInteraction.logWatchClick()
             }
-            updateWatchlist(WatchlistExpiry.NEVER, model.isWatched)
+            updateWatchlist()
         }
 
         override fun onViewTalkPageSelected() {
