@@ -44,10 +44,10 @@ class MainActivity : SingleFragmentActivity<MainFragment>(), MainFragment.Callba
                 Constants.INTENT_EXTRA_PREVIEW_SAVED_READING_LISTS)) {
             // Updating preference so the search multilingual tooltip
             // is not shown again for first time users
-            Prefs.isMultilingualSearchTooltipShown = false
+            Prefs.isMultilingualSearchTooltipShown = true
 
             // Use startActivityForResult to avoid preload the Feed contents before finishing the initial onboarding.
-            onboardingLauncher.launch(InitialOnboardingActivity.newIntent(this))
+            //onboardingLauncher.launch(InitialOnboardingActivity.newIntent(this))
         }
         setNavigationBarColor(ResourceUtil.getThemedColor(this, R.attr.paper_color))
         setSupportActionBar(binding.mainToolbar)

@@ -30,7 +30,7 @@ class FeedCoordinator internal constructor(context: Context) : FeedCoordinatorBa
         val online = WikipediaApp.instance.isOnline
         conditionallyAddPendingClient(SearchClient(), age == 0)
         conditionallyAddPendingClient(AnnouncementClient(), age == 0 && online)
-        conditionallyAddPendingClient(OnboardingClient(), age == 0)
+        //conditionallyAddPendingClient(OnboardingClient(), age == 0)
         conditionallyAddPendingClient(OfflineCardClient(), age == 0 && !online)
 
         for (contentType in FeedContentType.entries.sortedBy { it.order }) {
