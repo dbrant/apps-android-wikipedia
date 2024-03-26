@@ -252,6 +252,9 @@ dependencies {
     devImplementation "com.google.firebase:firebase-messaging-ktx:$firebaseMessagingVersion"
     customImplementation "com.google.firebase:firebase-messaging-ktx:$firebaseMessagingVersion"
 
+    // For integrating with Google Pay for donations
+    implementation "com.google.android.gms:play-services-wallet:19.3.0"
+
     debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakCanaryVersion"
     implementation "com.squareup.leakcanary:plumber-android:$leakCanaryVersion"
 

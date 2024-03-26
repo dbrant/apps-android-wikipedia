@@ -6,6 +6,9 @@ import android.view.View
 import android.widget.TextView
 import androidx.core.text.method.LinkMovementMethodCompat
 import androidx.core.view.descendants
+import com.google.android.gms.wallet.PaymentsClient
+import com.google.android.gms.wallet.Wallet
+import com.google.android.gms.wallet.WalletConstants
 import org.wikipedia.BuildConfig
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
@@ -16,6 +19,9 @@ import org.wikipedia.util.FeedbackUtil
 class AboutActivity : BaseActivity() {
 
     private lateinit var binding: ActivityAboutBinding
+
+    private lateinit var paymentsClient: PaymentsClient
+
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +40,24 @@ class AboutActivity : BaseActivity() {
         binding.sendFeedbackText.setOnClickListener {
             FeedbackUtil.composeFeedbackEmail(this, "Android App ${BuildConfig.VERSION_NAME} Feedback")
         }
+
+
+
+        paymentsClient = createPaymentsClient(this)
+
+        binding.payButton.setOnClickListener {
+
+
+
+        }
+
+
+    }
+
+    fun createPaymentsClient(activity: Activity): PaymentsClient {
+        val walletOptions = Wallet.WalletOptions.Builder()
+            .setEnvironment(WalletConstants.ENVIRONMENT_TEST).build()
+        return Wallet.getPaymentsClient(activity, walletOptions)
     }
 
     private class AboutLogoClickListener : View.OnClickListener {
