@@ -16,10 +16,13 @@ import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
+import com.google.android.gms.wallet.button.ButtonConstants
+import com.google.android.gms.wallet.button.ButtonOptions
 import org.json.JSONArray
 import org.json.JSONObject
 import org.wikipedia.BuildConfig
 import org.wikipedia.R
+import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.databinding.ActivityAboutBinding
 import org.wikipedia.richtext.setHtml
@@ -110,6 +113,15 @@ class AboutActivity : BaseActivity() {
 
 
         paymentsClient = createPaymentsClient(this)
+
+
+        val paymentMethods = JSONArray().put(baseCardPaymentMethod)
+
+        binding.payButton.initialize(ButtonOptions.newBuilder()
+            .setButtonTheme(if (WikipediaApp.instance.currentTheme.isDark) ButtonConstants.ButtonTheme.DARK else ButtonConstants.ButtonTheme.LIGHT)
+            .setButtonType(ButtonConstants.ButtonType.DONATE)
+            .setAllowedPaymentMethods(paymentMethods.toString())
+            .build())
 
         binding.payButton.setOnClickListener {
             val paymentDataRequest =

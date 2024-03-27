@@ -38,11 +38,11 @@
                 android:src="@drawable/wp_wordmark"
                 app:tint="?attr/primary_color" />
 
-            <com.google.android.material.button.MaterialButton
+            <com.google.android.gms.wallet.button.PayButton
                 android:id="@+id/payButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pay!!!"
+                android:layout_marginTop="16dp"
                 />
 
             <TextView
