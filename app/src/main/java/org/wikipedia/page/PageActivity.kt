@@ -632,7 +632,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     }
 
     override fun wikidataInfoLinkClicked(title: PageTitle) {
-        loadPage(title, HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), TabPosition.CURRENT_TAB)
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     private fun removeTransitionAnimState() {

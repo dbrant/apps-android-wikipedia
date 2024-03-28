@@ -64,7 +64,6 @@ import org.wikipedia.util.log.L
 import org.wikipedia.views.SurveyDialog
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
-import org.wikipedia.wikidata.WikidataInfoDialog
 
 class ArticleEditDetailsFragment : Fragment(), WatchlistExpiryDialog.Callback, MenuProvider {
     interface Callback {
@@ -683,10 +682,6 @@ class ArticleEditDetailsFragment : Fragment(), WatchlistExpiryDialog.Callback, M
         sendPatrollerExperienceEvent("expiry_" + expiry.expiry.replace(" ", "_"), "pt_watchlist")
         updateWatchButton(expiry != WatchlistExpiry.NEVER)
         showFeedbackOptionsDialog()
-    }
-
-    override fun showWikidataInfoBox(title: PageTitle) {
-        ExclusiveBottomSheetPresenter.show(childFragmentManager, WikidataInfoDialog.newInstance(title))
     }
 
     private fun copyLink(uri: String?) {

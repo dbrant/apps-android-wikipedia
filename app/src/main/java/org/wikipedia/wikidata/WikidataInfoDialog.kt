@@ -70,7 +70,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
 
         binding.infoList.layoutManager = LinearLayoutManager(activity)
         binding.infoList.adapter = adapter
-        FeedbackUtil.setButtonLongPressToast(binding.closeButton)
+        FeedbackUtil.setButtonTooltip(binding.closeButton)
         binding.closeButton.setOnClickListener { dismiss() }
 
         binding.infoTitle.text = StringUtil.fromHtml(pageTitle.displayText)
@@ -122,7 +122,7 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     }
 
     private fun populateEntityLabels(entitiesToRetrieve: List<String>) {
-        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataLabelsAndDescriptions(entitiesToRetrieve.joinToString("|"))
+        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataEntities(entitiesToRetrieve.joinToString("|"))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doAfterTerminate { binding.infoProgress.visibility = View.GONE }

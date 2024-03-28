@@ -468,6 +468,9 @@ interface Service {
     @GET(MW_API_PREFIX + "action=wbgetentities&props=descriptions|labels|sitelinks")
     suspend fun getWikidataLabelsAndDescriptions(@Query("ids") idList: String): Entities
 
+    @GET(MW_API_PREFIX + "action=wbgetentities&props=descriptions|labels|sitelinks")
+    fun getWikidataEntities(@Query("ids") idList: String): Observable<Entities>
+
     @POST(MW_API_PREFIX + "action=wbsetclaim&errorlang=uselang")
     @FormUrlEncoded
     fun postSetClaim(
