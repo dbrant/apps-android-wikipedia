@@ -27,6 +27,9 @@ class UserContribFilterActivity : BaseActivity() {
     private lateinit var binding: ActivityUserContribWikiSelectBinding
 
     private val langUpdateLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (!WikipediaApp.instance.languageState.appLanguageCodes.contains(Prefs.userContribFilterLangCode)) {
+            Prefs.userContribFilterLangCode = WikipediaApp.instance.appOrSystemLanguageCode
+        }
         binding.recyclerView.adapter = ItemAdapter(this)
     }
 
@@ -57,11 +60,11 @@ class UserContribFilterActivity : BaseActivity() {
         }
     }
 
-    private inner class AddLanguageViewHolder constructor(itemView: UserContribFilterItemView) :
-            DefaultViewHolder<UserContribFilterItemView>(itemView), UserContribFilterItemView.Callback {
+    private inner class AddLanguageViewHolder constructor(private val filterItemView: UserContribFilterItemView) :
+            DefaultViewHolder<UserContribFilterItemView>(filterItemView), UserContribFilterItemView.Callback {
         fun bindItem(text: String) {
-            (itemView as UserContribFilterItemView).callback = this
-            itemView.setSingleLabel(text)
+            filterItemView.callback = this
+            filterItemView.setSingleLabel(text)
         }
 
         override fun onSelected(item: Item?) {

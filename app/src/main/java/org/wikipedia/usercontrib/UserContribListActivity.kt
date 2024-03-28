@@ -45,7 +45,11 @@ import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.talk.UserTalkPopupHelper
-import org.wikipedia.util.*
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.util.UriUtil
 import org.wikipedia.views.SearchAndFilterActionProvider
 import org.wikipedia.views.WikiErrorView
 
@@ -311,23 +315,18 @@ class UserContribListActivity : BaseActivity() {
                     launchFilterActivity.launch(UserContribFilterActivity.newIntent(this@UserContribListActivity))
                 }
 
-                FeedbackUtil.setButtonLongPressToast(binding.filterByButton)
+                FeedbackUtil.setButtonTooltip(binding.filterByButton)
                 binding.root.isVisible = true
             }
         }
 
         private fun updateFilterCount() {
-            val excludedFilters = viewModel.excludedFiltersCount()
-            if (excludedFilters == 0) {
-                binding.filterCount.visibility = View.GONE
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@UserContribListActivity, R.attr.primary_color))
-            } else {
-                binding.filterCount.visibility = View.VISIBLE
-                binding.filterCount.text = excludedFilters.toString()
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@UserContribListActivity, R.attr.progressive_color))
-            }
+            val showFilterCount = viewModel.excludedFiltersCount() != 0
+            val filterButtonColor = if (showFilterCount) R.attr.progressive_color else R.attr.primary_color
+            binding.filterCount.isVisible = showFilterCount
+            binding.filterCount.text = viewModel.excludedFiltersCount().toString()
+            ImageViewCompat.setImageTintList(binding.filterByButton,
+                ResourceUtil.getThemedColorStateList(this@UserContribListActivity, filterButtonColor))
         }
     }
 
@@ -354,7 +353,7 @@ class UserContribListActivity : BaseActivity() {
 
         override fun onClick() {
             startActivity(ArticleEditDetailsActivity.newIntent(this@UserContribListActivity,
-                    PageTitle(contrib.title, viewModel.wikiSite), contrib.pageid, contrib.revid))
+                    PageTitle(contrib.title, viewModel.wikiSite), contrib.pageid, revisionTo = contrib.revid))
         }
     }
 

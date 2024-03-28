@@ -21,17 +21,15 @@ import org.wikipedia.databinding.ViewOnboardingPageBinding
 import org.wikipedia.onboarding.OnboardingPageView.LanguageListAdapter.OptionsViewHolder
 import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.util.StringUtil
-import java.util.*
+import java.util.Locale
 
 class OnboardingPageView constructor(context: Context, attrs: AttributeSet? = null) : ConstraintLayout(context, attrs) {
     interface Callback {
-        fun onAcceptOrReject(view: OnboardingPageView, accept: Boolean)
         fun onLinkClick(view: OnboardingPageView, url: String)
         fun onListActionButtonClicked(view: OnboardingPageView)
     }
 
     class DefaultCallback : Callback {
-        override fun onAcceptOrReject(view: OnboardingPageView, accept: Boolean) {}
         override fun onLinkClick(view: OnboardingPageView, url: String) {}
         override fun onListActionButtonClicked(view: OnboardingPageView) {}
     }
@@ -44,30 +42,35 @@ class OnboardingPageView constructor(context: Context, attrs: AttributeSet? = nu
     init {
         attrs?.let { attrSet ->
             context.withStyledAttributes(attrSet, R.styleable.OnboardingPageView) {
-                val centeredImage = AppCompatResources.getDrawable(context,
-                        getResourceId(R.styleable.OnboardingPageView_centeredImage, -1))
+                val imageResource = getResourceId(R.styleable.OnboardingPageView_centeredImage, -1)
                 val primaryText = getString(R.styleable.OnboardingPageView_primaryText)
                 val secondaryText = getString(R.styleable.OnboardingPageView_secondaryText)
                 val tertiaryText = getString(R.styleable.OnboardingPageView_tertiaryText)
-                val acceptRejectButtons = getBoolean(R.styleable.OnboardingPageView_acceptRejectButtons, false)
                 listDataType = getString(R.styleable.OnboardingPageView_dataType)
                 val showListView = getBoolean(R.styleable.OnboardingPageView_showListView, false)
                 val background = getDrawable(R.styleable.OnboardingPageView_background)
                 val imageSize = getDimension(R.styleable.OnboardingPageView_imageSize, 0f)
+                val showPatrollerTasksButtons = getBoolean(R.styleable.OnboardingPageView_patrollerTasksButtons, false)
                 background?.let { setBackground(it) }
-                binding.imageViewCentered.setImageDrawable(centeredImage)
-                if (imageSize > 0 && centeredImage != null && centeredImage.intrinsicHeight > 0) {
-                    val aspect = centeredImage.intrinsicWidth.toFloat() / centeredImage.intrinsicHeight
-                    binding.imageViewCentered.updateLayoutParams {
-                        width = imageSize.toInt()
-                        height = (imageSize / aspect).toInt()
+                binding.imageViewCentered.isVisible = imageResource != -1
+                if (imageSize > 0 && imageResource != -1) {
+                    val centeredImage = AppCompatResources.getDrawable(context, imageResource)
+                    if (centeredImage != null && centeredImage.intrinsicHeight > 0) {
+                        binding.imageViewCentered.setImageDrawable(centeredImage)
+                        val aspect =
+                            centeredImage.intrinsicWidth.toFloat() / centeredImage.intrinsicHeight
+                        binding.imageViewCentered.updateLayoutParams {
+                            width = imageSize.toInt()
+                            height = (imageSize / aspect).toInt()
+                        }
                     }
                 }
                 binding.primaryTextView.visibility = if (primaryText.isNullOrEmpty()) GONE else VISIBLE
                 binding.primaryTextView.text = primaryText
+                binding.secondaryTextView.visibility = if (secondaryText.isNullOrEmpty()) GONE else VISIBLE
                 binding.secondaryTextView.text = StringUtil.fromHtml(secondaryText)
+                binding.tertiaryTextView.visibility = if (tertiaryText.isNullOrEmpty()) GONE else VISIBLE
                 binding.tertiaryTextView.text = tertiaryText
-                binding.acceptRejectContainer.isVisible = acceptRejectButtons
                 setUpLanguageListContainer(showListView, listDataType)
                 binding.secondaryTextView.movementMethod = LinkMovementMethodExt { url: String ->
                     callback?.onLinkClick(this@OnboardingPageView, url)
@@ -75,10 +78,14 @@ class OnboardingPageView constructor(context: Context, attrs: AttributeSet? = nu
                 binding.languageListContainer.addLanguageButton.setOnClickListener {
                     callback?.onListActionButtonClicked(this@OnboardingPageView)
                 }
-                binding.acceptButton.setOnClickListener { callback?.onAcceptOrReject(this@OnboardingPageView, true) }
-                binding.rejectButton.setOnClickListener { callback?.onAcceptOrReject(this@OnboardingPageView, false) }
+
+                binding.patrollerTasksButtonsContainer?.root?.isVisible = showPatrollerTasksButtons
             }
         }
+    }
+
+    fun setSecondaryText(text: CharSequence?) {
+        binding.secondaryTextView.text = text
     }
 
     fun setTertiaryTextViewVisible(isVisible: Boolean) {

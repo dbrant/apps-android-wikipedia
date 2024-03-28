@@ -4,17 +4,21 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
-import android.text.method.LinkMovementMethod
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.*
+import android.view.View.GONE
+import android.view.View.OnClickListener
+import android.view.View.TEXT_ALIGNMENT_CENTER
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.CompoundButton
 import android.widget.Toast
+import androidx.core.text.method.LinkMovementMethodCompat
 import androidx.core.view.children
 import androidx.core.widget.ImageViewCompat
 import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.wikipedia.Constants
@@ -23,22 +27,29 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil
 import org.wikipedia.analytics.eventplatform.EditAttemptStepEvent
+import org.wikipedia.analytics.eventplatform.ImageRecommendationsEvent
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.csrf.CsrfTokenClient
 import org.wikipedia.databinding.FragmentSuggestedEditsImageTagsItemBinding
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.mwapi.MwQueryPage
+import org.wikipedia.descriptions.DescriptionEditActivity
+import org.wikipedia.descriptions.DescriptionEditFragment
 import org.wikipedia.language.LanguageUtil
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.suggestededits.provider.EditingSuggestionsProvider
-import org.wikipedia.util.*
+import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.ImageUrlUtil
 import org.wikipedia.util.L10nUtil.setConditionalLayoutDirection
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.ImageZoomHelper
 import org.wikipedia.views.ViewUtil
-import java.util.*
+import java.util.UUID
 
 class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundButton.OnCheckedChangeListener, OnClickListener, SuggestedEditsImageTagDialog.Callback {
 
@@ -85,7 +96,7 @@ class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundBu
 
         binding.tagsLicenseText.text = StringUtil.fromHtml(getString(R.string.suggested_edits_cc0_notice,
                 getString(R.string.terms_of_use_url), getString(R.string.cc_0_url)))
-        binding.tagsLicenseText.movementMethod = LinkMovementMethod.getInstance()
+        binding.tagsLicenseText.movementMethod = LinkMovementMethodCompat.getInstance()
 
         binding.imageView.setOnClickListener {
             if (Prefs.showImageZoomTooltip) {
@@ -245,10 +256,18 @@ class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundBu
         return chip
     }
 
-    companion object {
-        fun newInstance(): SuggestedEditsItemFragment {
-            return SuggestedEditsImageTagsFragment()
+    override fun onBackPressed(): Boolean {
+        if (!atLeastOneTagChecked()) {
+            return true
         }
+        MaterialAlertDialogBuilder(requireActivity())
+            .setCancelable(false)
+            .setTitle(R.string.talk_new_topic_exit_dialog_title)
+            .setMessage(R.string.suggested_edits_image_tags_exit_dialog_message)
+            .setPositiveButton(R.string.edit_abandon_confirm_yes) { _, _ -> requireActivity().finish() }
+            .setNegativeButton(R.string.edit_abandon_confirm_no, null)
+            .show()
+        return false
     }
 
     override fun onClick(v: View?) {
@@ -359,7 +378,7 @@ class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundBu
                         commentStr += label.wikidataId + "|" + label.label.replace("|", "").replace(",", "")
                     }
                     claimStr += "]}"
-                    commentStr += " */"
+                    commentStr += " */" + DescriptionEditFragment.SUGGESTED_EDITS_IMAGE_TAGS_COMMENT
 
                     disposables.add(ServiceFactory.get(Constants.commonsWikiSite).postEditEntity(mId, token, claimStr, commentStr, null)
                             .subscribeOn(Schedulers.io())
@@ -372,6 +391,8 @@ class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundBu
                                     EditAttemptStepEvent.logSaveSuccess(pageTitle, EditAttemptStepEvent.INTERFACE_OTHER)
                                 }
                                 publishSuccess = true
+                                ImageRecommendationsEvent.logEditSuccess(DescriptionEditActivity.Action.ADD_IMAGE_TAGS,
+                                    "commons", it.entity?.lastRevId ?: 0)
                                 onSuccess()
                             }, {
                                 onError(it)
@@ -462,5 +483,11 @@ class SuggestedEditsImageTagsFragment : SuggestedEditsItemFragment(), CompoundBu
 
     private fun callback(): Callback {
         return FragmentUtil.getCallback(this, Callback::class.java)!!
+    }
+
+    companion object {
+        fun newInstance(): SuggestedEditsItemFragment {
+            return SuggestedEditsImageTagsFragment()
+        }
     }
 }

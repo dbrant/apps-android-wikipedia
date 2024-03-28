@@ -39,20 +39,17 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
             }
         }
         if (WikipediaApp.instance.languageState.appLanguageCodes.size == 1) {
-            binding.langCodeBackground.visibility = GONE
             binding.langCodeText.visibility = GONE
         } else {
-            binding.langCodeBackground.visibility = VISIBLE
             binding.langCodeText.visibility = VISIBLE
         }
     }
 
-    fun setItem(item: MwQueryResult.WatchlistItem) {
+    fun setItem(item: MwQueryResult.WatchlistItem, currentQuery: String?) {
         this.item = item
         var isSummaryEmpty = false
-        binding.titleText.text = item.title
-        binding.langCodeText.text = item.wiki!!.languageCode
-        binding.summaryText.text = StringUtil.fromHtml(item.parsedComment).ifEmpty {
+        binding.langCodeText.setLangCode(item.wiki!!.languageCode)
+        val summary = StringUtil.fromHtml(item.parsedComment).ifEmpty {
             isSummaryEmpty = true
             context.getString(R.string.page_edit_history_comment_placeholder)
         }
@@ -60,7 +57,6 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
         binding.summaryText.setTextColor(ResourceUtil.getThemedColor(context,
             if (isSummaryEmpty) R.attr.secondary_color else R.attr.primary_color))
         binding.timeText.text = DateUtil.getTimeString(context, item.date)
-        binding.userNameText.text = item.user
         binding.userNameText.contentDescription = context.getString(R.string.talk_user_title, item.user)
 
         binding.userNameText.setIconResource(if (item.isAnon) R.drawable.ic_anonymous_ooui else R.drawable.ic_user_avatar)
@@ -97,6 +93,9 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
             binding.containerView.isClickable = true
         }
         L10nUtil.setConditionalLayoutDirection(this, item.wiki!!.languageCode)
+        StringUtil.setHighlightedAndBoldenedText(binding.titleText, item.title, currentQuery)
+        StringUtil.setHighlightedAndBoldenedText(binding.userNameText, item.user, currentQuery)
+        StringUtil.setHighlightedAndBoldenedText(binding.summaryText, summary, currentQuery)
     }
 
     private fun setButtonTextAndIconColor(text: String, @DrawableRes iconResourceDrawable: Int = 0) {

@@ -10,13 +10,16 @@ import android.view.LayoutInflater
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.BlendModeColorFilterCompat
+import androidx.core.graphics.BlendModeCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.addTextChangedListener
-import de.mrapp.android.view.drawable.CircularProgressDrawable
+import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.eventplatform.MachineGeneratedArticleDescriptionsAnalyticsHelper
+import org.wikipedia.databinding.GroupCaptchaBinding
 import org.wikipedia.databinding.ViewDescriptionEditBinding
 import org.wikipedia.language.LanguageUtil
 import org.wikipedia.mlkit.MlKitLanguageDetector
@@ -64,7 +67,7 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         }
 
     init {
-        FeedbackUtil.setButtonLongPressToast(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
+        FeedbackUtil.setButtonTooltip(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
         orientation = VERTICAL
         mlKitLanguageDetector.callback = this
 
@@ -402,6 +405,10 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         }
     }
 
+    fun getDescriptionEditTextView(): LinearLayout {
+        return binding.viewDescriptionEditTextLayout
+    }
+
     fun updateInfoText() {
         binding.learnMoreButton.text =
             if (action == DescriptionEditActivity.Action.ADD_DESCRIPTION ||
@@ -412,7 +419,11 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
     fun showSuggestedDescriptionsLoadingProgress() {
         binding.suggestedDescButton.isVisible = true
         binding.suggestedDescButton.isEnabled = false
-        binding.suggestedDescButton.chipIcon = CircularProgressDrawable(ResourceUtil.getThemedColor(context, R.attr.primary_color), 1).also { it.start() }
+        val drawable = CircularProgressDrawable(context)
+        drawable.strokeWidth = DimenUtil.dpToPx(1.5f)
+        drawable.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(ResourceUtil.getThemedColor(context, R.attr.primary_color), BlendModeCompat.SRC_IN)
+        binding.suggestedDescButton.chipIcon = drawable
+        drawable.start()
     }
 
      fun updateSuggestedDescriptionsButtonVisibility() {
@@ -453,6 +464,10 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
                 Prefs.suggestedEditsMachineGeneratedDescriptionTooltipShown = true
             }, 500)
         }
+    }
+
+    fun getCaptchaContainer(): GroupCaptchaBinding {
+        return binding.captchaContainer
     }
 
     companion object {

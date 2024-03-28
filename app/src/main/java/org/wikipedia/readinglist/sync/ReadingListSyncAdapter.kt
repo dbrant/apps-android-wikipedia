@@ -80,6 +80,27 @@ class ReadingListSyncAdapter : JobIntentService() {
             if (lastSyncTime.isEmpty()) {
                 syncEverything = true
             }
+
+            if (!syncEverything) {
+                try {
+                    L.d("Fetching changes from server, since $lastSyncTime")
+                    val allChanges = client.getChangesSince(lastSyncTime)
+                    allChanges.lists?.let {
+                        remoteListsModified = it as MutableList<RemoteReadingList>
+                    }
+                    allChanges.entries?.let {
+                        remoteEntriesModified = it as MutableList<RemoteReadingListEntry>
+                    }
+                } catch (t: Throwable) {
+                    if (client.isErrorType(t, "too-old")) {
+                        // If too much time has elapsed between syncs, then perform a full sync.
+                        syncEverything = true
+                    } else {
+                        throw t
+                    }
+                }
+            }
+
             if (syncEverything) {
                 if (allLocalLists == null) {
                     allLocalLists = AppDatabase.instance.readingListDao().getAllLists().toMutableList()
@@ -87,14 +108,6 @@ class ReadingListSyncAdapter : JobIntentService() {
             } else {
                 if (allLocalLists == null) {
                     allLocalLists = AppDatabase.instance.readingListDao().getAllListsWithUnsyncedPages().toMutableList()
-                }
-                L.d("Fetching changes from server, since $lastSyncTime")
-                val allChanges = client.getChangesSince(lastSyncTime)
-                allChanges.lists?.let {
-                    remoteListsModified = it as MutableList<RemoteReadingList>
-                }
-                allChanges.entries?.let {
-                    remoteEntriesModified = it as MutableList<RemoteReadingListEntry>
                 }
             }
 
@@ -433,10 +446,6 @@ class ReadingListSyncAdapter : JobIntentService() {
             }
         }
         localPage.remoteId = remotePage.id
-        if (remotePage.summary != null) {
-            localPage.description = remotePage.summary.description
-            localPage.thumbUrl = remotePage.summary.thumbnailUrl
-        }
         if (updateOnly) {
             L.d("Updating local page " + localPage.apiTitle)
             AppDatabase.instance.readingListPageDao().updateReadingListPage(localPage)

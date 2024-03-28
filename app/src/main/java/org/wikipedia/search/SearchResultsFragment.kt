@@ -1,10 +1,10 @@
 package org.wikipedia.search
 
+import android.location.Location
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.wikipedia.Constants
 import org.wikipedia.LongPressHandler
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil.getCallback
+import org.wikipedia.analytics.eventplatform.PlacesEvent
 import org.wikipedia.databinding.FragmentSearchResultsBinding
 import org.wikipedia.databinding.ItemSearchNoResultsBinding
 import org.wikipedia.databinding.ItemSearchResultBinding
@@ -30,12 +32,11 @@ import org.wikipedia.history.HistoryEntry
 import org.wikipedia.page.PageTitle
 import org.wikipedia.readinglist.LongPressMenu
 import org.wikipedia.readinglist.database.ReadingListPage
-import org.wikipedia.util.FeedbackUtil.setButtonLongPressToast
+import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.L10nUtil.setConditionalLayoutDirection
 import org.wikipedia.util.ResourceUtil.getThemedColorStateList
 import org.wikipedia.util.StringUtil
 import org.wikipedia.views.DefaultViewHolder
-import org.wikipedia.views.ViewUtil.formatLangButton
 import org.wikipedia.views.ViewUtil.loadImageWithRoundedCorners
 
 class SearchResultsFragment : Fragment() {
@@ -43,7 +44,7 @@ class SearchResultsFragment : Fragment() {
         fun onSearchAddPageToList(entry: HistoryEntry, addToDefault: Boolean)
         fun onSearchMovePageToList(sourceReadingListId: Long, entry: HistoryEntry)
         fun onSearchProgressBar(enabled: Boolean)
-        fun navigateToTitle(item: PageTitle, inNewTab: Boolean, position: Int)
+        fun navigateToTitle(item: PageTitle, inNewTab: Boolean, position: Int, location: Location? = null)
         fun setSearchText(text: CharSequence)
         fun showWikidataInfoBox(title: PageTitle)
     }
@@ -86,7 +87,6 @@ class SearchResultsFragment : Fragment() {
                 }
             }
         }
-
         return binding.root
     }
 
@@ -156,9 +156,7 @@ class SearchResultsFragment : Fragment() {
 
     private inner class SearchResultsDiffCallback : DiffUtil.ItemCallback<SearchResult>() {
         override fun areItemsTheSame(oldItem: SearchResult, newItem: SearchResult): Boolean {
-            return oldItem.pageTitle.prefixedText == newItem.pageTitle.prefixedText &&
-                    oldItem.pageTitle.namespace == newItem.pageTitle.namespace &&
-                    oldItem.pageTitle.description == newItem.pageTitle.description
+            return false
         }
 
         override fun areContentsTheSame(oldItem: SearchResult, newItem: SearchResult): Boolean {
@@ -194,15 +192,16 @@ class SearchResultsFragment : Fragment() {
         private val accentColorStateList = getThemedColorStateList(requireContext(), R.attr.progressive_color)
         private val secondaryColorStateList = getThemedColorStateList(requireContext(), R.attr.secondary_color)
         fun bindItem(position: Int, resultsCount: Int) {
+            if (resultsCount == 0 && viewModel.invokeSource == Constants.InvokeSource.PLACES) {
+                PlacesEvent.logAction("no_results_impression", "search_view")
+            }
             val langCode = WikipediaApp.instance.languageState.appLanguageCodes[position]
             itemBinding.resultsText.text = if (resultsCount == 0) getString(R.string.search_results_count_zero) else resources.getQuantityString(R.plurals.search_results_count, resultsCount, resultsCount)
             itemBinding.resultsText.setTextColor(if (resultsCount == 0) secondaryColorStateList else accentColorStateList)
             itemBinding.languageCode.visibility = if (viewModel.resultsCount.size == 1) View.GONE else View.VISIBLE
-            itemBinding.languageCode.text = langCode
+            itemBinding.languageCode.setLangCode(langCode)
             itemBinding.languageCode.setTextColor(if (resultsCount == 0) secondaryColorStateList else accentColorStateList)
-            ViewCompat.setBackgroundTintList(itemBinding.languageCode, if (resultsCount == 0) secondaryColorStateList else accentColorStateList)
-            formatLangButton(itemBinding.languageCode, langCode,
-                    SearchFragment.LANG_BUTTON_TEXT_SIZE_SMALLER, SearchFragment.LANG_BUTTON_TEXT_SIZE_LARGER)
+            itemBinding.languageCode.setBackgroundTint(if (resultsCount == 0) secondaryColorStateList else accentColorStateList)
             view.isEnabled = resultsCount > 0
             view.setOnClickListener {
                 if (!isAdded) {
@@ -241,14 +240,14 @@ class SearchResultsFragment : Fragment() {
             loadImageWithRoundedCorners(itemBinding.pageListItemImage, pageTitle.thumbUrl)
 
             val infoButton = view.findViewById<View>(R.id.info_button)
-            setButtonLongPressToast(infoButton)
+            FeedbackUtil.setButtonTooltip(infoButton)
             infoButton.setOnClickListener {
                 callback()?.showWikidataInfoBox(searchResult.pageTitle)
             }
 
             view.isLongClickable = true
             view.setOnClickListener {
-                callback()?.navigateToTitle(searchResult.pageTitle, false, position)
+                callback()?.navigateToTitle(searchResult.pageTitle, false, position, searchResult.location)
             }
             view.setOnCreateContextMenuListener(LongPressHandler(view,
                     HistoryEntry.SOURCE_SEARCH, SearchResultsFragmentLongPressHandler(position), pageTitle))
@@ -257,6 +256,10 @@ class SearchResultsFragment : Fragment() {
 
     private fun callback(): Callback? {
         return getCallback(this, Callback::class.java)
+    }
+
+    fun setInvokeSource(invokeSource: Constants.InvokeSource) {
+        viewModel.invokeSource = invokeSource
     }
 
     private val searchLanguageCode get() =

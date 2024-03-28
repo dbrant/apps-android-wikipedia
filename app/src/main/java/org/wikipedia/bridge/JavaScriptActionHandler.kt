@@ -16,7 +16,8 @@ import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.DimenUtil.densityScalar
 import org.wikipedia.util.DimenUtil.leadImageHeightForDevice
 import org.wikipedia.util.L10nUtil
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
@@ -30,7 +31,11 @@ object JavaScriptActionHandler {
     }
 
     fun setTopMargin(top: Int): String {
-        return String.format(Locale.ROOT, "pcs.c1.Page.setMargins({ top:'%dpx', right:'%dpx', bottom:'%dpx', left:'%dpx' })", top + 16, 16, 48, 16)
+        return setMargins(16, top + 16, 16, 48)
+    }
+
+    fun setMargins(left: Int, top: Int, right: Int, bottom: Int): String {
+        return "pcs.c1.Page.setMargins({ top:'${top}px', right:'${right}px', bottom:'${bottom}px', left:'${left}px' })"
     }
 
     fun getTextSelection(): String {
@@ -66,7 +71,7 @@ object JavaScriptActionHandler {
     }
 
     fun scrollToAnchor(anchorLink: String): String {
-        val anchor = if (anchorLink.contains("#")) anchorLink.substring(anchorLink.indexOf("#") + 1) else anchorLink
+        val anchor = anchorLink.substringAfter('#')
         return "var el = document.getElementById('$anchor');" +
                 "window.scrollTo(0, el.offsetTop - (screen.height / 2));" +
                 "setTimeout(function(){ el.style.backgroundColor='#fc3';" +
@@ -110,7 +115,7 @@ object JavaScriptActionHandler {
                 "   \"dimImages\": ${(app.currentTheme.isDark && Prefs.dimDarkModeImages)}," +
                 "   \"margins\": { \"top\": \"%dpx\", \"right\": \"%dpx\", \"bottom\": \"%dpx\", \"left\": \"%dpx\" }," +
                 "   \"leadImageHeight\": \"%dpx\"," +
-                "   \"areTablesInitiallyExpanded\": ${!Prefs.isCollapseTablesEnabled}," +
+                "   \"areTablesInitiallyExpanded\": ${isPreview || !Prefs.isCollapseTablesEnabled}," +
                 "   \"textSizeAdjustmentPercentage\": \"100%%\"," +
                 "   \"loadImages\": ${Prefs.isImageDownloadEnabled}," +
                 "   \"userGroups\": \"${AccountUtil.groups}\"," +
@@ -126,7 +131,7 @@ object JavaScriptActionHandler {
         if (model.page == null) {
             return ""
         }
-        val showTalkLink = !(model.page!!.title.namespace() === Namespace.TALK)
+        val showTalkLink = model.page!!.title.namespace() !== Namespace.TALK
         val showMapLink = model.page!!.pageProperties.geo != null
         val editedDaysAgo = TimeUnit.MILLISECONDS.toDays(Date().time - model.page!!.pageProperties.lastModified.time)
 
@@ -141,6 +146,7 @@ object JavaScriptActionHandler {
                                 "pcs.c1.Footer.MenuItemType.lastEdited, " +
                                 (if (showTalkLink) "pcs.c1.Footer.MenuItemType.talkPage, " else "") +
                                 (if (showMapLink) "pcs.c1.Footer.MenuItemType.coordinate, " else "") +
+                                "pcs.c1.Footer.MenuItemType.pageIssues, " +
                 "               pcs.c1.Footer.MenuItemType.referenceList " +
                 "              ]," +
                 "       fragment: \"pcs-menu\"," +
@@ -154,10 +160,10 @@ object JavaScriptActionHandler {
                 "})"
     }
 
-    fun mobileWebChromeShim(): String {
+    fun mobileWebChromeShim(marginTop: Int, marginBottom: Int): String {
         return "(function() {" +
                 "let style = document.createElement('style');" +
-                "style.innerHTML = '.header-chrome { visibility: hidden; margin-top: 48px; height: 0px; } #page-secondary-actions { display: none; } .mw-footer { padding-bottom: 72px; } .page-actions-menu { display: none; } .minerva__tab-container { display: none; }';" +
+                "style.innerHTML = '.header-chrome { visibility: hidden; margin-top: ${marginTop}px; height: 0px; } #page-secondary-actions { display: none; } .mw-footer { padding-bottom: ${marginBottom}px; } .page-actions-menu { display: none; } .minerva__tab-container { display: none; }';" +
                 "document.head.appendChild(style);" +
                 "})();"
     }

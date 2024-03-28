@@ -3,8 +3,11 @@ package org.wikipedia.talk
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.eventplatform.WatchlistAnalyticsHelper
 import org.wikipedia.csrf.CsrfTokenClient
@@ -21,6 +24,7 @@ import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.TalkAliasData
 import org.wikipedia.staticdata.UserTalkAliasData
 import org.wikipedia.talk.db.TalkPageSeen
+import org.wikipedia.util.StringUtil
 import org.wikipedia.util.UriUtil
 import org.wikipedia.views.TalkTopicsSortOverflowView
 import org.wikipedia.watchlist.WatchlistExpiry
@@ -32,15 +36,13 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
         uiState.value = UiState.LoadError(throwable)
     }
     private val actionHandler = CoroutineExceptionHandler { _, throwable ->
-        uiState.value = UiState.ActionError(throwable)
+        actionState.value = ActionState.OnError(throwable)
     }
 
     private val threadItems = mutableListOf<ThreadItem>()
     var sortedThreadItems = listOf<ThreadItem>()
-    var watchlistExpiryChanged = false
     var isWatched = false
     var hasWatchlistExpiry = false
-    var lastWatchExpiry = WatchlistExpiry.NEVER
     var currentSearchQuery: String? = null
         set(value) {
             field = value
@@ -54,6 +56,7 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
         }
 
     val uiState = MutableStateFlow(UiState())
+    val actionState = MutableStateFlow(ActionState())
 
     init {
         loadTopics()
@@ -66,6 +69,10 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
         if (pageTitle.namespace.isEmpty()) {
             pageTitle.namespace = TalkAliasData.valueFor(pageTitle.wikiSite.languageCode)
         } else if (pageTitle.isUserPage) {
+            // Make sure to remove HTML tags and duplicated namespace if it is a user page.
+            if (pageTitle.namespace() == Namespace.USER) {
+                pageTitle.displayText = StringUtil.removeNamespace(StringUtil.removeHTMLTags(pageTitle.displayText))
+            }
             pageTitle.namespace = UserTalkAliasData.valueFor(pageTitle.wikiSite.languageCode)
         } else if (pageTitle.namespace() != Namespace.TALK && pageTitle.namespace() != Namespace.USER_TALK) {
             // defer resolution of Talk page title for an API call.
@@ -123,7 +130,7 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
                 CsrfTokenClient.getToken(pageTitle.wikiSite).blockingFirst()
             }
             val undoResponse = ServiceFactory.get(pageTitle.wikiSite).postUndoEdit(title = pageTitle.prefixedText, undoRevId = newRevisionId, token = token)
-            uiState.value = UiState.UndoEdit(undoResponse, undoneSubject, undoneBody)
+            actionState.value = ActionState.UndoEdit(undoResponse, undoneSubject, undoneBody)
         }
     }
 
@@ -212,10 +219,6 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
             val response = ServiceFactory.get(pageTitle.wikiSite)
                 .watch(if (unwatch) 1 else null, null, pageTitle.prefixedText, expiry.expiry, token!!)
 
-            lastWatchExpiry = expiry
-            if (watchlistExpiryChanged && unwatch) {
-                watchlistExpiryChanged = false
-            }
             if (unwatch) {
                 WatchlistAnalyticsHelper.logRemovedFromWatchlistSuccess(pageTitle)
             } else {
@@ -223,10 +226,10 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
             }
             response.getFirst()?.let {
                 isWatched = it.watched
-                hasWatchlistExpiry = lastWatchExpiry != WatchlistExpiry.NEVER
+                hasWatchlistExpiry = expiry != WatchlistExpiry.NEVER
                 // We have to send values to the object, even if we use the variables from ViewModel.
                 // Otherwise the status will not be updated in the activity since the values in the object remains the same.
-                uiState.value = UiState.DoWatch(isWatched, hasWatchlistExpiry)
+                actionState.value = ActionState.DoWatch(isWatched, hasWatchlistExpiry)
             }
         }
     }
@@ -243,8 +246,11 @@ class TalkTopicsViewModel(var pageTitle: PageTitle, private val sidePanel: Boole
         data class LoadTopic(val pageTitle: PageTitle,
                              val threadItems: List<ThreadItem>) : UiState()
         data class LoadError(val throwable: Throwable) : UiState()
-        data class UndoEdit(val edit: Edit, val undoneSubject: CharSequence, val undoneBody: CharSequence) : UiState()
-        data class DoWatch(val isWatched: Boolean, val hasWatchlistExpiry: Boolean) : UiState()
-        data class ActionError(val throwable: Throwable) : UiState()
+    }
+
+    open class ActionState {
+        data class UndoEdit(val edit: Edit, val undoneSubject: CharSequence, val undoneBody: CharSequence) : ActionState()
+        data class DoWatch(val isWatched: Boolean, val hasWatchlistExpiry: Boolean) : ActionState()
+        data class OnError(val throwable: Throwable) : ActionState()
     }
 }

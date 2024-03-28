@@ -3,17 +3,14 @@ package org.wikipedia.suggestededits
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.wikipedia.Constants
 import org.wikipedia.WikipediaApp
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.dataclient.ServiceFactory
-import org.wikipedia.dataclient.mwapi.MwServiceError
 import org.wikipedia.dataclient.mwapi.UserContribution
 import org.wikipedia.usercontrib.UserContribStats
 import org.wikipedia.util.ThrowableUtil
@@ -29,15 +26,24 @@ class SuggestedEditsTasksFragmentViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
 
-    var blockMessage: String? = null
+    var blockMessageWikipedia: String? = null
+    var blockMessageWikidata: String? = null
+    var blockMessageCommons: String? = null
+
     var totalPageviews = 0L
     var totalContributions = 0
+    var homeContributions = 0
     var latestEditDate = Date()
     var latestEditStreak = 0
     var revertSeverity = 0
 
+    var wikiSupportsImageRecommendations = false
+    // TODO: remove this limitation later.
+    var allowToPatrolEdits = false
+
     fun fetchData() {
         _uiState.value = UiState.Loading()
+        wikiSupportsImageRecommendations = false
 
         if (!AccountUtil.isLoggedIn) {
             _uiState.value = UiState.RequireLogin()
@@ -45,36 +51,56 @@ class SuggestedEditsTasksFragmentViewModel : ViewModel() {
         }
 
         viewModelScope.launch(handler) {
-            blockMessage = null
+            blockMessageWikipedia = null
+            blockMessageWikidata = null
+            blockMessageCommons = null
             totalContributions = 0
             latestEditStreak = 0
             revertSeverity = 0
 
-            val homeSiteCall = async { ServiceFactory.get(WikipediaApp.instance.wikiSite).getUserContributions(AccountUtil.userName!!, 10, null) }
-            val commonsCall = async { ServiceFactory.get(Constants.commonsWikiSite).getUserContributions(AccountUtil.userName!!, 10, null) }
-            val wikidataCall = async { ServiceFactory.get(Constants.wikidataWikiSite).getUserContributions(AccountUtil.userName!!, 10, null) }
-            val editCountsCall = withContext(Dispatchers.IO) { UserContribStats.getEditCountsObservable().blockingSingle() }
+            val homeSiteCall = async { ServiceFactory.get(WikipediaApp.instance.wikiSite).getUserContributions(AccountUtil.userName!!, 10, null, null) }
+            // val homeSiteParamCall = async { ServiceFactory.get(WikipediaApp.instance.wikiSite).getParamInfo("query+growthtasks") }
+            val commonsCall = async { ServiceFactory.get(Constants.commonsWikiSite).getUserContributions(AccountUtil.userName!!, 10, null, null) }
+            val wikidataCall = async { ServiceFactory.get(Constants.wikidataWikiSite).getUserContributions(AccountUtil.userName!!, 10, 0, null) }
+            val editCountsCall = async { UserContribStats.verifyEditCountsAndPauseState() }
 
             val homeSiteResponse = homeSiteCall.await()
             val commonsResponse = commonsCall.await()
             val wikidataResponse = wikidataCall.await()
+            editCountsCall.await()
 
-            var blockInfo: MwServiceError.BlockInfo? = null
-            when {
-                wikidataResponse.query?.userInfo!!.isBlocked -> blockInfo =
-                    wikidataResponse.query?.userInfo!!
-                commonsResponse.query?.userInfo!!.isBlocked -> blockInfo =
-                    commonsResponse.query?.userInfo!!
-                homeSiteResponse.query?.userInfo!!.isBlocked -> blockInfo =
-                    homeSiteResponse.query?.userInfo!!
+            // Logic for checking whether the wiki has image recommendations enabled
+            // (in case we need to rely on it in the future)
+            /*
+            homeSiteParamCall.await().paraminfo?.modules?.let {
+                if (it.isNotEmpty() && it[0].parameters.isNotEmpty()) {
+                    imageRecommendationsEnabled = it[0].parameters[0].typeAsEnum.contains("image-recommendation")
+                }
             }
-            if (blockInfo != null) {
-                blockMessage = ThrowableUtil.getBlockMessageHtml(blockInfo)
+             */
+            wikiSupportsImageRecommendations = true
+
+            homeSiteResponse.query?.userInfo?.let {
+                allowToPatrolEdits = it.rights.contains("rollback") || it.groups().contains("sysop")
+                if (it.isBlocked) {
+                    blockMessageWikipedia = ThrowableUtil.getBlockMessageHtml(it, WikipediaApp.instance.wikiSite)
+                }
+            }
+            wikidataResponse.query?.userInfo?.let {
+                if (it.isBlocked) {
+                    blockMessageWikidata = ThrowableUtil.getBlockMessageHtml(it, Constants.wikidataWikiSite)
+                }
+            }
+            commonsResponse.query?.userInfo?.let {
+                if (it.isBlocked) {
+                    blockMessageCommons = ThrowableUtil.getBlockMessageHtml(it, Constants.commonsWikiSite)
+                }
             }
 
             totalContributions += wikidataResponse.query?.userInfo!!.editCount
             totalContributions += commonsResponse.query?.userInfo!!.editCount
             totalContributions += homeSiteResponse.query?.userInfo!!.editCount
+            homeContributions = homeSiteResponse.query?.userInfo!!.editCount
 
             latestEditDate = wikidataResponse.query?.userInfo!!.latestContribDate
 
@@ -93,9 +119,7 @@ class SuggestedEditsTasksFragmentViewModel : ViewModel() {
             )
             revertSeverity = UserContribStats.getRevertSeverity()
 
-            withContext(Dispatchers.IO) {
-                totalPageviews = UserContribStats.getPageViewsObservable(wikidataResponse).blockingSingle()
-            }
+            totalPageviews = UserContribStats.getPageViews(wikidataResponse)
 
             _uiState.value = UiState.Success()
         }

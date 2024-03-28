@@ -2,16 +2,24 @@ package org.wikipedia.page
 
 import android.app.SearchManager
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.view.*
+import android.view.ActionMode
+import android.view.Gravity
+import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
-import androidx.core.view.*
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.children
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -21,8 +29,12 @@ import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.activity.SingleWebViewActivity
 import org.wikipedia.analytics.eventplatform.ArticleLinkPreviewInteractionEvent
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
+import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
+import org.wikipedia.analytics.eventplatform.PlacesEvent
+import org.wikipedia.analytics.metricsplatform.ArticleLinkPreviewInteraction
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.databinding.ActivityPageBinding
@@ -35,6 +47,7 @@ import org.wikipedia.edit.EditHandler
 import org.wikipedia.edit.EditSectionActivity
 import org.wikipedia.events.ArticleSavedOrDeletedEvent
 import org.wikipedia.events.ChangeTextSizeEvent
+import org.wikipedia.extensions.parcelableExtra
 import org.wikipedia.gallery.GalleryActivity
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.language.LangLinksActivity
@@ -52,16 +65,22 @@ import org.wikipedia.suggestededits.SuggestedEditsImageTagEditActivity
 import org.wikipedia.suggestededits.SuggestedEditsSnackbars
 import org.wikipedia.talk.TalkTopicsActivity
 import org.wikipedia.usercontrib.UserContribListActivity
-import org.wikipedia.util.*
+import org.wikipedia.util.DeviceUtil
+import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.ReleaseUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.util.ThrowableUtil
+import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.FrameLayoutNavMenuTriggerer
 import org.wikipedia.views.ObservableWebView
 import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.wikidata.WikidataInfoDialog
-import java.util.*
+import java.util.Locale
 
-class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Callback, FrameLayoutNavMenuTriggerer.Callback, WikidataInfoDialog.Callback {
+class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.LoadPageCallback, FrameLayoutNavMenuTriggerer.Callback, WikidataInfoDialog.Callback {
 
     enum class TabPosition {
         CURRENT_TAB, CURRENT_TAB_SQUASH, NEW_TAB_BACKGROUND, NEW_TAB_FOREGROUND, EXISTING_TAB
@@ -75,7 +94,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
     private var wasTransitionShown = false
     private val currentActionModes = mutableSetOf<ActionMode>()
     private val disposables = CompositeDisposable()
-    private val listDialogDismissListener = DialogInterface.OnDismissListener { pageFragment.updateBookmarkAndMenuOptionsFromDao() }
     private val isCabOpen get() = currentActionModes.isNotEmpty()
     private var exclusiveTooltipRunnable: Runnable? = null
     private var isTooltipShowing = false
@@ -116,7 +134,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             loadMainPage(TabPosition.NEW_TAB_FOREGROUND)
             animateTabsButton()
         } else if (it.resultCode == TabActivity.RESULT_LOAD_FROM_BACKSTACK) {
-            pageFragment.reloadFromBackstack()
+            pageFragment.reloadFromBackstack(false)
         }
     }
 
@@ -150,23 +168,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         super.onCreate(savedInstanceState)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         binding = ActivityPageBinding.inflate(layoutInflater)
-
-        try {
-            setContentView(binding.root)
-        } catch (e: Exception) {
-            if (!e.message.isNullOrEmpty() && e.message!!.lowercase(Locale.getDefault()).contains(EXCEPTION_MESSAGE_WEBVIEW) ||
-                !ThrowableUtil.getInnermostThrowable(e).message.isNullOrEmpty() &&
-                ThrowableUtil.getInnermostThrowable(e).message!!.lowercase(Locale.getDefault()).contains(EXCEPTION_MESSAGE_WEBVIEW)) {
-                // If the system failed to inflate our activity because of the WebView (which could
-                // be one of several types of exceptions), it likely means that the system WebView
-                // is in the process of being updated. In this case, show the user a message and
-                // bail immediately.
-                Toast.makeText(app, R.string.error_webview_updating, Toast.LENGTH_LONG).show()
-                finish()
-                return
-            }
-            throw e
-        }
+        setContentView(binding.root)
 
         disposables.add(app.bus.subscribe(EventBusConsumer()))
         updateProgressBar(false)
@@ -178,25 +180,29 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.pageToolbarButtonSearch.setOnClickListener {
             pageFragment.articleInteractionEvent?.logSearchWikipediaClick()
+            pageFragment.metricsPlatformArticleEventToolbarInteraction?.logSearchWikipediaClick()
             startActivity(SearchActivity.newIntent(this@PageActivity, InvokeSource.TOOLBAR, null))
         }
         binding.pageToolbarButtonTabs.updateTabCount(false)
         binding.pageToolbarButtonTabs.setOnClickListener {
             pageFragment.articleInteractionEvent?.logTabsClick()
+            pageFragment.metricsPlatformArticleEventToolbarInteraction?.logTabsClick()
             TabActivity.captureFirstTabBitmap(pageFragment.containerView, pageFragment.title?.prefixedText.orEmpty())
             requestBrowseTabLauncher.launch(TabActivity.newIntentFromPageActivity(this))
         }
         toolbarHideHandler = ViewHideHandler(binding.pageToolbarContainer, null, Gravity.TOP) { isTooltipShowing }
-        FeedbackUtil.setButtonLongPressToast(binding.pageToolbarButtonNotifications, binding.pageToolbarButtonTabs, binding.pageToolbarButtonShowOverflowMenu)
+        FeedbackUtil.setButtonTooltip(binding.pageToolbarButtonNotifications, binding.pageToolbarButtonTabs, binding.pageToolbarButtonShowOverflowMenu)
         binding.pageToolbarButtonShowOverflowMenu.setOnClickListener {
             pageFragment.showOverflowMenu(it)
             pageFragment.articleInteractionEvent?.logMoreClick()
+            pageFragment.metricsPlatformArticleEventToolbarInteraction?.logMoreClick()
             Prefs.showOneTimeCustomizeToolbarTooltip = false
         }
 
         binding.pageToolbarButtonNotifications.isVisible = AccountUtil.isLoggedIn
         binding.pageToolbarButtonNotifications.setOnClickListener {
             pageFragment.articleInteractionEvent?.logNotificationClick()
+            pageFragment.metricsPlatformArticleEventToolbarInteraction?.logNotificationClick()
             if (AccountUtil.isLoggedIn) {
                 startActivity(NotificationActivity.newIntent(this@PageActivity))
             } else if (AnonymousNotificationHelper.isWithinAnonNotificationTime() && !Prefs.lastAnonNotificationLang.isNullOrEmpty()) {
@@ -229,14 +235,28 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             loadMainPage(TabPosition.EXISTING_TAB)
         }
 
-        if (AccountUtil.isLoggedIn) {
-            Prefs.loggedInPageActivityVisitCount++
-        }
-
         if (savedInstanceState == null) {
             // if there's no savedInstanceState, and we're not coming back from a Theme change,
             // then we must have been launched with an Intent, so... handle it!
             handleIntent(intent)
+        }
+    }
+
+    override fun onStart() {
+        try {
+            super.onStart()
+        } catch (e: Exception) {
+            if (e.message.orEmpty().contains(EXCEPTION_MESSAGE_WEBVIEW, true) ||
+                ThrowableUtil.getInnermostThrowable(e).message.orEmpty().contains(EXCEPTION_MESSAGE_WEBVIEW, true)) {
+                // If the system failed to inflate our activity because of the WebView (which could
+                // be one of several types of exceptions), it likely means that the system WebView
+                // is in the process of being updated. In this case, show the user a message and
+                // bail immediately.
+                Toast.makeText(app, R.string.error_webview_updating, Toast.LENGTH_LONG).show()
+                finish()
+                return
+            }
+            throw e
         }
     }
 
@@ -338,14 +358,15 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
     override fun onNavMenuSwipeRequest(gravity: Int) {
         if (!isCabOpen && gravity == Gravity.END) {
             pageFragment.articleInteractionEvent?.logTocSwipe()
+            pageFragment.metricsPlatformArticleEventToolbarInteraction?.logTocSwipe()
             pageFragment.sidePanelHandler.showToC()
         }
     }
 
     override fun onPageLoadComplete() {
         removeTransitionAnimState()
-        maybeShowWatchlistTooltip()
         maybeShowThemeTooltip()
+        maybeShowPlacesTooltip()
     }
 
     override fun onPageDismissBottomSheet() {
@@ -361,7 +382,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
     }
 
     override fun onPageShowLinkPreview(entry: HistoryEntry) {
-        ExclusiveBottomSheetPresenter.show(supportFragmentManager, LinkPreviewDialog.newInstance(entry, null))
+        ExclusiveBottomSheetPresenter.show(supportFragmentManager, LinkPreviewDialog.newInstance(entry))
     }
 
     override fun onPageLoadMainPageInForegroundTab() {
@@ -380,16 +401,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         DeviceUtil.hideSoftKeyboard(this)
     }
 
-    override fun onPageAddToReadingList(title: PageTitle, source: InvokeSource) {
-        showAddToListDialog(title, source)
-    }
-
-    override fun onPageMoveToReadingList(sourceReadingListId: Long, title: PageTitle, source: InvokeSource, showDefaultList: Boolean) {
-        showMoveToListDialog(sourceReadingListId, title, source, showDefaultList)
-    }
-
     override fun onPageWatchlistExpirySelect(expiry: WatchlistExpiry) {
-        pageFragment.updateWatchlist(expiry, false)
+        pageFragment.updateWatchlistExpiry(expiry)
     }
 
     override fun onPageLoadError(title: PageTitle) {
@@ -414,14 +427,14 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
     }
 
     override fun onPageRequestEditSection(sectionId: Int, sectionAnchor: String?, title: PageTitle, highlightText: String?) {
-        requestEditSectionLauncher.launch(EditSectionActivity.newIntent(this, sectionId, sectionAnchor, title, highlightText))
+        requestEditSectionLauncher.launch(EditSectionActivity.newIntent(this, sectionId, sectionAnchor, title, InvokeSource.PAGE_ACTIVITY, highlightText))
     }
 
     override fun onPageRequestLangLinks(title: PageTitle) {
         val langIntent = Intent()
         langIntent.setClass(this, LangLinksActivity::class.java)
         langIntent.action = LangLinksActivity.ACTION_LANGLINKS_FOR_TITLE
-        langIntent.putExtra(LangLinksActivity.EXTRA_PAGETITLE, title)
+        langIntent.putExtra(Constants.ARG_TITLE, title)
         requestHandleIntentLauncher.launch(langIntent)
     }
 
@@ -444,27 +457,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
 
     override fun onLinkPreviewLoadPage(title: PageTitle, entry: HistoryEntry, inNewTab: Boolean) {
         loadPage(title, entry, if (inNewTab) TabPosition.NEW_TAB_BACKGROUND else TabPosition.CURRENT_TAB)
-    }
-
-    override fun onLinkPreviewCopyLink(title: PageTitle) {
-        copyLink(title.uri)
-        showCopySuccessMessage()
-    }
-
-    override fun onLinkPreviewAddToList(title: PageTitle) {
-        showAddToListDialog(title, InvokeSource.LINK_PREVIEW_MENU)
-    }
-
-    override fun onLinkPreviewShareLink(title: PageTitle) {
-        ShareUtil.shareText(this, title)
-    }
-
-    override fun showWikidataInfoBox(title: PageTitle) {
-        ExclusiveBottomSheetPresenter.show(supportFragmentManager, WikidataInfoDialog.newInstance(title))
-    }
-
-    override fun wikidataInfoLinkClicked(title: PageTitle) {
-        onPageShowLinkPreview(HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK))
     }
 
     private fun handleIntent(intent: Intent) {
@@ -493,12 +485,22 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
                     return
                 }
                 // Special cases:
-                // If the link is to a page in the "donate." or "thankyou." domains (e.g. a "thank you" page
-                // after having donated), then bounce it out to an external browser, since we don't have
-                // the same cookie state as the browser does.
+                // If the subdomain of the URL is not a "language" subdomain as we expect, then
+                // bounce it out to an external browser. This can be links to the "donate." or
+                // "thankyou." subdomains, or the Wikiquote "quote." subdomain, and possibly others.
                 val language = wiki.languageCode.lowercase(Locale.getDefault())
-                val isDonationRelated = language == "donate" || language == "thankyou"
-                if (isDonationRelated || (title.isSpecial && !title.isContributions)) {
+                if (Constants.NON_LANGUAGE_SUBDOMAINS.contains(language) || (title.isSpecial && !title.isContributions)) {
+                    // ...Except if the URL came as a result of a successful donation, in which case
+                    // open it in a Custom Tab.
+                    val utmCampaign = uri.getQueryParameter("utm_campaign")
+                    if (utmCampaign != null && utmCampaign == "Android") {
+                        // TODO: need to verify if the page can be displayed and logged properly.
+                        DonorExperienceEvent.logImpression("webpay_processed")
+                        startActivity(SingleWebViewActivity.newIntent(this@PageActivity, uri.toString(),
+                            true, pageFragment.title, SingleWebViewActivity.PAGE_CONTENT_SOURCE_DONOR_EXPERIENCE))
+                        finish()
+                        return
+                    }
                     UriUtil.visitInExternalBrowser(this, it)
                     finish()
                     return
@@ -507,8 +509,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             }
         } else if ((ACTION_LOAD_IN_NEW_TAB == intent.action || ACTION_LOAD_IN_CURRENT_TAB == intent.action ||
                     ACTION_LOAD_IN_CURRENT_TAB_SQUASH == intent.action) && intent.hasExtra(EXTRA_HISTORYENTRY)) {
-            val title = intent.getParcelableExtra<PageTitle>(EXTRA_PAGETITLE)
-            val historyEntry = intent.getParcelableExtra<HistoryEntry>(EXTRA_HISTORYENTRY)
+            val title = intent.parcelableExtra<PageTitle>(Constants.ARG_TITLE)
+            val historyEntry = intent.parcelableExtra<HistoryEntry>(EXTRA_HISTORYENTRY)
             when (intent.action) {
                 ACTION_LOAD_IN_NEW_TAB -> loadPage(title, historyEntry, TabPosition.NEW_TAB_FOREGROUND)
                 ACTION_LOAD_IN_CURRENT_TAB -> loadPage(title, historyEntry, TabPosition.CURRENT_TAB)
@@ -518,8 +520,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
                 showDescriptionEditRevertDialog(intent.getStringExtra(Constants.INTENT_EXTRA_REVERT_QNUMBER)!!)
             }
         } else if (ACTION_LOAD_FROM_EXISTING_TAB == intent.action && intent.hasExtra(EXTRA_HISTORYENTRY)) {
-            val title = intent.getParcelableExtra<PageTitle>(EXTRA_PAGETITLE)
-            val historyEntry = intent.getParcelableExtra<HistoryEntry>(EXTRA_HISTORYENTRY)
+            val title = intent.parcelableExtra<PageTitle>(Constants.ARG_TITLE)
+            val historyEntry = intent.parcelableExtra<HistoryEntry>(EXTRA_HISTORYENTRY)
             loadPage(title, historyEntry, TabPosition.EXISTING_TAB)
         } else if (ACTION_RESUME_READING == intent.action || intent.hasExtra(Constants.INTENT_APP_SHORTCUT_CONTINUE_READING)) {
             loadFilePageFromBackStackIfNeeded()
@@ -528,12 +530,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             val title = PageTitle(query, app.wikiSite)
             val historyEntry = HistoryEntry(title, HistoryEntry.SOURCE_SEARCH)
             loadPage(title, historyEntry, TabPosition.EXISTING_TAB)
-        } else if (intent.hasExtra(Constants.INTENT_FEATURED_ARTICLE_FROM_WIDGET)) {
-            val title = intent.getParcelableExtra<PageTitle>(EXTRA_PAGETITLE)
-            title?.let {
-                val historyEntry = HistoryEntry(it, HistoryEntry.SOURCE_WIDGET)
-                loadPage(it, historyEntry, TabPosition.EXISTING_TAB)
-            }
         } else if (ACTION_CREATE_NEW_TAB == intent.action) {
             loadMainPage(TabPosition.NEW_TAB_FOREGROUND)
         } else {
@@ -562,6 +558,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             val articleLinkPreviewInteractionEvent = ArticleLinkPreviewInteractionEvent(pageTitle.wikiSite.dbName(),
                 pageFragment.page?.pageProperties?.pageId ?: 0, entry.source)
             articleLinkPreviewInteractionEvent.logNavigate()
+
+            ArticleLinkPreviewInteraction(pageFragment, entry.source).logNavigate()
         }
         app.putCrashReportProperty("api", pageTitle.wikiSite.authority())
         app.putCrashReportProperty("title", pageTitle.toString())
@@ -633,13 +631,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         ExclusiveBottomSheetPresenter.dismiss(supportFragmentManager)
     }
 
-    private fun showAddToListDialog(title: PageTitle, source: InvokeSource) {
-        ExclusiveBottomSheetPresenter.showAddToListDialog(supportFragmentManager, title, source, listDialogDismissListener)
-    }
-
-    private fun showMoveToListDialog(sourceReadingListId: Long, title: PageTitle, source: InvokeSource, showDefaultList: Boolean) {
-        ExclusiveBottomSheetPresenter.showMoveToListDialog(supportFragmentManager, sourceReadingListId,
-            title, source, showDefaultList, listDialogDismissListener)
+    override fun wikidataInfoLinkClicked(title: PageTitle) {
+        loadPage(title, HistoryEntry(title, HistoryEntry.SOURCE_INTERNAL_LINK), TabPosition.CURRENT_TAB)
     }
 
     private fun removeTransitionAnimState() {
@@ -649,14 +642,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         if (binding.wikiArticleCardView.visibility != View.GONE) {
             binding.wikiArticleCardView.postDelayed({ binding.wikiArticleCardView.visibility = View.GONE }, 250L)
         }
-    }
-
-    private fun copyLink(url: String) {
-        ClipboardUtil.setPlainText(this, text = url)
-    }
-
-    private fun showCopySuccessMessage() {
-        FeedbackUtil.showMessage(this, R.string.address_copied)
     }
 
     private fun modifyMenu(mode: ActionMode) {
@@ -682,16 +667,31 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             .show()
     }
 
-    private fun maybeShowWatchlistTooltip() {
-        pageFragment.historyEntry?.let {
-            if (!Prefs.isWatchlistPageOnboardingTooltipShown && AccountUtil.isLoggedIn &&
-                    it.source != HistoryEntry.SOURCE_SUGGESTED_EDITS &&
-                    Prefs.loggedInPageActivityVisitCount >= 3) {
-                enqueueTooltip {
-                    Prefs.isWatchlistPageOnboardingTooltipShown = true
-                    FeedbackUtil.showTooltip(this, binding.pageToolbarButtonShowOverflowMenu,
-                        R.layout.view_watchlist_page_tooltip, -32, -8, aboveOrBelow = false, autoDismiss = false)
+    private fun maybeShowPlacesTooltip() {
+        if (!Prefs.showOneTimePlacesPageOnboardingTooltip ||
+            pageFragment.page?.pageProperties?.geo == null || isTooltipShowing) {
+            return
+        }
+        enqueueTooltip {
+            FeedbackUtil.getTooltip(
+                this,
+                StringUtil.fromHtml(getString(R.string.places_article_menu_tooltip_message)),
+                arrowAnchorPadding = -DimenUtil.roundedDpToPx(7f),
+                topOrBottomMargin = -8,
+                aboveOrBelow = false,
+                autoDismiss = false,
+                showDismissButton = true
+            ).apply {
+                PlacesEvent.logImpression("article_more_tooltip")
+                setOnBalloonDismissListener {
+                    PlacesEvent.logAction("dismiss_click", "article_more_tooltip")
+                    isTooltipShowing = false
+                    Prefs.showOneTimePlacesPageOnboardingTooltip = false
                 }
+                isTooltipShowing = true
+                BreadCrumbLogEvent.logTooltipShown(this@PageActivity, binding.pageToolbarButtonShowOverflowMenu)
+                showAlignBottom(binding.pageToolbarButtonShowOverflowMenu)
+                setCurrentTooltip(this)
             }
         }
     }
@@ -818,7 +818,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
         const val ACTION_LOAD_FROM_EXISTING_TAB = "org.wikipedia.load_from_existing_tab"
         const val ACTION_CREATE_NEW_TAB = "org.wikipedia.create_new_tab"
         const val ACTION_RESUME_READING = "org.wikipedia.resume_reading"
-        const val EXTRA_PAGETITLE = "org.wikipedia.pagetitle"
         const val EXTRA_HISTORYENTRY = "org.wikipedia.history.historyentry"
 
         fun newIntent(context: Context): Intent {
@@ -833,21 +832,21 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Ca
             return Intent(ACTION_LOAD_IN_NEW_TAB)
                 .setClass(context, PageActivity::class.java)
                 .putExtra(EXTRA_HISTORYENTRY, entry)
-                .putExtra(EXTRA_PAGETITLE, title)
+                .putExtra(Constants.ARG_TITLE, title)
         }
 
         fun newIntentForCurrentTab(context: Context, entry: HistoryEntry, title: PageTitle, squashBackstack: Boolean = true): Intent {
             return Intent(if (squashBackstack) ACTION_LOAD_IN_CURRENT_TAB_SQUASH else ACTION_LOAD_IN_CURRENT_TAB)
                 .setClass(context, PageActivity::class.java)
                 .putExtra(EXTRA_HISTORYENTRY, entry)
-                .putExtra(EXTRA_PAGETITLE, title)
+                .putExtra(Constants.ARG_TITLE, title)
         }
 
         fun newIntentForExistingTab(context: Context, entry: HistoryEntry, title: PageTitle): Intent {
             return Intent(ACTION_LOAD_FROM_EXISTING_TAB)
                 .setClass(context, PageActivity::class.java)
                 .putExtra(EXTRA_HISTORYENTRY, entry)
-                .putExtra(EXTRA_PAGETITLE, title)
+                .putExtra(Constants.ARG_TITLE, title)
         }
     }
 }

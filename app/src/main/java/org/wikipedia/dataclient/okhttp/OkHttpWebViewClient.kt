@@ -22,7 +22,7 @@ abstract class OkHttpWebViewClient : WebViewClient() {
     /*
         Note: Any data transformations performed here are only for the benefit of WebViews.
         They should not be made into general Interceptors.
-    */
+     */
 
     abstract val model: PageViewModel
     abstract val linkHandler: LinkHandler
@@ -41,7 +41,8 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         if (!SUPPORTED_SCHEMES.contains(request.url.scheme)) {
             return null
         }
-        if (request.url.toString().contains(RestService.PAGE_HTML_PREVIEW_ENDPOINT)) {
+        if (request.method == "POST" ||
+            request.url.toString().contains(RestService.PAGE_HTML_PREVIEW_ENDPOINT)) {
             return null
         }
         var response: WebResourceResponse
