@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -25,7 +26,9 @@ import org.wikipedia.databinding.ActivityDonateBinding
 import org.wikipedia.dataclient.donate.DonationConfig
 import org.wikipedia.dataclient.donate.PaymentMethod
 import org.wikipedia.util.Resource
+import org.wikipedia.util.ResourceUtil
 import java.text.DecimalFormat
+import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
@@ -66,6 +69,10 @@ class GooglePayActivity : BaseActivity() {
             }
         }
 
+        binding.errorView.backClickListener = View.OnClickListener {
+            onBackPressed()
+        }
+
         binding.payButton.setOnClickListener {
             val paymentDataRequest = PaymentDataRequest.fromJson(GooglePayComponent.getPaymentDataRequestJson().toString())
             AutoResolveHelper.resolveTask(
@@ -101,15 +108,17 @@ class GooglePayActivity : BaseActivity() {
             .build())
 
         // TODO: is this right?
-        val currencyCode = Currency.getInstance(Locale.getDefault()).currencyCode
+        val format = NumberFormat.getCurrencyInstance(Locale.getDefault())
+        format.maximumFractionDigits = 0
 
-        val presets = donationConfig.currencyAmountPresets[currencyCode]
+        val presets = donationConfig.currencyAmountPresets[format.currency!!.currencyCode]
         presets?.forEach { amount ->
-            val chip = Chip(this, null, R.style.Chip)
-            chip.text = decimalFormat.format(amount)
+            val chip = Chip(this)
+            chip.setTextAppearanceResource(R.style.H2)
+            chip.text = format.format(amount)
             chip.isCheckable = true
             chip.setOnClickListener {
-                // TODO
+                (it as Chip).setChipBackgroundColorResource(ResourceUtil.getThemedAttributeId(this, R.attr.progressive_color))
             }
 
             binding.amountPresetsGroup.addView(chip)

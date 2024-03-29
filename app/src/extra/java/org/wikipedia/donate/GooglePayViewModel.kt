@@ -27,11 +27,14 @@ class GooglePayViewModel : ViewModel() {
         }) {
             uiState.value = Resource.Loading()
 
-            val paymentMethodsCall = async { ServiceFactory.get(WikiSite(GooglePayComponent.PAYMENTS_API_URL))
-                .getPaymentMethods(GeoUtil.geoIPCountry.orEmpty()) }
+            //val paymentMethodsCall = async { ServiceFactory.get(WikiSite(GooglePayComponent.PAYMENTS_API_URL))
+            //    .getPaymentMethods(GeoUtil.geoIPCountry.orEmpty()) }
+
             val donationConfigCall = async { DonationConfigHelper.getConfig() }
 
-            uiState.value = Resource.Success(Pair(paymentMethodsCall.await().response!!.paymentMethods, donationConfigCall.await()!!))
+            uiState.value = Resource.Success(Pair(
+                emptyList(), // paymentMethodsCall.await().response!!.paymentMethods,
+                donationConfigCall.await()!!))
         }
     }
 }
