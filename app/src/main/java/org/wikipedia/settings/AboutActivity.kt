@@ -38,11 +38,16 @@ class AboutActivity : BaseActivity() {
 
     private lateinit var paymentsClient: PaymentsClient
 
+
+    private val allAllowedCardNetworks: List<String> = listOf("VISA", "MASTERCARD", "AMEX", "DISCOVER", "JCB", "INTERAC")
+    private val allAllowedAuthMethods: List<String> = listOf("PAN_ONLY", "CRYPTOGRAM_3DS")
+
+
     private val baseCardPaymentMethod = JSONObject().apply {
         put("type", "CARD")
         put("parameters", JSONObject().apply {
-            put("allowedCardNetworks", JSONArray(listOf("VISA", "MASTERCARD")))
-            put("allowedAuthMethods", JSONArray(listOf("PAN_ONLY", "CRYPTOGRAM_3DS")))
+            put("allowedCardNetworks", JSONArray(allAllowedCardNetworks))
+            put("allowedAuthMethods", JSONArray(allAllowedAuthMethods))
         })
     }
     private val googlePayBaseConfiguration = JSONObject().apply {
@@ -62,8 +67,8 @@ class AboutActivity : BaseActivity() {
         put("type", "CARD")
         put("tokenizationSpecification", tokenizationSpecification)
         put("parameters", JSONObject().apply {
-            put("allowedCardNetworks", JSONArray(listOf("VISA", "MASTERCARD")))
-            put("allowedAuthMethods", JSONArray(listOf("PAN_ONLY", "CRYPTOGRAM_3DS")))
+            put("allowedCardNetworks", JSONArray(allAllowedCardNetworks))
+            put("allowedAuthMethods", JSONArray(allAllowedAuthMethods))
             put("billingAddressRequired", true)
             put("billingAddressParameters", JSONObject(mapOf("format" to "FULL")))
         })
