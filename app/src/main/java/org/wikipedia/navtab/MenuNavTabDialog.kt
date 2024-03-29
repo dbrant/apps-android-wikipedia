@@ -79,6 +79,7 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
         binding.mainDrawerDonateContainer.setOnClickListener {
             DonorExperienceEvent.logAction("donate_start_click", "more_menu")
             BreadCrumbLogEvent.logClick(requireActivity(), binding.mainDrawerDonateContainer)
+            dismiss()
             ExclusiveBottomSheetPresenter.show(requireActivity().supportFragmentManager, DonateDialog.newInstance())
         }
 

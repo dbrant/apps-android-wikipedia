@@ -63,14 +63,14 @@ object GooglePayComponent {
         put("merchantName", "Defiant Technologies, LLC.")
         put("merchantId", "BCR2DN4TQG4ZTFKI")
     }
+
     private val paymentDataRequestJson = JSONObject(googlePayBaseConfiguration.toString()).apply {
         put("allowedPaymentMethods", JSONArray().put(cardPaymentMethod))
         put("transactionInfo", transactionInfo)
         put("merchantInfo", merchantInfo)
     }
 
-
-    private fun createPaymentsClient(activity: Activity): PaymentsClient {
+    fun createPaymentsClient(activity: Activity): PaymentsClient {
         val walletOptions = Wallet.WalletOptions.Builder()
             .setEnvironment(WalletConstants.ENVIRONMENT_TEST).build()
         return Wallet.getPaymentsClient(activity, walletOptions)
@@ -86,5 +86,9 @@ object GooglePayComponent {
 
     fun onGooglePayButtonClicked(activity: Activity) {
         activity.startActivity(GooglePayActivity.newIntent(activity))
+    }
+
+    fun getPaymentDataRequestJson(): JSONObject {
+        return paymentDataRequestJson
     }
 }

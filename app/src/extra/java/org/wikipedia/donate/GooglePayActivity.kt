@@ -1,5 +1,6 @@
 package org.wikipedia.donate
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -8,21 +9,32 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.gms.wallet.AutoResolveHelper
+import com.google.android.gms.wallet.PaymentData
+import com.google.android.gms.wallet.PaymentDataRequest
+import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.button.ButtonConstants
 import com.google.android.gms.wallet.button.ButtonOptions
+import com.google.android.material.chip.Chip
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.databinding.ActivityDonateBinding
 import org.wikipedia.dataclient.donate.DonationConfig
 import org.wikipedia.dataclient.donate.PaymentMethod
 import org.wikipedia.util.Resource
+import java.text.DecimalFormat
+import java.util.Currency
+import java.util.Locale
 
 class GooglePayActivity : BaseActivity() {
     private lateinit var binding: ActivityDonateBinding
+    private lateinit var paymentsClient: PaymentsClient
 
     private val viewModel: GooglePayViewModel by viewModels()
+    private val decimalFormat = DecimalFormat("0")
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +43,8 @@ class GooglePayActivity : BaseActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = ""
+
+        paymentsClient = GooglePayComponent.createPaymentsClient(this)
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
@@ -50,6 +64,14 @@ class GooglePayActivity : BaseActivity() {
                     }
                 }
             }
+        }
+
+        binding.payButton.setOnClickListener {
+            val paymentDataRequest = PaymentDataRequest.fromJson(GooglePayComponent.getPaymentDataRequestJson().toString())
+            AutoResolveHelper.resolveTask(
+                paymentsClient.loadPaymentData(paymentDataRequest),
+                this, LOAD_PAYMENT_DATA_REQUEST_CODE
+            )
         }
     }
 
@@ -77,9 +99,50 @@ class GooglePayActivity : BaseActivity() {
             .setButtonType(ButtonConstants.ButtonType.DONATE)
             .setAllowedPaymentMethods(methods.toString())
             .build())
+
+        // TODO: is this right?
+        val currencyCode = Currency.getInstance(Locale.getDefault()).currencyCode
+
+        val presets = donationConfig.currencyAmountPresets[currencyCode]
+        presets?.forEach { amount ->
+            val chip = Chip(this, null, R.style.Chip)
+            chip.text = decimalFormat.format(amount)
+            chip.isCheckable = true
+            chip.setOnClickListener {
+                // TODO
+            }
+
+            binding.amountPresetsGroup.addView(chip)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == LOAD_PAYMENT_DATA_REQUEST_CODE) {
+            when (resultCode) {
+                Activity.RESULT_OK -> {
+                    data?.let { intent ->
+                        PaymentData.getFromIntent(intent)?.let { paymentData ->
+                            // TODO: handle payment data
+                        }
+                    }
+                }
+                Activity.RESULT_CANCELED -> {
+                    // The user cancelled the payment attempt
+                }
+                AutoResolveHelper.RESULT_ERROR -> {
+                    AutoResolveHelper.getStatusFromIntent(data)?.let {
+                        // TODO: handle error
+                    }
+                }
+            }
+        }
     }
 
     companion object {
+        private const val LOAD_PAYMENT_DATA_REQUEST_CODE = 42
+
         fun newIntent(context: Context): Intent {
             return Intent(context, GooglePayActivity::class.java)
         }

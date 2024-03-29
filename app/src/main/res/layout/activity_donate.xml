@@ -41,45 +41,10 @@
             android:orientation="vertical">
 
             <com.google.android.material.chip.ChipGroup
+                android:id="@+id/amountPresetsGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp">
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/donate_chip_1"
-                    style="@style/Chip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="10" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/donate_chip_2"
-                    style="@style/Chip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="20" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/donate_chip_3"
-                    style="@style/Chip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="30" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/donate_chip_4"
-                    style="@style/Chip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="100" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/donate_chip_5"
-                    style="@style/Chip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="500" />
-
 
             </com.google.android.material.chip.ChipGroup>
 
