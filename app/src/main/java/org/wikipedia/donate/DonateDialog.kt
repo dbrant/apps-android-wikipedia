@@ -10,8 +10,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
+import org.wikipedia.BuildConfig
+import org.wikipedia.R
+import org.wikipedia.WikipediaApp
 import org.wikipedia.databinding.DialogDonateBinding
 import org.wikipedia.page.ExtendedBottomSheetDialogFragment
+import org.wikipedia.util.CustomTabsUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.Resource
 
@@ -23,6 +27,16 @@ class DonateDialog : ExtendedBottomSheetDialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = DialogDonateBinding.inflate(inflater, container, false)
+
+        binding.donateOtherButton.setOnClickListener {
+            CustomTabsUtil.openInCustomTab(requireContext(), getString(R.string.donate_url,
+                WikipediaApp.instance.languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
+            dismiss()
+        }
+
+        binding.donateGooglePayButton.setOnClickListener {
+            GooglePayComponent.onGooglePayButtonClicked(requireActivity())
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {

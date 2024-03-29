@@ -364,6 +364,9 @@
             android:name=".talk.template.TalkTemplatesActivity"
             android:theme="@style/AppTheme" />
 
+        <activity
+            android:name=".donate.GooglePayActivity"/>
+
         <provider
             android:name=".WikipediaFileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -11,10 +11,12 @@ import org.json.JSONObject
 
 object GooglePayComponent {
 
+    const val PAYMENTS_API_URL = "https://payments.wikimedia.org"
+
     private val allAllowedCardNetworks: List<String> = listOf("VISA", "MASTERCARD", "AMEX", "DISCOVER", "JCB", "INTERAC")
     private val allAllowedAuthMethods: List<String> = listOf("PAN_ONLY", "CRYPTOGRAM_3DS")
 
-    private val baseCardPaymentMethod = JSONObject().apply {
+    val baseCardPaymentMethod = JSONObject().apply {
         put("type", "CARD")
         put("parameters", JSONObject().apply {
             put("allowedCardNetworks", JSONArray(allAllowedCardNetworks))
@@ -80,5 +82,9 @@ object GooglePayComponent {
         val readyToPayTask = paymentsClient.isReadyToPay(readyToPayRequest)
         readyToPayTask.await()
         return readyToPayTask.result
+    }
+
+    fun onGooglePayButtonClicked(activity: Activity) {
+        activity.startActivity(GooglePayActivity.newIntent(activity))
     }
 }
