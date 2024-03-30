@@ -133,12 +133,6 @@ class WikipediaApp : Application() {
     val isOnline
         get() = connectionStateMonitor.isOnline()
 
-    val haveMainActivity
-        get() = activityLifecycleHandler.haveMainActivity()
-
-    val isAnyActivityResumed
-        get() = activityLifecycleHandler.isAnyActivityResumed
-
     val voiceRecognitionAvailable by lazy {
         try {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)

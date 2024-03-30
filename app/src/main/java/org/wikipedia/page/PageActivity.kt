@@ -22,8 +22,10 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.Consumer
+import org.wikipedia.ActivityLifecycleHandler
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
@@ -78,7 +80,9 @@ import org.wikipedia.views.ObservableWebView
 import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import java.util.Locale
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.LoadPageCallback, FrameLayoutNavMenuTriggerer.Callback {
 
     enum class TabPosition {
@@ -86,6 +90,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     }
 
     lateinit var binding: ActivityPageBinding
+    @Inject lateinit var activityLifecycleHandler: ActivityLifecycleHandler
+
     private lateinit var toolbarHideHandler: ViewHideHandler
     private lateinit var pageFragment: PageFragment
     private var app = WikipediaApp.instance
@@ -269,7 +275,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> {
-                if (app.haveMainActivity) {
+                if (activityLifecycleHandler.haveMainActivity()) {
                     onBackPressed()
                 } else {
                     pageFragment.goToMainTab()

@@ -9,8 +9,10 @@ import android.os.SystemClock
 import androidx.annotation.StringRes
 import androidx.core.app.PendingIntentCompat
 import androidx.core.app.RemoteInput
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.wikipedia.ActivityLifecycleHandler
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
@@ -31,8 +33,11 @@ import org.wikipedia.talk.NotificationDirectReplyHelper
 import org.wikipedia.util.ReleaseUtil
 import org.wikipedia.util.log.L
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class NotificationPollBroadcastReceiver : BroadcastReceiver() {
+    @Inject lateinit var activityLifecycleHandler: ActivityLifecycleHandler
 
     override fun onReceive(context: Context, intent: Intent) {
         when {
@@ -71,6 +76,23 @@ class NotificationPollBroadcastReceiver : BroadcastReceiver() {
                         intent.getIntExtra(RESULT_EXTRA_ID, 0))
                 }
             }
+        }
+    }
+
+    private fun maybeShowLocalNotificationForEditorReactivation(context: Context) {
+        if (Prefs.lastDescriptionEditTime == 0L || activityLifecycleHandler.isAnyActivityResumed) {
+            return
+        }
+        var days = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Prefs.lastDescriptionEditTime)
+        if (Prefs.isSuggestedEditsReactivationTestEnabled) {
+            days = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - Prefs.lastDescriptionEditTime)
+        }
+        if (days in FIRST_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY until SECOND_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY && !Prefs.isSuggestedEditsReactivationPassStageOne) {
+            Prefs.isSuggestedEditsReactivationPassStageOne = true
+            showSuggestedEditsLocalNotification(context, R.string.suggested_edits_reactivation_notification_stage_one)
+        } else if (days >= SECOND_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY && Prefs.isSuggestedEditsReactivationPassStageOne) {
+            Prefs.isSuggestedEditsReactivationPassStageOne = false
+            showSuggestedEditsLocalNotification(context, R.string.suggested_edits_reactivation_notification_stage_two)
         }
     }
 
@@ -163,23 +185,6 @@ class NotificationPollBroadcastReceiver : BroadcastReceiver() {
                     val idListStr = window.joinToString("|")
                     ServiceFactory.get(wiki).markRead(token, if (unread) null else idListStr, if (unread) idListStr else null)
                 }
-            }
-        }
-
-        private fun maybeShowLocalNotificationForEditorReactivation(context: Context) {
-            if (Prefs.lastDescriptionEditTime == 0L || WikipediaApp.instance.isAnyActivityResumed) {
-                return
-            }
-            var days = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Prefs.lastDescriptionEditTime)
-            if (Prefs.isSuggestedEditsReactivationTestEnabled) {
-                days = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - Prefs.lastDescriptionEditTime)
-            }
-            if (days in FIRST_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY until SECOND_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY && !Prefs.isSuggestedEditsReactivationPassStageOne) {
-                Prefs.isSuggestedEditsReactivationPassStageOne = true
-                showSuggestedEditsLocalNotification(context, R.string.suggested_edits_reactivation_notification_stage_one)
-            } else if (days >= SECOND_EDITOR_REACTIVATION_NOTIFICATION_SHOW_ON_DAY && Prefs.isSuggestedEditsReactivationPassStageOne) {
-                Prefs.isSuggestedEditsReactivationPassStageOne = false
-                showSuggestedEditsLocalNotification(context, R.string.suggested_edits_reactivation_notification_stage_two)
             }
         }
 
