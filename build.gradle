@@ -1,5 +1,4 @@
 buildscript {
-    ext.kotlin_version = '1.9.23'
     repositories {
         google()
         mavenCentral()
@@ -7,14 +6,10 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.3.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$gradle.ext.kotlinVersion"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$gradle.ext.kotlinVersion"
         classpath 'com.google.gms:google-services:4.4.1'
     }
-}
-
-plugins {
-    id 'com.google.devtools.ksp' version '1.9.23-1.0.19' apply false
 }
 
 allprojects {

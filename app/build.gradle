@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.dagger.hilt.android'
     id 'com.google.devtools.ksp'
     id 'com.google.gms.google-services'
     id 'kotlin-android'
@@ -187,7 +188,7 @@ dependencies {
 
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$gradle.ext.kotlinVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinCoroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version"
@@ -228,6 +229,8 @@ dependencies {
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
     implementation 'com.github.skydoves:balloon:1.6.4'
     implementation "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0"
+    implementation "com.google.dagger:hilt-android:$gradle.ext.hiltVersion"
+    ksp "com.google.dagger:hilt-compiler:$gradle.ext.hiltVersion"
 
     implementation 'org.maplibre.gl:android-sdk:10.3.0'
     implementation 'org.maplibre.gl:android-plugin-annotation-v9:2.0.2'
@@ -262,6 +265,8 @@ dependencies {
     testImplementation "com.squareup.okhttp3:mockwebserver:$okHttpVersion"
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testImplementation "androidx.room:room-testing:$roomVersion"
+    testImplementation "com.google.dagger:hilt-android-testing:$gradle.ext.hiltVersion"
+    kspAndroidTest "com.google.dagger:hilt-compiler:$gradle.ext.hiltVersion"
 
     androidTestImplementation "androidx.test.espresso:espresso-core:$espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$espressoVersion"
@@ -270,6 +275,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
     androidTestImplementation "androidx.room:room-testing:$roomVersion"
+    androidTestImplementation  "com.google.dagger:hilt-android-testing:$gradle.ext.hiltVersion"
+    kspTest "com.google.dagger:hilt-compiler:$gradle.ext.hiltVersion"
     androidTestUtil 'androidx.test:orchestrator:1.4.2'
 }
 
