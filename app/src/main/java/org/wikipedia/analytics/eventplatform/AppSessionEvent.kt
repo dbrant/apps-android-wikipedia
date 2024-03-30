@@ -7,8 +7,11 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.SessionData
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.settings.Prefs
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AppSessionEvent {
+@Singleton
+class AppSessionEvent @Inject constructor() {
 
     private var sessionData: SessionData
     private var pageLoadStartTime: Long = 0

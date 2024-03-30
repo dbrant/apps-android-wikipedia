@@ -1,14 +1,18 @@
 package org.wikipedia.language
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.settings.Prefs
 import org.wikipedia.util.ReleaseUtil
 import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AppLanguageState(context: Context) {
+@Singleton
+class AppLanguageState @Inject constructor(@ApplicationContext context: Context) {
 
     private val appLanguageLookUpTable = AppLanguageLookUpTable(context)
 

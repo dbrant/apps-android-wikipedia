@@ -10,8 +10,11 @@ import org.wikipedia.analytics.eventplatform.EventPlatformClient
 import org.wikipedia.main.MainActivity
 import org.wikipedia.settings.Prefs
 import org.wikipedia.theme.Theme
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ActivityLifecycleHandler : ActivityLifecycleCallbacks, ComponentCallbacks2 {
+@Singleton
+class ActivityLifecycleHandler @Inject constructor() : ActivityLifecycleCallbacks, ComponentCallbacks2 {
 
     private var haveMainActivity = false
     var isAnyActivityResumed = false

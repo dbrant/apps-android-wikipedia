@@ -5,8 +5,11 @@ import io.reactivex.rxjava3.annotations.CheckReturnValue
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.functions.Consumer
 import io.reactivex.rxjava3.subjects.PublishSubject
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class RxBus {
+@Singleton
+class RxBus @Inject constructor() {
     private val bus = PublishSubject.create<Any>().toSerialized()
     private val observable = bus.observeOn(AndroidSchedulers.mainThread())
 

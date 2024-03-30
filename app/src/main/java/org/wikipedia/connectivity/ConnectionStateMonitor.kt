@@ -10,8 +10,11 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.eventplatform.EventPlatformClient
 import org.wikipedia.savedpages.SavedPageSyncService
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ConnectionStateMonitor : ConnectivityManager.NetworkCallback() {
+@Singleton
+class ConnectionStateMonitor @Inject constructor() : ConnectivityManager.NetworkCallback() {
 
     interface Callback {
         fun onGoOnline()

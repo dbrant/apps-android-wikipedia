@@ -10,6 +10,7 @@ import android.speech.RecognizerIntent
 import android.view.Window
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatDelegate
+import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.internal.functions.Functions
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
@@ -39,15 +40,21 @@ import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.ReleaseUtil
 import org.wikipedia.util.log.L
 import java.util.*
+import javax.inject.Inject
 
+@HiltAndroidApp
 class WikipediaApp : Application() {
     init {
         instance = this
     }
 
+    @Inject lateinit var languageState: AppLanguageState
+    @Inject lateinit var appSessionEvent: AppSessionEvent
+    @Inject lateinit var activityLifecycleHandler: ActivityLifecycleHandler
+    @Inject lateinit var connectionStateMonitor: ConnectionStateMonitor
+    @Inject lateinit var bus: RxBus
+
     val mainThreadHandler by lazy { Handler(mainLooper) }
-    val languageState by lazy { AppLanguageState(this) }
-    val appSessionEvent by lazy { AppSessionEvent() }
 
     val userAgent by lazy {
         var channel = ReleaseUtil.getChannel(this)
@@ -62,11 +69,8 @@ class WikipediaApp : Application() {
         )
     }
 
-    private val activityLifecycleHandler = ActivityLifecycleHandler()
     private var defaultWikiSite: WikiSite? = null
 
-    val connectionStateMonitor = ConnectionStateMonitor()
-    val bus = RxBus()
     val tabList = mutableListOf<Tab>()
 
     var currentTheme = Theme.fallback
