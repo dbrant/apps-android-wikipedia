@@ -8,7 +8,6 @@ import androidx.core.widget.ImageViewCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import org.wikipedia.BuildConfig
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
 import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
@@ -81,7 +80,7 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
             DonorExperienceEvent.logAction("donate_start_click", "more_menu")
             BreadCrumbLogEvent.logClick(requireActivity(), binding.mainDrawerDonateContainer)
             CustomTabsUtil.openInCustomTab(requireContext(), getString(R.string.donate_url,
-                WikipediaApp.instance.languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
+                languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
             dismiss()
         }
 

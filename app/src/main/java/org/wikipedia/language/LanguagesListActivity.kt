@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.databinding.ActivityLanguagesListBinding
 import org.wikipedia.history.SearchActionModeCallback
@@ -19,14 +18,12 @@ import org.wikipedia.settings.languages.WikipediaLanguagesFragment
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.Resource
 import org.wikipedia.util.StringUtil
-import java.util.*
 
 class LanguagesListActivity : BaseActivity() {
     private lateinit var binding: ActivityLanguagesListBinding
     private lateinit var languageAdapter: LanguagesListAdapter
     private lateinit var searchActionModeCallback: LanguageSearchCallback
 
-    private var app = WikipediaApp.instance
     private var currentSearchQuery: String? = null
     private var actionMode: ActionMode? = null
     private var interactionsCount = 0
@@ -178,8 +175,8 @@ class LanguagesListActivity : BaseActivity() {
 
         override fun onClick(v: View) {
             val item = listItems[v.tag as Int]
-            if (item.code != app.appOrSystemLanguageCode) {
-                app.languageState.addAppLanguageCode(item.code)
+            if (item.code != languageState.appLanguageCode) {
+                languageState.addAppLanguageCode(item.code)
             }
             interactionsCount++
             DeviceUtil.hideSoftKeyboard(this@LanguagesListActivity)
@@ -197,15 +194,15 @@ class LanguagesListActivity : BaseActivity() {
         }
     }
 
-    private inner class LanguagesListItemHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    private inner class LanguagesListItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bindItem(listItem: LanguagesListViewModel.LanguageListItem) {
             val languageCode = listItem.code
             itemView.findViewById<TextView>(R.id.localized_language_name).text =
-                    StringUtil.capitalize(app.languageState.getAppLanguageLocalizedName(languageCode).orEmpty())
+                    StringUtil.capitalize(languageState.getAppLanguageLocalizedName(languageCode).orEmpty())
             val canonicalName = viewModel.getCanonicalName(languageCode)
             if (binding.languagesListLoadProgress.visibility != View.VISIBLE) {
                 itemView.findViewById<TextView>(R.id.language_subtitle).text =
-                    if (canonicalName.isNullOrEmpty()) app.languageState.getAppLanguageCanonicalName(languageCode) else canonicalName
+                    if (canonicalName.isNullOrEmpty()) languageState.getAppLanguageCanonicalName(languageCode) else canonicalName
             }
         }
     }

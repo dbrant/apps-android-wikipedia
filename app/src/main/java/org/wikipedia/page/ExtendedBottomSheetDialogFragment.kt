@@ -7,13 +7,18 @@ import android.view.MotionEvent
 import androidx.annotation.StyleRes
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import dagger.hilt.android.AndroidEntryPoint
 import org.wikipedia.R
 import org.wikipedia.analytics.BreadcrumbsContextHelper
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
+import org.wikipedia.language.AppLanguageState
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.ResourceUtil
+import javax.inject.Inject
 
+@AndroidEntryPoint
 open class ExtendedBottomSheetDialogFragment : BottomSheetDialogFragment() {
+    @Inject lateinit var languageState: AppLanguageState
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

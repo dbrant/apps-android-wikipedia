@@ -25,8 +25,10 @@ import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
 import org.wikipedia.analytics.eventplatform.NotificationInteractionEvent
 import org.wikipedia.appshortcuts.AppShortcuts
 import org.wikipedia.auth.AccountUtil
+import org.wikipedia.concurrency.RxBus
 import org.wikipedia.connectivity.ConnectionStateMonitor
 import org.wikipedia.events.*
+import org.wikipedia.language.AppLanguageState
 import org.wikipedia.login.LoginActivity
 import org.wikipedia.main.MainActivity
 import org.wikipedia.readinglist.ReadingListSyncBehaviorDialogs
@@ -51,6 +53,10 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
         fun onPermissionResult(activity: BaseActivity, isGranted: Boolean)
     }
     @Inject lateinit var appSessionEvent: AppSessionEvent
+    @Inject lateinit var languageState: AppLanguageState
+    @Inject lateinit var connectionStateMonitor: ConnectionStateMonitor
+    @Inject lateinit var bus: RxBus
+
     private lateinit var exclusiveBusMethods: ExclusiveBusConsumer
     private val disposables = CompositeDisposable()
     private var currentTooltip: Balloon? = null
@@ -64,7 +70,7 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         exclusiveBusMethods = ExclusiveBusConsumer()
-        disposables.add(WikipediaApp.instance.bus.subscribe(NonExclusiveBusConsumer()))
+        disposables.add(bus.subscribe(NonExclusiveBusConsumer()))
         setTheme()
         removeSplashBackground()
 
@@ -82,14 +88,14 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
         }
 
         // Conditionally execute all recurring tasks
-        RecurringTasksExecutor(WikipediaApp.instance).run()
+        RecurringTasksExecutor(applicationContext).run()
         if (Prefs.isReadingListsFirstTimeSync && AccountUtil.isLoggedIn) {
             Prefs.isReadingListsFirstTimeSync = false
             Prefs.isReadingListSyncEnabled = true
             ReadingListSyncAdapter.manualSyncWithForce()
         }
 
-        WikipediaApp.instance.connectionStateMonitor.registerCallback(this)
+        connectionStateMonitor.registerCallback(this)
 
         DeviceUtil.setLightSystemUiVisibility(this)
         setStatusBarColor(ResourceUtil.getThemedColor(this, R.attr.paper_color))
@@ -106,7 +112,7 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
     }
 
     override fun onDestroy() {
-        WikipediaApp.instance.connectionStateMonitor.unregisterCallback(this)
+        connectionStateMonitor.unregisterCallback(this)
         disposables.dispose()
         if (EXCLUSIVE_BUS_METHODS === exclusiveBusMethods) {
             unregisterExclusiveBusMethods()
@@ -128,7 +134,7 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
         // allow this activity's exclusive bus methods to override any existing ones.
         unregisterExclusiveBusMethods()
         EXCLUSIVE_BUS_METHODS = exclusiveBusMethods
-        EXCLUSIVE_DISPOSABLE = WikipediaApp.instance.bus.subscribe(EXCLUSIVE_BUS_METHODS!!)
+        EXCLUSIVE_DISPOSABLE = bus.subscribe(EXCLUSIVE_BUS_METHODS!!)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

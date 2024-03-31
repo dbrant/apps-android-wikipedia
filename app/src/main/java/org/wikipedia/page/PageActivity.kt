@@ -147,7 +147,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         if (it.resultCode == RESULT_OK || it.resultCode == DescriptionEditSuccessActivity.RESULT_OK_FROM_EDIT_SUCCESS) {
             pageFragment.refreshPage()
             val data = it.data
-            val editLanguage = pageFragment.leadImageEditLang.orEmpty().ifEmpty { app.languageState.appLanguageCode }
+            val editLanguage = pageFragment.leadImageEditLang.orEmpty().ifEmpty { languageState.appLanguageCode }
             val action = if (data != null && data.hasExtra(Constants.INTENT_EXTRA_ACTION))
                 data.getSerializableExtra(Constants.INTENT_EXTRA_ACTION) as DescriptionEditActivity.Action?
             else null
@@ -155,7 +155,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
             SuggestedEditsSnackbars.show(this, action, it.resultCode != DescriptionEditSuccessActivity.RESULT_OK_FROM_EDIT_SUCCESS,
                 editLanguage, action !== DescriptionEditActivity.Action.ADD_DESCRIPTION && action !== DescriptionEditActivity.Action.TRANSLATE_DESCRIPTION) {
                 pageFragment.page?.pageProperties?.leadImageName?.let { imageName ->
-                    val wikiSite = WikiSite.forLanguageCode(pageFragment.leadImageEditLang.orEmpty().ifEmpty { app.appOrSystemLanguageCode })
+                    val wikiSite = WikiSite.forLanguageCode(pageFragment.leadImageEditLang.orEmpty().ifEmpty { languageState.appLanguageCode })
                     val imageTitle = PageTitle("File:${StringUtil.removeNamespace(imageName)}", wikiSite)
                     if (action === DescriptionEditActivity.Action.ADD_IMAGE_TAGS) {
                         startActivity(FilePageActivity.newIntent(this, imageTitle))
@@ -232,7 +232,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         binding.wikiArticleCardView.visibility = if (hasTransitionAnimation) View.VISIBLE else View.GONE
 
         val languageChanged = savedInstanceState?.let {
-            app.appOrSystemLanguageCode != savedInstanceState.getString(LANGUAGE_CODE_BUNDLE_KEY).orEmpty()
+            languageState.appLanguageCode != savedInstanceState.getString(LANGUAGE_CODE_BUNDLE_KEY).orEmpty()
         } ?: false
 
         if (languageChanged) {
@@ -301,7 +301,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putString(LANGUAGE_CODE_BUNDLE_KEY, app.appOrSystemLanguageCode)
+        outState.putString(LANGUAGE_CODE_BUNDLE_KEY, languageState.appLanguageCode)
     }
 
     override fun onActionModeStarted(mode: ActionMode) {
@@ -595,7 +595,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     }
 
     private fun loadMainPage(position: TabPosition) {
-        val title = PageTitle(SiteInfoClient.getMainPageForLang(app.appOrSystemLanguageCode), app.wikiSite)
+        val title = PageTitle(SiteInfoClient.getMainPageForLang(languageState.appLanguageCode), app.wikiSite)
         val historyEntry = HistoryEntry(title, HistoryEntry.SOURCE_MAIN_PAGE)
         loadPage(title, historyEntry, position)
     }

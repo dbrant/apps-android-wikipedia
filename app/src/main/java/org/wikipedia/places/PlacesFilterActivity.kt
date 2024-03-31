@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.wikipedia.Constants
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.analytics.eventplatform.PlacesEvent
 import org.wikipedia.databinding.ActivityPlacesFiltersBinding
@@ -30,8 +29,8 @@ class PlacesFilterActivity : BaseActivity() {
 
     val addLanguageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // Check if places wiki language code was deleted
-        if (!WikipediaApp.instance.languageState.appLanguageCodes.contains(Prefs.placesWikiCode)) {
-            Prefs.placesWikiCode = WikipediaApp.instance.appOrSystemLanguageCode
+        if (!languageState.appLanguageCodes.contains(Prefs.placesWikiCode)) {
+            Prefs.placesWikiCode = languageState.appLanguageCode
         }
         setUpRecyclerView()
         binding.placesFiltersRecyclerView.adapter?.notifyDataSetChanged()
@@ -58,14 +57,14 @@ class PlacesFilterActivity : BaseActivity() {
     private fun setUpRecyclerView() {
         filtersList.clear()
         filtersList.add(HEADER)
-        filtersList.addAll(WikipediaApp.instance.languageState.appLanguageCodes)
+        filtersList.addAll(languageState.appLanguageCodes)
         filtersList.add(FOOTER)
         binding.placesFiltersRecyclerView.layoutManager = LinearLayoutManager(this)
-        binding.placesFiltersRecyclerView.adapter = PlacesLangListFilterAdapter(this)
+        binding.placesFiltersRecyclerView.adapter = PlacesLangListFilterAdapter()
     }
 
-    private inner class PlacesLangListFilterAdapter(val context: Context) :
-        RecyclerView.Adapter<DefaultViewHolder<*>>(), PlacesFilterItemViewHolder.Callback {
+    private inner class PlacesLangListFilterAdapter :
+        RecyclerView.Adapter<DefaultViewHolder<*>>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, type: Int): DefaultViewHolder<*> {
             return when (type) {
@@ -76,7 +75,7 @@ class PlacesFilterActivity : BaseActivity() {
                     PlacesFilterFooterViewHolder(layoutInflater.inflate(R.layout.view_places_filters_footer, parent, false))
                 }
                 else -> {
-                    PlacesFilterItemViewHolder(ViewPlacesFilterItemBinding.inflate(layoutInflater), this)
+                    PlacesFilterItemViewHolder(ViewPlacesFilterItemBinding.inflate(layoutInflater))
                 }
             }
         }
@@ -98,10 +97,6 @@ class PlacesFilterActivity : BaseActivity() {
                 else -> (holder as PlacesFilterItemViewHolder).bindItem(filtersList[position])
             }
         }
-
-        override fun onLangSelected() {
-            notifyDataSetChanged()
-        }
     }
 
     inner class PlacesFilterHeaderViewHolder(itemView: View) : DefaultViewHolder<View>(itemView) {
@@ -112,6 +107,7 @@ class PlacesFilterActivity : BaseActivity() {
             headerText.text = filterHeader
         }
     }
+
     inner class PlacesFilterFooterViewHolder(itemView: View) : DefaultViewHolder<View>(itemView) {
         fun bindItem() {
             itemView.setOnClickListener {
@@ -120,13 +116,10 @@ class PlacesFilterActivity : BaseActivity() {
             }
         }
     }
-    class PlacesFilterItemViewHolder(private val itemViewBinding: ViewPlacesFilterItemBinding, val callback: Callback) : DefaultViewHolder<View>(itemViewBinding.root) {
-        interface Callback {
-            fun onLangSelected()
-        }
 
+    inner class PlacesFilterItemViewHolder(private val itemViewBinding: ViewPlacesFilterItemBinding) : DefaultViewHolder<View>(itemViewBinding.root) {
         fun bindItem(languageCode: String) {
-            itemViewBinding.placesFilterTitle.text = WikipediaApp.instance.languageState.getAppLanguageCanonicalName(languageCode)
+            itemViewBinding.placesFilterTitle.text = languageState.getAppLanguageCanonicalName(languageCode)
             itemViewBinding.placesFilterLangCode.setLangCode(languageCode)
             itemViewBinding.placesFilterRadio.isVisible = languageCode == Prefs.placesWikiCode
             itemViewBinding.root.setOnClickListener {
@@ -134,10 +127,11 @@ class PlacesFilterActivity : BaseActivity() {
                     PlacesEvent.logAction("filter_change_save", "filter_view")
                 }
                 Prefs.placesWikiCode = languageCode
-                callback.onLangSelected()
+                binding.placesFiltersRecyclerView.adapter?.notifyDataSetChanged()
             }
         }
     }
+
     companion object {
         private const val VIEW_TYPE_HEADER = 0
         private const val VIEW_TYPE_FOOTER = 1

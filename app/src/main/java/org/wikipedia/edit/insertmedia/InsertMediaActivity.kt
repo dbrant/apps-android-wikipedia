@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.analytics.eventplatform.ImageRecommendationsEvent
 import org.wikipedia.commons.FilePageActivity
@@ -277,7 +276,7 @@ class InsertMediaActivity : BaseActivity() {
                 })
 
             binding.selectedImageContainer.setOnClickListener { _ ->
-                it.wikiSite = WikiSite.forLanguageCode(WikipediaApp.instance.appOrSystemLanguageCode)
+                it.wikiSite = WikiSite.forLanguageCode(languageState.appLanguageCode)
                 startActivity(FilePageActivity.newIntent(this@InsertMediaActivity, it))
             }
         } ?: run {
