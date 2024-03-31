@@ -1,7 +1,5 @@
 package org.wikipedia.language
 
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
@@ -12,10 +10,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AppLanguageState @Inject constructor(@ApplicationContext context: Context) {
-
-    private val appLanguageLookUpTable = AppLanguageLookUpTable(context)
-
+class AppLanguageState @Inject constructor(
+    private val appLanguageLookUpTable: AppLanguageLookUpTable
+) {
     // Language codes that have been explicitly chosen by the user in most recently used order. This
     // list includes both app and article languages.
     private val _mruLanguageCodes = Prefs.mruLanguageCodeList.toMutableList()

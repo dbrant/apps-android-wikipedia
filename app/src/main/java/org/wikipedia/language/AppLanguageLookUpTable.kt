@@ -1,17 +1,21 @@
 package org.wikipedia.language
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.wikipedia.R
 import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AppLanguageLookUpTable(context: Context) {
+@Singleton
+class AppLanguageLookUpTable @Inject constructor(@ApplicationContext context: Context) {
     private val resources = context.resources
 
     val codes by lazy {
         getStringList(R.array.preference_language_keys)
     }
 
-    val bcp47codes by lazy {
+    private val bcp47codes by lazy {
         val bcpCodes = mutableMapOf<String, String>()
         val bcpList = getStringList(R.array.preference_bcp47_keys)
         for (i in bcpList.indices) {
