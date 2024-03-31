@@ -16,7 +16,6 @@ import io.reactivex.rxjava3.internal.functions.Functions
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.wikipedia.analytics.InstallReferrerListener
-import org.wikipedia.analytics.eventplatform.AppSessionEvent
 import org.wikipedia.analytics.eventplatform.EventPlatformClient
 import org.wikipedia.appshortcuts.AppShortcuts
 import org.wikipedia.auth.AccountUtil
@@ -49,7 +48,6 @@ class WikipediaApp : Application() {
     }
 
     @Inject lateinit var languageState: AppLanguageState
-    @Inject lateinit var appSessionEvent: AppSessionEvent
     @Inject lateinit var activityLifecycleHandler: ActivityLifecycleHandler
     @Inject lateinit var connectionStateMonitor: ConnectionStateMonitor
     @Inject lateinit var bus: RxBus

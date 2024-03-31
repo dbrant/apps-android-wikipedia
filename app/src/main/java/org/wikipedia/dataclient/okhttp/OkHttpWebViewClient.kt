@@ -9,6 +9,7 @@ import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
 import org.wikipedia.WikipediaApp
+import org.wikipedia.analytics.eventplatform.AppSessionEvent
 import org.wikipedia.dataclient.RestService
 import org.wikipedia.page.LinkHandler
 import org.wikipedia.page.PageViewModel
@@ -18,7 +19,9 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.Charset
 
-abstract class OkHttpWebViewClient : WebViewClient() {
+abstract class OkHttpWebViewClient(
+    private val appSessionEvent: AppSessionEvent? = null
+) : WebViewClient() {
     /*
         Note: Any data transformations performed here are only for the benefit of WebViews.
         They should not be made into general Interceptors.
@@ -49,11 +52,11 @@ abstract class OkHttpWebViewClient : WebViewClient() {
         try {
             val shouldLogLatency = request.url.encodedPath?.contains(RestService.PAGE_HTML_ENDPOINT) == true
             if (shouldLogLatency) {
-                WikipediaApp.instance.appSessionEvent.pageFetchStart()
+                appSessionEvent?.pageFetchStart()
             }
             val rsp = request(request)
             if (rsp.networkResponse != null && shouldLogLatency) {
-                WikipediaApp.instance.appSessionEvent.pageFetchEnd()
+                appSessionEvent?.pageFetchEnd()
             }
             response = if (CONTENT_TYPE_OGG == rsp.header(HEADER_CONTENT_TYPE) ||
                     CONTENT_TYPE_WEBM == rsp.header(HEADER_CONTENT_TYPE)) {

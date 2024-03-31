@@ -336,7 +336,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
             onPageCloseActionMode()
             return
         }
-        app.appSessionEvent.backPressed()
+        appSessionEvent.backPressed()
         if (pageFragment.onBackPressed()) {
             return
         }
@@ -590,7 +590,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
                 TabPosition.NEW_TAB_FOREGROUND -> pageFragment.openInNewForegroundTab(pageTitle, entry)
                 else -> pageFragment.openFromExistingTab(pageTitle, entry)
             }
-            app.appSessionEvent.pageViewed(entry)
+            appSessionEvent.pageViewed(entry)
         }
     }
 

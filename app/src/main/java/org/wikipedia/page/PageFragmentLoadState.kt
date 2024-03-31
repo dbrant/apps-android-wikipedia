@@ -235,9 +235,6 @@ class PageFragmentLoadState(private var model: PageViewModel,
             if (!response.raw().request.url.fragment.isNullOrEmpty()) {
                 title.fragment = response.raw().request.url.fragment
             }
-            if (title.description.isNullOrEmpty()) {
-                app.appSessionEvent.noDescription()
-            }
             if (!title.isMainPage) {
                 title.displayText = page?.displayTitle.orEmpty()
             }

@@ -34,6 +34,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textview.MaterialTextView
+import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -51,6 +52,7 @@ import org.wikipedia.LongPressHandler
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.FragmentUtil.getCallback
+import org.wikipedia.analytics.eventplatform.AppSessionEvent
 import org.wikipedia.analytics.eventplatform.ArticleFindInPageInteractionEvent
 import org.wikipedia.analytics.eventplatform.ArticleInteractionEvent
 import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
@@ -118,7 +120,9 @@ import org.wikipedia.watchlist.WatchlistExpiryDialog
 import org.wikipedia.wiktionary.WiktionaryDialog
 import java.time.Duration
 import java.time.Instant
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.CommunicationBridgeListener, ThemeChooserDialog.Callback,
     ReferenceDialog.Callback, WiktionaryDialog.Callback, WatchlistExpiryDialog.Callback {
 
@@ -154,6 +158,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
     private val pageRefreshListener = OnRefreshListener { refreshPage() }
     private val pageActionItemCallback = PageActionItemCallback()
 
+    @Inject lateinit var appSessionEvent: AppSessionEvent
     private lateinit var bridge: CommunicationBridge
     private lateinit var leadImagesHandler: LeadImagesHandler
     private lateinit var pageFragmentLoadState: PageFragmentLoadState
@@ -377,10 +382,10 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         webView.addOnUpOrCancelMotionEventListener {
             // update our session, since it's possible for the user to remain on the page for
             // a long time, and we wouldn't want the session to time out.
-            app.appSessionEvent.touchSession()
+            appSessionEvent.touchSession()
         }
         webView.addOnContentHeightChangedListener(scrollTriggerListener)
-        webView.webViewClient = object : OkHttpWebViewClient() {
+        webView.webViewClient = object : OkHttpWebViewClient(appSessionEvent) {
 
             override val model get() = this@PageFragment.model
 
@@ -905,6 +910,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
         model.page?.run {
             articleInteractionEvent = ArticleInteractionEvent(model.title?.wikiSite?.dbName()!!, pageProperties.pageId)
+        }
+        model.title?.let {
+            if (it.description.isNullOrEmpty()) {
+                appSessionEvent.noDescription()
+            }
         }
         editHandler.setPage(model.page)
         binding.pageRefreshContainer.isEnabled = true

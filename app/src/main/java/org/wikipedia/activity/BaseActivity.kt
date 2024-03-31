@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.skydoves.balloon.Balloon
+import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.functions.Consumer
@@ -19,6 +20,7 @@ import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.BreadcrumbsContextHelper
+import org.wikipedia.analytics.eventplatform.AppSessionEvent
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
 import org.wikipedia.analytics.eventplatform.NotificationInteractionEvent
 import org.wikipedia.appshortcuts.AppShortcuts
@@ -41,11 +43,14 @@ import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.views.ImageZoomHelper
+import javax.inject.Inject
 
+@AndroidEntryPoint
 abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callback {
     interface Callback {
         fun onPermissionResult(activity: BaseActivity, isGranted: Boolean)
     }
+    @Inject lateinit var appSessionEvent: AppSessionEvent
     private lateinit var exclusiveBusMethods: ExclusiveBusConsumer
     private val disposables = CompositeDisposable()
     private var currentTooltip: Balloon? = null
@@ -111,13 +116,13 @@ abstract class BaseActivity : AppCompatActivity(), ConnectionStateMonitor.Callba
     }
 
     override fun onStop() {
-        WikipediaApp.instance.appSessionEvent.persistSession()
+        appSessionEvent.persistSession()
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
-        WikipediaApp.instance.appSessionEvent.touchSession()
+        appSessionEvent.touchSession()
         BreadCrumbLogEvent.logScreenShown(this)
 
         // allow this activity's exclusive bus methods to override any existing ones.
