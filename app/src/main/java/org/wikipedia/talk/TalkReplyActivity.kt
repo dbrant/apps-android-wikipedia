@@ -257,7 +257,9 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                     binding.replyInputView.editText.requestFocus()
                     DeviceUtil.showSoftKeyboard(binding.replyInputView.editText)
                     binding.talkScrollContainer.postDelayed({
-                        binding.talkScrollContainer.smoothScrollTo(0, binding.talkScrollContainer.height * 4)
+                        if (!isDestroyed) {
+                            binding.talkScrollContainer.smoothScrollTo(0, binding.talkScrollContainer.height * 4)
+                        }
                     }, 500)
                 }
             }
@@ -319,7 +321,8 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
 
     private fun showSaveDialog(subject: String, body: String) {
         TalkTemplatesTextInputDialog(this@TalkReplyActivity, R.string.talk_templates_new_message_dialog_save,
-            R.string.talk_warn_save_dialog_dont_save).let { textInputDialog ->
+            R.string.talk_warn_save_dialog_dont_save,
+            !viewModel.isExampleTemplate && viewModel.selectedTemplate != null).let { textInputDialog ->
             textInputDialog.callback = object : TalkTemplatesTextInputDialog.Callback {
 
                 override fun onSuccess(subjectText: String) {
@@ -358,10 +361,8 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                                 if (textInputDialog.isSaveExistingChecked) {
                                     return
                                 }
-                                dialog.getView().postDelayed({
-                                    dialog.setError(dialog.context.getString(R.string.talk_subject_duplicate))
-                                    dialog.setPositiveButtonEnabled(false)
-                                }, 250)
+                                dialog.setError(dialog.context.getString(R.string.talk_subject_duplicate))
+                                dialog.setPositiveButtonEnabled(false)
                             }
 
                             else -> {
@@ -457,11 +458,10 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
     }
 
     private fun getWikitextBody(): String {
-        var body = binding.replyInputView.editText.text.toString().trim()
-        body = body.replace(getString(R.string.username_wikitext), getString(R.string.wikiText_replace_url, viewModel.pageTitle.prefixedText, "@" + StringUtil.removeNamespace(viewModel.pageTitle.prefixedText)))
-        body = body.replace(getString(R.string.sender_username_wikitext), AccountUtil.userName.orEmpty())
-        body = body.replace(getString(R.string.diff_link_wikitext), viewModel.pageTitle.getWebApiUrl("diff=${viewModel.toRevisionId}&oldid=${viewModel.fromRevisionId}&variant=${viewModel.pageTitle.wikiSite.languageCode}"))
-        return body
+        return binding.replyInputView.editText.text.toString().trim()
+            .replace(getString(R.string.username_wikitext), getString(R.string.wikiText_replace_url, viewModel.pageTitle.prefixedText, "@" + StringUtil.removeNamespace(viewModel.pageTitle.prefixedText)))
+            .replace(getString(R.string.sender_username_wikitext), AccountUtil.userName.orEmpty())
+            .replace(getString(R.string.diff_link_wikitext), viewModel.pageTitle.getWebApiUrl("diff=${viewModel.toRevisionId}&oldid=${viewModel.fromRevisionId}&variant=${viewModel.pageTitle.wikiSite.languageCode}"))
     }
 
     private fun onSaveSuccess(newRevision: Long) {
@@ -510,19 +510,19 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
 
     private fun maybeShowTempAccountDialog(force: Boolean = false): Boolean {
         if (force || (!Prefs.tempAccountDialogShown && (!AccountUtil.isLoggedIn || AccountUtil.isTemporaryAccount))) {
-            val alert = MaterialAlertDialogBuilder(this)
-            alert.setTitle(if (AccountUtil.isTemporaryAccount) R.string.temp_account_using_title else R.string.temp_account_not_logged_in)
-            alert.setMessage(StringUtil.fromHtml(if (AccountUtil.isTemporaryAccount) getString(R.string.temp_account_temp_dialog_body, AccountUtil.userName)
-            else getString(R.string.temp_account_anon_dialog_body)))
-            alert.setPositiveButton(getString(R.string.temp_account_dialog_ok)) { dialog, _ ->
-                dialog.dismiss()
-            }
-            alert.setNegativeButton(getString(R.string.create_account_login)) { dialog, _ ->
-                dialog.dismiss()
-                val loginIntent = LoginActivity.newIntent(this, LoginActivity.SOURCE_EDIT)
-                requestLogin.launch(loginIntent)
-            }
-            alert.create().show()
+            MaterialAlertDialogBuilder(this, R.style.AlertDialogTheme_Icon_NegativeInactive)
+                .setIcon(if (AccountUtil.isTemporaryAccount) R.drawable.ic_temp_account else R.drawable.ic_anon_account)
+                .setTitle(if (AccountUtil.isTemporaryAccount) R.string.temp_account_using_title else R.string.temp_account_not_logged_in)
+                .setMessage(StringUtil.fromHtml(if (AccountUtil.isTemporaryAccount) getString(R.string.temp_account_temp_dialog_body, AccountUtil.userName) else getString(R.string.temp_account_anon_dialog_body)))
+                .setPositiveButton(getString(R.string.temp_account_dialog_ok)) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setNegativeButton(getString(R.string.create_account_login)) { dialog, _ ->
+                    dialog.dismiss()
+                    val loginIntent = LoginActivity.newIntent(this, LoginActivity.SOURCE_EDIT)
+                    requestLogin.launch(loginIntent)
+                }
+                .show()
             Prefs.tempAccountDialogShown = true
             return true
         }
@@ -546,14 +546,13 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                     sendPatrollerExperienceEvent("publish_exit_cancel", "pt_warning_messages")
                 }
                 .show()
-        } else if (viewModel.isFromDiff && messagePreviewFragment.isActive) {
+        } else if (messagePreviewFragment.isActive) {
             showProgressBar(true)
             binding.talkScrollContainer.isVisible = true
             messagePreviewFragment.hide()
             setSaveButtonEnabled(true)
             binding.replyNextButton.text = getString(R.string.edit_next)
             setToolbarTitle(viewModel.pageTitle)
-            binding.root.postDelayed({ showProgressBar(false) }, 250)
         } else {
             super.onBackPressed()
         }

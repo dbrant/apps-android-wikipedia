@@ -15,7 +15,6 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.SingleWebViewActivity
 import org.wikipedia.auth.AccountUtil
-import org.wikipedia.util.ReleaseUtil
 import org.wikipedia.util.StringUtil
 import java.util.concurrent.TimeUnit
 
@@ -77,8 +76,6 @@ class LogoutPreference : Preference {
             }
         }
 
-        // TODO: remove pre-prod flag when ready
-        holder.itemView.findViewById<View>(R.id.accountVanishButton).isVisible = ReleaseUtil.isPreProdRelease
-                && !AccountUtil.isTemporaryAccount
+        holder.itemView.findViewById<View>(R.id.accountVanishButton).isVisible = !AccountUtil.isTemporaryAccount
     }
 }
