@@ -47,7 +47,7 @@ class EditPreviewFragment : Fragment(), CommunicationBridgeListener, ReferenceDi
 
     private lateinit var bridge: CommunicationBridge
     private lateinit var references: PageReferences
-    val isActive get() = binding.editPreviewContainer.visibility == View.VISIBLE
+    val isActive get() = false // binding.editPreviewContainer.visibility == View.VISIBLE
 
     override lateinit var linkHandler: LinkHandler
     override val model = PageViewModel()
@@ -79,7 +79,7 @@ class EditPreviewFragment : Fragment(), CommunicationBridgeListener, ReferenceDi
      */
     fun showPreview(title: PageTitle, wikiText: String) {
         DeviceUtil.hideSoftKeyboard(requireActivity())
-        callback().showProgressBar(true)
+        //callback().showProgressBar(true)
         val url = ServiceFactory.getRestBasePath(model.title!!.wikiSite) +
                 RestService.PAGE_HTML_PREVIEW_ENDPOINT + UriUtil.encodeURL(title.prefixedText)
         val postData = "wikitext=" + UriUtil.encodeURL(wikiText)

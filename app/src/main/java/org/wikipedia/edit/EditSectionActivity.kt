@@ -110,6 +110,14 @@ class EditSectionActivity : BaseActivity(), ThemeChooserDialog.Callback, EditPre
         }
     }
 
+    private val requestPreviewRunnable = Runnable {
+        if (isDestroyed) {
+            return@Runnable
+        }
+        // update live preview
+        editPreviewFragment.showPreview(pageTitle, binding.editSectionText.text.toString())
+    }
+
     private val requestInsertMedia = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == InsertMediaActivity.RESULT_INSERT_MEDIA_SUCCESS) {
             it.data?.let { data ->
@@ -217,6 +225,16 @@ class EditSectionActivity : BaseActivity(), ThemeChooserDialog.Callback, EditPre
         }
 
         textWatcher = binding.editSectionText.doAfterTextChanged {
+
+            // update live preview
+            editPreviewFragment.showPreview(pageTitle, binding.editSectionText.text.toString())
+
+
+            binding.root.removeCallbacks(requestPreviewRunnable)
+            binding.root.postDelayed(requestPreviewRunnable, TimeUnit.SECONDS.toMillis(2))
+
+
+
             if (sectionTextFirstLoad) {
                 sectionTextFirstLoad = false
                 return@doAfterTextChanged

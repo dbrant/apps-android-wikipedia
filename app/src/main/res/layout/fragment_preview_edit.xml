@@ -36,6 +36,7 @@
             app:drawableStartCompat="@drawable/ic_license_cc"
             app:drawableTint="?attr/secondary_color"
             android:drawablePadding="8dp"
+            android:visibility="gone"
             tools:text="Lorem ipsum" />
 
     </FrameLayout>
