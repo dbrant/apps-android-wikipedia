@@ -38,6 +38,7 @@ class GooglePayActivity : BaseActivity() {
     private lateinit var binding: ActivityDonateBinding
     private lateinit var paymentsClient: PaymentsClient
     private lateinit var currencyFormat: NumberFormat
+    private val decimalFormat = DecimalFormat("0")
 
     private val viewModel: GooglePayViewModel by viewModels()
 
@@ -83,6 +84,10 @@ class GooglePayActivity : BaseActivity() {
         }
 
         binding.payButton.setOnClickListener {
+            if (!validateInput(binding.donateAmountText.text.toString())) {
+                return@setOnClickListener
+            }
+
             val paymentDataRequest = PaymentDataRequest.fromJson(GooglePayComponent.getPaymentDataRequestJson().toString())
             AutoResolveHelper.resolveTask(
                 paymentsClient.loadPaymentData(paymentDataRequest),
@@ -91,20 +96,25 @@ class GooglePayActivity : BaseActivity() {
         }
 
         binding.donateAmountText.addTextChangedListener { text ->
-            val amount = text.toString().toDoubleOrNull()
-            if (amount != null) {
-                val min = viewModel.donationConfig?.currencyMinimumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
-                val max = viewModel.donationConfig?.currencyMaximumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
-
-                if (amount < min) {
-                    binding.donateAmountInput.error = getString(R.string.donate_gpay_minimum_amount, currencyFormat.format(min))
-                } else if (amount > max) {
-                    binding.donateAmountInput.error = getString(R.string.donate_gpay_maximum_amount, currencyFormat.format(max))
-                } else {
-                    binding.donateAmountInput.error = null
-                }
-            }
+            validateInput(text.toString())
         }
+    }
+
+    private fun validateInput(text: String): Boolean {
+        val amount = text.toDoubleOrNull() ?: 0.0
+        val min = viewModel.donationConfig?.currencyMinimumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
+        val max = viewModel.donationConfig?.currencyMaximumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
+
+        if (amount < min) {
+            binding.donateAmountInput.error = getString(R.string.donate_gpay_minimum_amount, currencyFormat.format(min))
+            return false
+        } else if (amount > max) {
+            binding.donateAmountInput.error = getString(R.string.donate_gpay_maximum_amount, currencyFormat.format(max))
+            return false
+        } else {
+            binding.donateAmountInput.error = null
+        }
+        return true
     }
 
     private fun setLoadingState() {
@@ -146,7 +156,7 @@ class GooglePayActivity : BaseActivity() {
             binding.amountPresetsContainer.addView(button)
             button.setOnClickListener {
                 setButtonHighlighted(it)
-                binding.donateAmountText.setText(currencyFormat.format(amount))
+                binding.donateAmountText.setText(decimalFormat.format(amount))
             }
         }
         binding.amountPresetsFlow.referencedIds = viewIds.toIntArray()
