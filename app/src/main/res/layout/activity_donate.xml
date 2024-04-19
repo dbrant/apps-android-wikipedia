@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         style="@style/ToolbarStyle.Small"
-        app:title="Select an amount"
+        app:title="@string/donate_gpay_activity_title"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp" />
 
@@ -79,32 +79,35 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <CheckBox
+                android:id="@+id/checkBoxTransactionFee"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 style="@style/P"
                 android:paddingStart="8dp"
                 android:minHeight="0dp"
-                android:text="I'll generously add $2 to cover the transaction fees so you can keep 100% of my donation."
+                android:text="@string/donate_gpay_check_transaction_fee"
                 />
 
             <CheckBox
+                android:id="@+id/checkBoxRecurring"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 style="@style/P"
                 android:layout_marginTop="16dp"
                 android:paddingStart="8dp"
                 android:minHeight="0dp"
-                android:text="Make this a monthly recurring donation."
+                android:text="@string/donate_gpay_check_recurring"
                 />
 
             <CheckBox
+                android:id="@+id/checkBoxAllowEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 style="@style/P"
                 android:layout_marginTop="16dp"
                 android:paddingStart="8dp"
                 android:minHeight="0dp"
-                android:text="Yes, the Wikimedia Foundation can send me an occasional email."
+                android:text="@string/donate_gpay_check_send_email"
                 />
 
             <com.google.android.gms.wallet.button.PayButton

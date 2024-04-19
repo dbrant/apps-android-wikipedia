@@ -51,7 +51,8 @@ class GooglePayActivity : BaseActivity() {
 
         // TODO: is this right?
         currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
-        currencyFormat.maximumFractionDigits = 0
+        currencyFormat.minimumFractionDigits = 0
+        currencyFormat.maximumFractionDigits = 2
 
         binding.donateAmountInput.prefixText = currencyFormat.currency?.symbol ?: ""
 
@@ -96,9 +97,9 @@ class GooglePayActivity : BaseActivity() {
                 val max = viewModel.donationConfig?.currencyMaximumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
 
                 if (amount < min) {
-                    binding.donateAmountInput.error = "Please select an amount (Minimum " + currencyFormat.format(amount) + ")." //getString(R.string.donate_amount_error, currencyFormat.format(min))
+                    binding.donateAmountInput.error = getString(R.string.donate_gpay_minimum_amount, currencyFormat.format(min))
                 } else if (amount > max) {
-                    binding.donateAmountInput.error = "We cannot accept donations greater than  " + currencyFormat.format(amount) + " through our app. Please contact our major gifts staff at ......." //getString(R.string.donate_amount_error, currencyFormat.format(min))
+                    binding.donateAmountInput.error = getString(R.string.donate_gpay_maximum_amount, currencyFormat.format(max))
                 } else {
                     binding.donateAmountInput.error = null
                 }
@@ -123,6 +124,9 @@ class GooglePayActivity : BaseActivity() {
         binding.contentsContainer.isVisible = true
         binding.progressBar.isVisible = false
         binding.errorView.isVisible = false
+
+        val transactionFee = donationConfig.currencyTransactionFees[currencyFormat.currency!!.currencyCode] ?: donationConfig.currencyTransactionFees["default"] ?: 0f
+        binding.checkBoxTransactionFee.text = getString(R.string.donate_gpay_check_transaction_fee, currencyFormat.format(transactionFee))
 
         val methods = JSONArray().put(GooglePayComponent.baseCardPaymentMethod)
         binding.payButton.initialize(ButtonOptions.newBuilder()

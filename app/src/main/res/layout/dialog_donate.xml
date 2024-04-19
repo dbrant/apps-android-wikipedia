@@ -26,7 +26,7 @@
                 android:layout_marginHorizontal="16dp"
                 android:ellipsize="end"
                 android:textColor="?attr/primary_color"
-                android:text="Donate with Google Pay?" />
+                android:text="@string/donate_gpay_dialog_title" />
 
             <TextView
                 android:id="@+id/gPayDescription"
@@ -38,7 +38,7 @@
                 android:layout_marginHorizontal="16dp"
                 android:ellipsize="end"
                 android:textColor="?attr/primary_color"
-                android:text="Donate with Google Pay or choose another payment method." />
+                android:text="@string/donate_gpay_dialog_description" />
 
             <View
                 android:layout_width="match_parent"
@@ -59,7 +59,7 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="?attr/progressive_color"
                 android:fontFamily="sans-serif-medium"
-                android:text="Donate with Google Pay" />
+                android:text="@string/donate_gpay_dialog_pay_button" />
 
             <TextView
                 android:id="@+id/donateOtherButton"
@@ -74,7 +74,7 @@
                 android:drawablePadding="24dp"
                 android:paddingHorizontal="16dp"
                 android:textColor="?attr/primary_color"
-                android:text="Other payment method" />
+                android:text="@string/donate_gpay_dialog_other_button" />
 
         </LinearLayout>
 
