@@ -35,23 +35,46 @@
                 android:textColor="?attr/primary_color"
                 tools:text="Lorem ipsum" />
 
-            <com.google.android.material.button.MaterialButton
+            <LinearLayout
                 android:id="@+id/donateGooglePayButton"
-                style="@style/App.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Donate with Google Pay"
-                />
+                style="@style/SideDrawerMenuItem">
 
-            <com.google.android.material.button.MaterialButton
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    app:srcCompat="@drawable/ic_heart_24"
+                    app:tint="?attr/progressive_color" />
+
+                <TextView
+                    style="@android:style/TextAppearance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_weight="1"
+                    android:textColor="?attr/progressive_color"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Donate with Google Pay" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/donateOtherButton"
-                style="@style/App.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Other payment methods"
-                />
+                style="@style/SideDrawerMenuItem">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    app:srcCompat="@drawable/ic_open_in_new_black_24px" />
+
+                <TextView
+                    style="@android:style/TextAppearance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_weight="1"
+                    android:text="Other payment method" />
+            </LinearLayout>
 
         </LinearLayout>
 
