@@ -18,6 +18,7 @@ import org.wikipedia.page.ExtendedBottomSheetDialogFragment
 import org.wikipedia.util.CustomTabsUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.Resource
+import org.wikipedia.util.StringUtil
 
 class DonateDialog : ExtendedBottomSheetDialogFragment() {
     private var _binding: DialogDonateBinding? = null
@@ -68,6 +69,8 @@ class DonateDialog : ExtendedBottomSheetDialogFragment() {
     override fun onDestroyView() {
         _binding = null
         super.onDestroyView()
+
+        FeedbackUtil.showMessage(requireActivity(), StringUtil.fromHtml("<b>Thank you!</b> Your generosity to Wikipedia means so much to us."))
     }
 
     companion object {

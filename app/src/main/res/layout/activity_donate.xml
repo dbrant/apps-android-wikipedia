@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         style="@style/ToolbarStyle.Small"
+        app:title="Select an amount"
         app:contentInsetStart="0dp"
         app:contentInsetEnd="0dp" />
 
@@ -40,24 +41,39 @@
             android:paddingHorizontal="16dp"
             android:orientation="vertical">
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/amountPresetsGroup"
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/amountPresetsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:chipSpacingVertical="0dp"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="16dp">
 
-            </com.google.android.material.chip.ChipGroup>
+                <androidx.constraintlayout.helper.widget.Flow
+                    android:id="@+id/amountPresetsFlow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:flow_horizontalGap="16dp"
+                    app:flow_verticalGap="16dp"
+                    app:flow_horizontalStyle="packed"
+                    app:flow_wrapMode="chain"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/donateAmountInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp">
+                app:hintEnabled="false"
+                app:expandedHintEnabled="false"
+                android:layout_marginBottom="16dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/donateAmountText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    style="@style/H1"
+                    android:textAlignment="center"
                     android:inputType="numberDecimal" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -65,18 +81,29 @@
             <CheckBox
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/P"
+                android:paddingStart="8dp"
+                android:minHeight="0dp"
                 android:text="I'll generously add $2 to cover the transaction fees so you can keep 100% of my donation."
                 />
 
             <CheckBox
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/P"
+                android:layout_marginTop="16dp"
+                android:paddingStart="8dp"
+                android:minHeight="0dp"
                 android:text="Make this a monthly recurring donation."
                 />
 
             <CheckBox
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/P"
+                android:layout_marginTop="16dp"
+                android:paddingStart="8dp"
+                android:minHeight="0dp"
                 android:text="Yes, the Wikimedia Foundation can send me an occasional email."
                 />
 

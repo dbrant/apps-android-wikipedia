@@ -3,10 +3,13 @@ package org.wikipedia.donate
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
+import androidx.core.view.children
 import androidx.core.view.isVisible
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -16,7 +19,7 @@ import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.button.ButtonConstants
 import com.google.android.gms.wallet.button.ButtonOptions
-import com.google.android.material.chip.Chip
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.wikipedia.R
@@ -29,15 +32,14 @@ import org.wikipedia.util.Resource
 import org.wikipedia.util.ResourceUtil
 import java.text.DecimalFormat
 import java.text.NumberFormat
-import java.util.Currency
 import java.util.Locale
 
 class GooglePayActivity : BaseActivity() {
     private lateinit var binding: ActivityDonateBinding
     private lateinit var paymentsClient: PaymentsClient
+    private lateinit var currencyFormat: NumberFormat
 
     private val viewModel: GooglePayViewModel by viewModels()
-    private val decimalFormat = DecimalFormat("0")
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +48,12 @@ class GooglePayActivity : BaseActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = ""
+
+        // TODO: is this right?
+        currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
+        currencyFormat.maximumFractionDigits = 0
+
+        binding.donateAmountInput.prefixText = currencyFormat.currency?.symbol ?: ""
 
         paymentsClient = GooglePayComponent.createPaymentsClient(this)
 
@@ -80,6 +88,22 @@ class GooglePayActivity : BaseActivity() {
                 this, LOAD_PAYMENT_DATA_REQUEST_CODE
             )
         }
+
+        binding.donateAmountText.addTextChangedListener { text ->
+            val amount = text.toString().toDoubleOrNull()
+            if (amount != null) {
+                val min = viewModel.donationConfig?.currencyMinimumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
+                val max = viewModel.donationConfig?.currencyMaximumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
+
+                if (amount < min) {
+                    binding.donateAmountInput.error = "Please select an amount (Minimum " + currencyFormat.format(amount) + ")." //getString(R.string.donate_amount_error, currencyFormat.format(min))
+                } else if (amount > max) {
+                    binding.donateAmountInput.error = "We cannot accept donations greater than  " + currencyFormat.format(amount) + " through our app. Please contact our major gifts staff at ......." //getString(R.string.donate_amount_error, currencyFormat.format(min))
+                } else {
+                    binding.donateAmountInput.error = null
+                }
+            }
+        }
     }
 
     private fun setLoadingState() {
@@ -107,21 +131,35 @@ class GooglePayActivity : BaseActivity() {
             .setAllowedPaymentMethods(methods.toString())
             .build())
 
-        // TODO: is this right?
-        val format = NumberFormat.getCurrencyInstance(Locale.getDefault())
-        format.maximumFractionDigits = 0
-
-        val presets = donationConfig.currencyAmountPresets[format.currency!!.currencyCode]
+        val viewIds = mutableListOf<Int>()
+        val presets = donationConfig.currencyAmountPresets[currencyFormat.currency!!.currencyCode]
         presets?.forEach { amount ->
-            val chip = Chip(this)
-            chip.setTextAppearanceResource(R.style.H2)
-            chip.text = format.format(amount)
-            chip.isCheckable = true
-            chip.setOnClickListener {
-                (it as Chip).setChipBackgroundColorResource(ResourceUtil.getThemedAttributeId(this, R.attr.progressive_color))
+            val viewId = View.generateViewId()
+            viewIds.add(viewId)
+            val button = MaterialButton(this)
+            button.text = currencyFormat.format(amount)
+            button.id = viewId
+            binding.amountPresetsContainer.addView(button)
+            button.setOnClickListener {
+                setButtonHighlighted(it)
+                binding.donateAmountText.setText(currencyFormat.format(amount))
             }
+        }
+        binding.amountPresetsFlow.referencedIds = viewIds.toIntArray()
+        setButtonHighlighted()
+    }
 
-            binding.amountPresetsGroup.addView(chip)
+    private fun setButtonHighlighted(button: View? = null) {
+        binding.amountPresetsContainer.children.forEach { child ->
+            if (child is MaterialButton) {
+                if (child == button) {
+                    child.backgroundTintList = ResourceUtil.getThemedColorStateList(this, R.attr.progressive_color)
+                    child.setTextColor(Color.WHITE)
+                } else {
+                    child.backgroundTintList = ResourceUtil.getThemedColorStateList(this, R.attr.background_color)
+                    child.setTextColor(ResourceUtil.getThemedColor(this, R.attr.primary_color))
+                }
+            }
         }
     }
 
