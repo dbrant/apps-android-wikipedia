@@ -15,7 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.gms.wallet.AutoResolveHelper
 import com.google.android.gms.wallet.PaymentData
-import com.google.android.gms.wallet.PaymentDataRequest
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.button.ButtonConstants
 import com.google.android.gms.wallet.button.ButtonOptions
@@ -27,17 +26,14 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.databinding.ActivityDonateBinding
 import org.wikipedia.dataclient.donate.DonationConfig
-import org.wikipedia.dataclient.donate.PaymentMethod
+import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.Resource
 import org.wikipedia.util.ResourceUtil
 import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.Locale
 
 class GooglePayActivity : BaseActivity() {
     private lateinit var binding: ActivityDonateBinding
     private lateinit var paymentsClient: PaymentsClient
-    private lateinit var currencyFormat: NumberFormat
     private val decimalFormat = DecimalFormat("0")
 
     private val viewModel: GooglePayViewModel by viewModels()
@@ -50,12 +46,7 @@ class GooglePayActivity : BaseActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = ""
 
-        // TODO: is this right?
-        currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
-        currencyFormat.minimumFractionDigits = 0
-        currencyFormat.maximumFractionDigits = 2
-
-        binding.donateAmountInput.prefixText = currencyFormat.currency?.symbol ?: ""
+        binding.donateAmountInput.prefixText = viewModel.currencySymbol
 
         paymentsClient = GooglePayComponent.createPaymentsClient(this)
 
@@ -71,7 +62,12 @@ class GooglePayActivity : BaseActivity() {
                                 setErrorState(resource.throwable)
                             }
                             is Resource.Success -> {
-                                onContentsReceived(resource.data.first, resource.data.second)
+                                onContentsReceived(resource.data)
+                            }
+                            is GooglePayViewModel.DonateSuccess -> {
+                                // TODO: show this snackbar in the parent activity instead of this one.
+                                FeedbackUtil.showMessage(this@GooglePayActivity, R.string.donate_gpay_success_message)
+                                finish()
                             }
                         }
                     }
@@ -84,13 +80,18 @@ class GooglePayActivity : BaseActivity() {
         }
 
         binding.payButton.setOnClickListener {
-            if (!validateInput(binding.donateAmountText.text.toString())) {
+            val amountText = binding.donateAmountText.text.toString()
+            if (!validateInput(amountText)) {
                 return@setOnClickListener
             }
 
-            val paymentDataRequest = PaymentDataRequest.fromJson(GooglePayComponent.getPaymentDataRequestJson().toString())
+            var amount = amountText.toFloatOrNull() ?: 0f
+            if (binding.checkBoxTransactionFee.isChecked) {
+                amount += viewModel.transactionFee
+            }
+
             AutoResolveHelper.resolveTask(
-                paymentsClient.loadPaymentData(paymentDataRequest),
+                paymentsClient.loadPaymentData(viewModel.getPaymentDataRequest(amount)),
                 this, LOAD_PAYMENT_DATA_REQUEST_CODE
             )
         }
@@ -101,15 +102,15 @@ class GooglePayActivity : BaseActivity() {
     }
 
     private fun validateInput(text: String): Boolean {
-        val amount = text.toDoubleOrNull() ?: 0.0
-        val min = viewModel.donationConfig?.currencyMinimumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
-        val max = viewModel.donationConfig?.currencyMaximumDonation?.get(currencyFormat.currency!!.currencyCode) ?: 0f
+        val amount = text.toFloatOrNull() ?: 0f
+        val min = viewModel.donationConfig?.currencyMinimumDonation?.get(viewModel.currencyCode) ?: 0f
+        val max = viewModel.donationConfig?.currencyMaximumDonation?.get(viewModel.currencyCode) ?: 0f
 
         if (amount < min) {
-            binding.donateAmountInput.error = getString(R.string.donate_gpay_minimum_amount, currencyFormat.format(min))
+            binding.donateAmountInput.error = getString(R.string.donate_gpay_minimum_amount, viewModel.currencyFormat.format(min))
             return false
         } else if (amount > max) {
-            binding.donateAmountInput.error = getString(R.string.donate_gpay_maximum_amount, currencyFormat.format(max))
+            binding.donateAmountInput.error = getString(R.string.donate_gpay_maximum_amount, viewModel.currencyFormat.format(max))
             return false
         } else {
             binding.donateAmountInput.error = null
@@ -130,13 +131,13 @@ class GooglePayActivity : BaseActivity() {
         binding.errorView.setError(throwable)
     }
 
-    private fun onContentsReceived(paymentMethods: List<PaymentMethod>, donationConfig: DonationConfig) {
+    private fun onContentsReceived(donationConfig: DonationConfig) {
         binding.contentsContainer.isVisible = true
         binding.progressBar.isVisible = false
         binding.errorView.isVisible = false
 
-        val transactionFee = donationConfig.currencyTransactionFees[currencyFormat.currency!!.currencyCode] ?: donationConfig.currencyTransactionFees["default"] ?: 0f
-        binding.checkBoxTransactionFee.text = getString(R.string.donate_gpay_check_transaction_fee, currencyFormat.format(transactionFee))
+        val transactionFee = donationConfig.currencyTransactionFees[viewModel.currencyCode] ?: donationConfig.currencyTransactionFees["default"] ?: 0f
+        binding.checkBoxTransactionFee.text = getString(R.string.donate_gpay_check_transaction_fee, viewModel.currencyFormat.format(transactionFee))
 
         val methods = JSONArray().put(GooglePayComponent.baseCardPaymentMethod)
         binding.payButton.initialize(ButtonOptions.newBuilder()
@@ -146,12 +147,12 @@ class GooglePayActivity : BaseActivity() {
             .build())
 
         val viewIds = mutableListOf<Int>()
-        val presets = donationConfig.currencyAmountPresets[currencyFormat.currency!!.currencyCode]
+        val presets = donationConfig.currencyAmountPresets[viewModel.currencyCode]
         presets?.forEach { amount ->
             val viewId = View.generateViewId()
             viewIds.add(viewId)
             val button = MaterialButton(this)
-            button.text = currencyFormat.format(amount)
+            button.text = viewModel.currencyFormat.format(amount)
             button.id = viewId
             binding.amountPresetsContainer.addView(button)
             button.setOnClickListener {
@@ -185,7 +186,7 @@ class GooglePayActivity : BaseActivity() {
                 Activity.RESULT_OK -> {
                     data?.let { intent ->
                         PaymentData.getFromIntent(intent)?.let { paymentData ->
-                            // TODO: handle payment data
+                            viewModel.submit(paymentData)
                         }
                     }
                 }
@@ -194,7 +195,9 @@ class GooglePayActivity : BaseActivity() {
                 }
                 AutoResolveHelper.RESULT_ERROR -> {
                     AutoResolveHelper.getStatusFromIntent(data)?.let {
-                        // TODO: handle error
+                        it.statusMessage?.let { message ->
+                            FeedbackUtil.showMessage(this, message)
+                        }
                     }
                 }
             }
