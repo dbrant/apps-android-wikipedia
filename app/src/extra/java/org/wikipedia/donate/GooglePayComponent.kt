@@ -15,6 +15,9 @@ internal object GooglePayComponent {
 
     const val PAYMENTS_API_URL = "https://payments.wikimedia.org"
 
+    private const val GPAY_API_VERSION = 2
+    private const val GPAY_API_VERSION_MINOR = 0
+
     private val allAllowedCardNetworks: List<String> = listOf("VISA", "MASTERCARD", "AMEX", "DISCOVER", "JCB", "INTERAC")
     private val allAllowedAuthMethods: List<String> = listOf("PAN_ONLY", "CRYPTOGRAM_3DS")
 
@@ -26,8 +29,8 @@ internal object GooglePayComponent {
         })
     }
     private val googlePayBaseConfiguration = JSONObject().apply {
-        put("apiVersion", 2)
-        put("apiVersionMinor", 0)
+        put("apiVersion", GPAY_API_VERSION)
+        put("apiVersionMinor", GPAY_API_VERSION_MINOR)
         put("allowedPaymentMethods", JSONArray().put(baseCardPaymentMethod))
     }
 
@@ -40,7 +43,7 @@ internal object GooglePayComponent {
 
     fun createPaymentsClient(activity: Activity): PaymentsClient {
         val walletOptions = Wallet.WalletOptions.Builder()
-            .setEnvironment(WalletConstants.ENVIRONMENT_TEST).build()
+            .setEnvironment(WalletConstants.ENVIRONMENT_PRODUCTION).build() // WalletConstants.ENVIRONMENT_TEST
         return Wallet.getPaymentsClient(activity, walletOptions)
     }
 
@@ -93,13 +96,18 @@ internal object GooglePayComponent {
                 put("allowedAuthMethods", JSONArray(allAllowedAuthMethods))
                 put("billingAddressRequired", true)
                 put("billingAddressParameters", JSONObject(mapOf("format" to "FULL")))
+                // put("allowPrepaidCards", true)
+                // put("allowCreditCards", true)
             })
         }
 
         val paymentDataRequestJson = JSONObject(googlePayBaseConfiguration.toString()).apply {
+            put("apiVersion", GPAY_API_VERSION)
+            put("apiVersionMinor", GPAY_API_VERSION_MINOR)
             put("allowedPaymentMethods", JSONArray().put(cardPaymentMethod))
             put("transactionInfo", transactionInfo)
             put("merchantInfo", merchantInfo)
+            put("emailRequired", true)
         }
 
         return paymentDataRequestJson

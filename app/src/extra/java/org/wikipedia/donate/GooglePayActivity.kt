@@ -29,12 +29,10 @@ import org.wikipedia.dataclient.donate.DonationConfig
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.Resource
 import org.wikipedia.util.ResourceUtil
-import java.text.DecimalFormat
 
 class GooglePayActivity : BaseActivity() {
     private lateinit var binding: ActivityDonateBinding
     private lateinit var paymentsClient: PaymentsClient
-    private val decimalFormat = DecimalFormat("0")
 
     private val viewModel: GooglePayViewModel by viewModels()
 
@@ -89,9 +87,10 @@ class GooglePayActivity : BaseActivity() {
             if (binding.checkBoxTransactionFee.isChecked) {
                 amount += viewModel.transactionFee
             }
+            viewModel.finalAmount = amount
 
             AutoResolveHelper.resolveTask(
-                paymentsClient.loadPaymentData(viewModel.getPaymentDataRequest(amount)),
+                paymentsClient.loadPaymentData(viewModel.getPaymentDataRequest()),
                 this, LOAD_PAYMENT_DATA_REQUEST_CODE
             )
         }
@@ -157,7 +156,7 @@ class GooglePayActivity : BaseActivity() {
             binding.amountPresetsContainer.addView(button)
             button.setOnClickListener {
                 setButtonHighlighted(it)
-                binding.donateAmountText.setText(decimalFormat.format(amount))
+                binding.donateAmountText.setText(viewModel.decimalFormat.format(amount))
             }
         }
         binding.amountPresetsFlow.referencedIds = viewIds.toIntArray()
@@ -186,7 +185,10 @@ class GooglePayActivity : BaseActivity() {
                 Activity.RESULT_OK -> {
                     data?.let { intent ->
                         PaymentData.getFromIntent(intent)?.let { paymentData ->
-                            viewModel.submit(paymentData)
+                            viewModel.submit(paymentData,
+                                binding.checkBoxTransactionFee.isChecked,
+                                binding.checkBoxRecurring.isChecked,
+                                binding.checkBoxAllowEmail.isChecked)
                         }
                     }
                 }
