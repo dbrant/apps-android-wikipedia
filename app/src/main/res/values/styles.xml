@@ -262,16 +262,6 @@
         <item name="iconGravity">start</item>
     </style>
 
-    <style name="Chip.Accessible.Donate">
-        <item name="chipBackgroundColor">?attr/background_color</item>
-        <item name="chipStrokeWidth">1dp</item>
-        <item name="chipStrokeColor">?attr/border_color</item>
-        <item name="android:textColor">?attr/primary_color</item>
-        <item name="android:textSize">24sp</item>
-        <item name="ensureMinTouchTargetSize">true</item>
-        <item name="chipMinTouchTargetSize">48dp</item>
-    </style>
-
     <style name="List">
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textSize">14sp</item>

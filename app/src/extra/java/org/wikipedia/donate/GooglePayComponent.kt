@@ -2,13 +2,11 @@ package org.wikipedia.donate
 
 import android.app.Activity
 import com.google.android.gms.wallet.IsReadyToPayRequest
-import com.google.android.gms.wallet.PaymentData
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
 
 internal object GooglePayComponent {
@@ -34,16 +32,10 @@ internal object GooglePayComponent {
         put("allowedPaymentMethods", JSONArray().put(baseCardPaymentMethod))
     }
 
-    fun findToken(paymentData: PaymentData): String {
-        return JSONObject(paymentData.toJson())
-            .getJSONObject("paymentMethodData")
-            .getJSONObject("tokenizationData")
-            .getString("token")
-    }
-
     fun createPaymentsClient(activity: Activity): PaymentsClient {
         val walletOptions = Wallet.WalletOptions.Builder()
-            .setEnvironment(WalletConstants.ENVIRONMENT_PRODUCTION).build() // WalletConstants.ENVIRONMENT_TEST
+            .setEnvironment(WalletConstants.ENVIRONMENT_TEST).build()
+            // .setEnvironment(WalletConstants.ENVIRONMENT_PRODUCTION).build()
         return Wallet.getPaymentsClient(activity, walletOptions)
     }
 
@@ -96,8 +88,6 @@ internal object GooglePayComponent {
                 put("allowedAuthMethods", JSONArray(allAllowedAuthMethods))
                 put("billingAddressRequired", true)
                 put("billingAddressParameters", JSONObject(mapOf("format" to "FULL")))
-                // put("allowPrepaidCards", true)
-                // put("allowCreditCards", true)
             })
         }
 
