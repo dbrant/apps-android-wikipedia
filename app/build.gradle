@@ -71,25 +71,9 @@ android {
 
     sourceSets {
 
-        prod {
-            java.srcDirs += 'src/extra/java'
-            res.srcDirs += 'src/extra/res'
-        }
-        beta {
-            java.srcDirs += 'src/extra/java'
-            res.srcDirs += 'src/extra/res'
-        }
-        alpha {
-            java.srcDirs += 'src/extra/java'
-            res.srcDirs += 'src/extra/res'
-        }
-        dev {
-            java.srcDirs += 'src/extra/java'
-            res.srcDirs += 'src/extra/res'
-        }
-        custom {
-            java.srcDirs += 'src/extra/java'
-            res.srcDirs += 'src/extra/res'
+        [ prod, beta, alpha, dev, custom ].forEach {
+            it.java.srcDirs += 'src/extra/java'
+            it.res.srcDirs += 'src/extra/res'
         }
 
         androidTest {
