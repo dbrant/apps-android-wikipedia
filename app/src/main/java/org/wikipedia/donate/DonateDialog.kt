@@ -29,9 +29,7 @@ class DonateDialog : ExtendedBottomSheetDialogFragment() {
         _binding = DialogDonateBinding.inflate(inflater, container, false)
 
         binding.donateOtherButton.setOnClickListener {
-            CustomTabsUtil.openInCustomTab(requireContext(), getString(R.string.donate_url,
-                WikipediaApp.instance.languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
-            dismiss()
+            onDonateClicked()
         }
 
         binding.donateGooglePayButton.setOnClickListener {
@@ -51,9 +49,13 @@ class DonateDialog : ExtendedBottomSheetDialogFragment() {
                             FeedbackUtil.showMessage(this@DonateDialog, it.throwable.localizedMessage.orEmpty())
                         }
                         is Resource.Success -> {
+                            // if Google Pay is not available, then bounce right out to external workflow.
+                            if (!it.data) {
+                                onDonateClicked()
+                                return@collect
+                            }
                             binding.progressBar.isVisible = false
                             binding.contentsContainer.isVisible = true
-                            binding.donateGooglePayButton.isVisible = it.data
                         }
                     }
                 }
@@ -68,6 +70,12 @@ class DonateDialog : ExtendedBottomSheetDialogFragment() {
     override fun onDestroyView() {
         _binding = null
         super.onDestroyView()
+    }
+
+    private fun onDonateClicked() {
+        CustomTabsUtil.openInCustomTab(requireContext(), getString(R.string.donate_url,
+            WikipediaApp.instance.languageState.systemLanguageCode, BuildConfig.VERSION_NAME))
+        dismiss()
     }
 
     companion object {

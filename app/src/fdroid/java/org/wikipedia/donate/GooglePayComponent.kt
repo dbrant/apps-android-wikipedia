@@ -1,7 +1,9 @@
 package org.wikipedia.donate
 
+import android.app.Activity
+
 object GooglePayComponent {
-    suspend fun isGooglePayAvailable(): Boolean {
+    suspend fun isGooglePayAvailable(activity: Activity): Boolean {
         return false
     }
 
