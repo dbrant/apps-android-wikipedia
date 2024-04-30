@@ -122,7 +122,7 @@ object ShareUtil {
         Toast.makeText(context, R.string.error_can_not_process_link, Toast.LENGTH_LONG).show()
     }
 
-    private fun getClearShareFolder(context: Context): File? {
+    fun getClearShareFolder(context: Context): File? {
         return try {
             File(getShareFolder(context), "share").also {
                 it.deleteRecursively()

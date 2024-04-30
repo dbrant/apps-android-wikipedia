@@ -185,26 +185,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         }
         binding.pageToolbarButtonTabs.updateTabCount(false)
         binding.pageToolbarButtonTabs.setOnClickListener {
-
-
-
-
-
-
-
-
-
-            Tts.start(this)
-
-
-
-
-
-
-
-
-
-
             pageFragment.articleInteractionEvent?.logTabsClick()
             pageFragment.metricsPlatformArticleEventToolbarInteraction?.logTabsClick()
             TabActivity.captureFirstTabBitmap(pageFragment.containerView, pageFragment.title?.prefixedText.orEmpty())
