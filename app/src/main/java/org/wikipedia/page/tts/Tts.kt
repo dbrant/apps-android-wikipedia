@@ -24,15 +24,22 @@ import java.util.Locale
 object Tts {
 
     var textToSpeech: TextToSpeech? = null
+
+    var audioUrl: String? = null
     var fileToSpeak: File? = null
 
     var mediaController: MediaController? = null
 
-    fun start(context: Context, text: String) {
+    fun start(context: Context, audioUrl: String, text: String) {
         val shareFolder = ShareUtil.getClearShareFolder(context)
         shareFolder?.mkdirs()
         fileToSpeak = File(shareFolder, "foo.mp3")
 
+        this.audioUrl = audioUrl
+        if (audioUrl.isNotEmpty()) {
+            speak(context)
+            return
+        }
 
         if (textToSpeech == null) {
             textToSpeech = TextToSpeech(context) { status ->
@@ -97,10 +104,12 @@ object Tts {
     }
 
     private fun actuallySpeak(context: Context) {
+
+        val uri = if (audioUrl != null) Uri.parse(audioUrl) else ShareUtil.getUriFromFile(context, fileToSpeak)
+
         val mediaItem = MediaItem.Builder()
             .setMediaId("media-1")
-            .setUri(ShareUtil.getUriFromFile(context, fileToSpeak))
-            //.setUri(Uri.parse("https://upload.wikimedia.org/wikipedia/commons/8/8e/En-Xenu.ogg"))
+            .setUri(uri)
             .setMediaMetadata(MediaMetadata.Builder()
                 .setArtist("Dmitry Brant")
                 .setTitle("Big Bang")

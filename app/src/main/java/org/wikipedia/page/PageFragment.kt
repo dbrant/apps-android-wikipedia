@@ -1507,8 +1507,17 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
 
         override fun onNarrateSelected() {
-            CoroutineScope(Dispatchers.Main).launch {
-                Tts.start(requireActivity(),
+            bridge.evaluate(JavaScriptActionHandler.getSpokenFileName()) { result ->
+                var spokenFileName = result.orEmpty()
+                if (spokenFileName.length > 2 && spokenFileName.startsWith("\"") && spokenFileName.endsWith("\"")) {
+                    spokenFileName = spokenFileName.substring(1, spokenFileName.length - 1)
+                }
+                if (spokenFileName.startsWith("./")) {
+                    spokenFileName = spokenFileName.substring(2)
+                }
+                val spokenUrl = UriUtil.decodeURL(PageTitle(spokenFileName, Constants.commonsWikiSite).uri)
+
+                Tts.start(requireActivity(), spokenUrl,
                     StringUtil.fromHtml(model.page?.displayTitle.orEmpty()).toString() + ", from Wikipedia, the free encyclopedia.")
             }
         }
