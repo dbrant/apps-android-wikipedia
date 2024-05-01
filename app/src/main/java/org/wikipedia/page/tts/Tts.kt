@@ -62,6 +62,7 @@ object Tts {
                 }
             }
 
+            /*
             textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
                     L.d("Utterance started: $utteranceId")
@@ -81,6 +82,7 @@ object Tts {
                     L.d("Utterance error: $utteranceId, $errorCode")
                 }
             })
+             */
         } else {
             generateAndSpeak(context, text)
         }
@@ -91,9 +93,13 @@ object Tts {
             return
         }
 
-        val params = Bundle()
-        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "uttId1");
-        textToSpeech?.synthesizeToFile(text, params, fileToSpeak, "uttId1")
+
+        speak(context)
+
+
+        //val params = Bundle()
+        //params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "uttId1");
+        //textToSpeech?.synthesizeToFile(text, params, fileToSpeak, "uttId1")
     }
 
     private fun speak(context: Context) {
