@@ -1534,6 +1534,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 // massage the text a bit further
                 text = text.replace("\\n", "\n")
 
+                // temporary: limit text to 1024 characters
+                if (text.length > 1024) {
+                    text = text.substring(0, 1024)
+                }
+
                 Tts.start(requireActivity(), title, "", text)
             }
         }
