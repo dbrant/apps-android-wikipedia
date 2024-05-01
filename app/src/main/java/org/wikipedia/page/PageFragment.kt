@@ -1521,7 +1521,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
 
         private fun speakFromUrl(url: String) {
-            Tts.start(requireActivity(), url, "")
+            Tts.start(requireActivity(), title, url, "")
         }
 
         private fun speakFromTts() {
@@ -1530,7 +1530,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 if (text.length > 2 && text.startsWith("\"") && text.endsWith("\"")) {
                     text = text.substring(1, text.length - 1)
                 }
-                Tts.start(requireActivity(), "", text)
+
+                // massage the text a bit further
+                text = text.replace("\\n", "\n")
+
+                Tts.start(requireActivity(), title, "", text)
             }
         }
     }

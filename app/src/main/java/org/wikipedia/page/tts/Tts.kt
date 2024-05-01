@@ -16,7 +16,9 @@ import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.wikipedia.WikipediaApp
+import org.wikipedia.page.PageTitle
 import org.wikipedia.util.ShareUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.util.log.L
 import java.io.File
 import java.util.Locale
@@ -27,12 +29,16 @@ object Tts {
 
     var audioUrl: String? = null
 
+    private var currentPageTitle: PageTitle? = null
+
     private const val SPEAK_FILE_NAME = "audio.wav"
     private var fileToSpeak: File? = null
 
     var mediaController: MediaController? = null
 
-    fun start(context: Context, audioUrl: String, text: String) {
+    fun start(context: Context, pageTitle: PageTitle?, audioUrl: String, text: String) {
+        currentPageTitle = pageTitle
+
         val shareFolder = ShareUtil.getClearShareFolder(context)
         fileToSpeak = File(shareFolder, SPEAK_FILE_NAME)
         if (fileToSpeak?.exists() == true) {
@@ -68,7 +74,7 @@ object Tts {
 
                 @Deprecated("Deprecated in Java")
                 override fun onError(utteranceId: String?) {
-                    // TODO
+                    L.d("Utterance error: $utteranceId")
                 }
 
                 override fun onError(utteranceId: String?, errorCode: Int) {
@@ -114,9 +120,9 @@ object Tts {
             .setMediaId("media-1")
             .setUri(uri)
             .setMediaMetadata(MediaMetadata.Builder()
-                .setArtist("Dmitry Brant")
-                .setTitle("Big Bang")
-                .setArtworkUri(Uri.parse("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/CMB_Timeline300_no_WMAP.jpg/640px-CMB_Timeline300_no_WMAP.jpg"))
+                .setArtist("Wikipedia")
+                .setTitle(StringUtil.fromHtml(currentPageTitle?.displayText.orEmpty()))
+                .setArtworkUri(Uri.parse(currentPageTitle?.thumbUrl.orEmpty()))  //"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/CMB_Timeline300_no_WMAP.jpg/640px-CMB_Timeline300_no_WMAP.jpg"))
                 .build()
             ).build()
 
