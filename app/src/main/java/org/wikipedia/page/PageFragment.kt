@@ -1508,17 +1508,29 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
 
         override fun onNarrateSelected() {
             bridge.evaluate(JavaScriptActionHandler.getSpokenFileName()) { result ->
-                var spokenFileName = result.orEmpty()
-                if (spokenFileName.length > 2 && spokenFileName.startsWith("\"") && spokenFileName.endsWith("\"")) {
-                    spokenFileName = spokenFileName.substring(1, spokenFileName.length - 1)
+                var spokenUrl = if (result == null || result == "null") "" else result
+                if (spokenUrl.length > 2 && spokenUrl.startsWith("\"") && spokenUrl.endsWith("\"")) {
+                    spokenUrl = spokenUrl.substring(1, spokenUrl.length - 1)
                 }
-                if (spokenFileName.startsWith("./")) {
-                    spokenFileName = spokenFileName.substring(2)
+                if (spokenUrl.isNotEmpty()) {
+                    speakFromUrl(UriUtil.resolveProtocolRelativeUrl(spokenUrl))
+                } else {
+                    speakFromTts()
                 }
-                val spokenUrl = UriUtil.decodeURL(PageTitle(spokenFileName, Constants.commonsWikiSite).uri)
+            }
+        }
 
-                Tts.start(requireActivity(), spokenUrl,
-                    StringUtil.fromHtml(model.page?.displayTitle.orEmpty()).toString() + ", from Wikipedia, the free encyclopedia.")
+        private fun speakFromUrl(url: String) {
+            Tts.start(requireActivity(), url, "")
+        }
+
+        private fun speakFromTts() {
+            bridge.evaluate(JavaScriptActionHandler.getSectionContents()) { result ->
+                var text = if (result == null || result == "null") "" else result
+                if (text.length > 2 && text.startsWith("\"") && text.endsWith("\"")) {
+                    text = text.substring(1, text.length - 1)
+                }
+                Tts.start(requireActivity(), "", text)
             }
         }
     }

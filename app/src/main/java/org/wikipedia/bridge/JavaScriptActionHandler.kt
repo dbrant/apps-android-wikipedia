@@ -192,7 +192,15 @@ object JavaScriptActionHandler {
         return "(function() {" +
                 "  let spokenDiv = document.querySelector('.spoken-wikipedia');" +
                 "  let spokenAudio = spokenDiv.querySelector('audio');" +
-                "  return spokenAudio.getAttribute('resource');" +
+                "  let spokenSources = spokenDiv.querySelectorAll('source');" +
+                "  return spokenSources[0].getAttribute('src');" +
+                "})();"
+    }
+
+    fun getSectionContents(): String {
+        return "(function() {" +
+                "  let sections = document.querySelectorAll('section');" +
+                "  return sections[0].innerText;" +
                 "})();"
     }
 

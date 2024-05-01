@@ -26,14 +26,18 @@ object Tts {
     var textToSpeech: TextToSpeech? = null
 
     var audioUrl: String? = null
-    var fileToSpeak: File? = null
+
+    private const val SPEAK_FILE_NAME = "audio.wav"
+    private var fileToSpeak: File? = null
 
     var mediaController: MediaController? = null
 
     fun start(context: Context, audioUrl: String, text: String) {
         val shareFolder = ShareUtil.getClearShareFolder(context)
-        shareFolder?.mkdirs()
-        fileToSpeak = File(shareFolder, "foo.mp3")
+        fileToSpeak = File(shareFolder, SPEAK_FILE_NAME)
+        if (fileToSpeak?.exists() == true) {
+            fileToSpeak?.delete()
+        }
 
         this.audioUrl = audioUrl
         if (audioUrl.isNotEmpty()) {
@@ -104,8 +108,7 @@ object Tts {
     }
 
     private fun actuallySpeak(context: Context) {
-
-        val uri = if (audioUrl != null) Uri.parse(audioUrl) else ShareUtil.getUriFromFile(context, fileToSpeak)
+        val uri = if (audioUrl.isNullOrBlank()) ShareUtil.getUriFromFile(context, fileToSpeak) else Uri.parse(audioUrl)
 
         val mediaItem = MediaItem.Builder()
             .setMediaId("media-1")
