@@ -97,6 +97,10 @@ object Tts {
     }
 
     private fun speak(context: Context) {
+        if (mediaController?.isConnected == false) {
+            mediaController?.release()
+            mediaController = null
+        }
         if (mediaController == null) {
             val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
             val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
