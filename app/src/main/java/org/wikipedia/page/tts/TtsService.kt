@@ -2,6 +2,8 @@ package org.wikipedia.page.tts
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -11,10 +13,12 @@ import android.speech.tts.TextToSpeech.OnInitListener
 import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Player.Commands
 import androidx.media3.common.SimpleBasePlayer
+import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
@@ -48,16 +52,30 @@ class PlaybackService : MediaSessionService() {
                 .build(),
         )
 
-
-
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
 
-        val player = TtsPlayer(Looper.getMainLooper(), this, Tts.textToSpeech!!)
-
-            // ExoPlayer.Builder(this).build()
+        val player = if (Tts.audioUrl.isNullOrEmpty())
+            TtsPlayer(Looper.getMainLooper(), this, Tts.textToSpeech!!)
+        else ExoPlayer.Builder(this).build()
 
         mediaSession = MediaSession.Builder(this, player)
+            /*
+            .setBitmapLoader(object : BitmapLoader {
+                override fun supportsMimeType(mimeType: String): Boolean {
+                    TODO("Not yet implemented")
+                }
+
+                override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> {
+                    TODO("Not yet implemented")
+                }
+
+                override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
+                    TODO("Not yet implemented")
+                }
+            })
+            */
             .setCallback(object : MediaSession.Callback {
 
                 @OptIn(UnstableApi::class)
@@ -93,6 +111,7 @@ class PlaybackService : MediaSessionService() {
                     return ConnectionResult.AcceptedResultBuilder(session).build()
                 }
 
+                @OptIn(UnstableApi::class)
                 override fun onCustomCommand(
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo,
@@ -141,6 +160,11 @@ class PlaybackService : MediaSessionService() {
         private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
     }
 
+
+
+
+
+
     @OptIn(UnstableApi::class)
     class TtsPlayer(looper: Looper, context: Context, val textToSpeech: TextToSpeech) : SimpleBasePlayer(looper), OnInitListener {
 
@@ -151,19 +175,23 @@ class PlaybackService : MediaSessionService() {
                     COMMAND_SEEK_BACK,
                     COMMAND_SEEK_FORWARD,
                     COMMAND_SET_SHUFFLE_MODE,
+                    Player.COMMAND_GET_METADATA,
                     Player.COMMAND_GET_CURRENT_MEDIA_ITEM,
-                    Player.COMMAND_GET_MEDIA_ITEMS_METADATA
+                    Player.COMMAND_GET_MEDIA_ITEMS_METADATA,
+                    Player.COMMAND_CHANGE_MEDIA_ITEMS,
+                    Player.COMMAND_PREPARE,
+                    Player.COMMAND_SET_MEDIA_ITEM,
                 ).build()
             )
             .setPlayWhenReady(false, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
-            .setAudioAttributes(AudioAttributes.DEFAULT)
-            .setPlaylist(listOf(MediaItemData.Builder("test").build()))
-            .setPlaylistMetadata(
-                MediaMetadata.Builder().setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
-                    .setTitle("TTS test")
-                    .build()
-            )
-            .setCurrentMediaItemIndex(0)
+            .setPlaybackState(STATE_IDLE)
+            //.setAudioAttributes(AudioAttributes.DEFAULT)
+            //.setPlaylist(listOf(MediaItemData.Builder("test").build()))
+            //.setPlaylistMetadata(
+            //    MediaMetadata.Builder().setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
+            ////        .setTitle("TTS test")
+            //        .build()
+            //)
             .build()
 
         /**
@@ -175,23 +203,55 @@ class PlaybackService : MediaSessionService() {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
                     L.i("onStart")
-                    updatePlaybackState(STATE_READY, true)
+                    updatePlaybackState(STATE_READY, false)
                 }
 
                 override fun onDone(utteranceId: String) {
                     L.i("onDone")
-                    updatePlaybackState(STATE_ENDED, false)
+                    //updatePlaybackState(STATE_ENDED, false)
                 }
 
                 override fun onError(utteranceId: String) {
                     L.i("onError")
-                    updatePlaybackState(STATE_ENDED, false)
+                    //updatePlaybackState(STATE_ENDED, false)
                 }
             })
         }
 
         override fun getState(): State {
             return state
+        }
+
+        override fun handleAddMediaItems(
+            index: Int,
+            mediaItems: MutableList<MediaItem>
+        ): ListenableFuture<*> {
+            L.d("handleAddMediaItems")
+            return Futures.immediateVoidFuture()
+        }
+
+        override fun handleSetMediaItems(
+            mediaItems: MutableList<MediaItem>,
+            startIndex: Int,
+            startPositionMs: Long
+        ): ListenableFuture<*> {
+            Handler(Looper.getMainLooper()).post {
+                state = state.buildUpon()
+                    .setPlaylist(listOf(MediaItemData
+                        .Builder("test")
+                        .setMediaItem(mediaItems[0])
+                        .build()))
+                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                    .build()
+                invalidateState()
+            }
+            L.d("handleSetMediaItems")
+            return Futures.immediateVoidFuture()
+        }
+
+        override fun handleSetPlaylistMetadata(playlistMetadata: MediaMetadata): ListenableFuture<*> {
+            L.d("handleSetPlaylistMetadata")
+            return Futures.immediateVoidFuture()
         }
 
         private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean) {
@@ -205,11 +265,16 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
+        override fun handlePrepare(): ListenableFuture<*> {
+            L.d("handlePrepare")
+            return Futures.immediateVoidFuture()
+        }
+
         override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
             L.i("handleSetPlayWhenReady: $playWhenReady")
             if (playWhenReady) {
                 textToSpeech.speak(
-                    "Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background plyback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background plyback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background plyback to work and a notification to show up. However none of that is working.",
+                    "Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background playback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background playback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background plyback to work and a notification to show up. However none of that is working.",
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID
