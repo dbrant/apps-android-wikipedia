@@ -183,7 +183,7 @@ class PlaybackService : MediaSessionService() {
                     Player.COMMAND_SET_MEDIA_ITEM,
                 ).build()
             )
-            .setPlayWhenReady(false, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+            //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .setPlaybackState(STATE_IDLE)
             //.setAudioAttributes(AudioAttributes.DEFAULT)
             //.setPlaylist(listOf(MediaItemData.Builder("test").build()))
@@ -217,7 +217,7 @@ class PlaybackService : MediaSessionService() {
 
                 override fun onError(utteranceId: String) {
                     L.i("onError")
-                    updatePlaybackState(STATE_ENDED, false)
+                    updatePlaybackState(STATE_ENDED)
                 }
             })
         }
@@ -244,8 +244,11 @@ class PlaybackService : MediaSessionService() {
                     .setPlaylist(listOf(MediaItemData
                         .Builder("test")
                         .setMediaItem(mediaItems[0])
+                        .setIsSeekable(true)
+                        .setDurationUs(10000000L)
                         .build()))
-                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                    .setIsLoading(false)
+                    .setContentPositionMs(2000)
                     .build()
                 invalidateState()
             }
@@ -258,12 +261,11 @@ class PlaybackService : MediaSessionService() {
             return Futures.immediateVoidFuture()
         }
 
-        private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean) {
+        private fun updatePlaybackState(playbackState: Int) {
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.post {
                 state = state.buildUpon()
                     .setPlaybackState(playbackState)
-                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
                     .build()
                 invalidateState()
             }
@@ -278,6 +280,7 @@ class PlaybackService : MediaSessionService() {
             L.i("handleSetPlayWhenReady: $playWhenReady")
             if (playWhenReady) {
                 speakNextUtterance()
+                updatePlaybackState(Player.STATE_BUFFERING)
             } else {
                 textToSpeech.stop()
             }
@@ -307,7 +310,7 @@ class PlaybackService : MediaSessionService() {
         private fun speakNextUtterance() {
             val text = Tts.utterances.getOrNull(Tts.currentUtterance).orEmpty()
             if (text.isEmpty()) {
-                updatePlaybackState(STATE_ENDED, false)
+                updatePlaybackState(STATE_ENDED)
                 Tts.currentUtterance = 0
                 return
             }

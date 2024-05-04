@@ -97,6 +97,7 @@ import org.wikipedia.page.references.PageReferences
 import org.wikipedia.page.references.ReferenceDialog
 import org.wikipedia.page.shareafact.ShareHandler
 import org.wikipedia.page.tabs.Tab
+import org.wikipedia.page.tts.NarrationPopupView
 import org.wikipedia.page.tts.Tts
 import org.wikipedia.places.PlacesActivity
 import org.wikipedia.readinglist.LongPressMenu
@@ -233,6 +234,10 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             if (!onBackPressed()) {
                 callback()?.onPageLoadErrorBackPressed()
             }
+        }
+
+        binding.speechButton.setOnClickListener {
+            NarrationPopupView(requireActivity()).show(binding.speechButton)
         }
 
         bottomBarHideHandler = ViewHideHandler(binding.pageActionsTabContainer, null, Gravity.BOTTOM, updateElevation = false) { false }
