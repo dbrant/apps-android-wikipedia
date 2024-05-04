@@ -26,6 +26,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.forEach
+import androidx.core.view.isVisible
 import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -97,6 +98,8 @@ import org.wikipedia.page.references.PageReferences
 import org.wikipedia.page.references.ReferenceDialog
 import org.wikipedia.page.shareafact.ShareHandler
 import org.wikipedia.page.tabs.Tab
+import org.wikipedia.page.tts.NarrationPopupView
+import org.wikipedia.page.tts.PlaybackService
 import org.wikipedia.page.tts.Tts
 import org.wikipedia.places.PlacesActivity
 import org.wikipedia.readinglist.LongPressMenu
@@ -199,6 +202,29 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
     val isLoading get() = bridge.isLoading
     val leadImageEditLang get() = leadImagesHandler.callToActionEditLang
 
+    val checkTtsServiceRunnable = TtsCheckRunnable()
+
+    inner class TtsCheckRunnable() : Runnable {
+        override fun run() {
+            if (!isAdded) {
+                return
+            }
+
+            if (PlaybackService.isRunning) {
+                if (!binding.speechButton.isVisible) {
+                    binding.speechButton.show()
+                }
+            } else {
+                if (binding.speechButton.isVisible) {
+                    binding.speechButton.hide()
+                }
+            }
+
+            binding.speechButton.postDelayed(checkTtsServiceRunnable, 1000)
+        }
+    }
+
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentPageBinding.inflate(inflater, container, false)
         webView = binding.pageWebView
@@ -235,6 +261,12 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             }
         }
 
+        binding.speechButton.setOnClickListener {
+            Tts.currentPageTitle?.let { title ->
+                NarrationPopupView(requireActivity()).show(binding.speechButton, title)
+            }
+        }
+
         bottomBarHideHandler = ViewHideHandler(binding.pageActionsTabContainer, null, Gravity.BOTTOM, updateElevation = false) { false }
         bottomBarHideHandler.setScrollView(webView)
         bottomBarHideHandler.enabled = Prefs.readingFocusModeEnabled
@@ -252,6 +284,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         if (shouldLoadFromBackstack(activity) || savedInstanceState != null) {
             reloadFromBackstack()
         }
+
+        binding.speechButton.postDelayed(checkTtsServiceRunnable, 1000)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1539,7 +1573,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     text = text.substring(0, 1024)
                 }
 
-                Tts.start(requireActivity(), title, "", listOf("Text one.", "Text two.", "Text three."))
+                Tts.start(requireActivity(), title, "", listOf(text, "Text two.", "Text three."))
             }
         }
     }

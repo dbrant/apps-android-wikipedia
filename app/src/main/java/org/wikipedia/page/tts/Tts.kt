@@ -26,13 +26,24 @@ import java.util.Locale
 object Tts {
 
     var textToSpeech: TextToSpeech? = null
+    var speechRate = 1f
 
     var utterances: List<String> = emptyList()
     var currentUtterance = 0
 
     var audioUrl: String? = null
 
-    private var currentPageTitle: PageTitle? = null
+    var currentPageTitle: PageTitle? = null
+        set(value) {
+            if (value == null) {
+                field = null
+            } else {
+                val title = PageTitle(value.prefixedText, value.wikiSite)
+                title.description = value.description
+                title.thumbUrl = value.thumbUrl
+                field = title
+            }
+        }
 
     private const val SPEAK_FILE_NAME = "audio.wav"
     private var fileToSpeak: File? = null
@@ -66,6 +77,7 @@ object Tts {
                     textToSpeech = null
                 }
             }
+            speechRate = 1f
 
             /*
             textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {

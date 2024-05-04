@@ -32,7 +32,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import org.wikipedia.R
 import org.wikipedia.util.log.L
 
-
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
@@ -56,26 +55,13 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        isRunning = true
+
         val player = if (Tts.audioUrl.isNullOrEmpty())
             TtsPlayer(Looper.getMainLooper(), this, Tts.textToSpeech!!)
         else ExoPlayer.Builder(this).build()
 
         mediaSession = MediaSession.Builder(this, player)
-            /*
-            .setBitmapLoader(object : BitmapLoader {
-                override fun supportsMimeType(mimeType: String): Boolean {
-                    TODO("Not yet implemented")
-                }
-
-                override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> {
-                    TODO("Not yet implemented")
-                }
-
-                override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
-                    TODO("Not yet implemented")
-                }
-            })
-            */
             .setCallback(object : MediaSession.Callback {
 
                 @OptIn(UnstableApi::class)
@@ -127,6 +113,14 @@ class PlaybackService : MediaSessionService() {
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
                 }
+
+                override fun onDisconnected(
+                    session: MediaSession,
+                    controller: MediaSession.ControllerInfo
+                ) {
+                    isRunning = false
+                    super.onDisconnected(session, controller)
+                }
             })
             .build()
     }
@@ -137,6 +131,7 @@ class PlaybackService : MediaSessionService() {
             release()
             mediaSession = null
         }
+        isRunning = false
         super.onDestroy()
     }
 
@@ -149,6 +144,7 @@ class PlaybackService : MediaSessionService() {
             // otherwise.
             stopSelf()
         }
+        isRunning = false
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -156,6 +152,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     companion object {
+        var isRunning = false
+
         private val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
         private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
     }
@@ -183,7 +181,7 @@ class PlaybackService : MediaSessionService() {
                     Player.COMMAND_SET_MEDIA_ITEM,
                 ).build()
             )
-            .setPlayWhenReady(false, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+            //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .setPlaybackState(STATE_IDLE)
             //.setAudioAttributes(AudioAttributes.DEFAULT)
             //.setPlaylist(listOf(MediaItemData.Builder("test").build()))
@@ -217,7 +215,7 @@ class PlaybackService : MediaSessionService() {
 
                 override fun onError(utteranceId: String) {
                     L.i("onError")
-                    updatePlaybackState(STATE_ENDED, false)
+                    updatePlaybackState(STATE_ENDED)
                 }
             })
         }
@@ -244,8 +242,11 @@ class PlaybackService : MediaSessionService() {
                     .setPlaylist(listOf(MediaItemData
                         .Builder("test")
                         .setMediaItem(mediaItems[0])
+                        .setIsSeekable(true)
+                        .setDurationUs(10000000L)
                         .build()))
-                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                    .setIsLoading(false)
+                    .setContentPositionMs(2000)
                     .build()
                 invalidateState()
             }
@@ -258,12 +259,11 @@ class PlaybackService : MediaSessionService() {
             return Futures.immediateVoidFuture()
         }
 
-        private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean) {
+        private fun updatePlaybackState(playbackState: Int) {
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.post {
                 state = state.buildUpon()
                     .setPlaybackState(playbackState)
-                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
                     .build()
                 invalidateState()
             }
@@ -278,6 +278,7 @@ class PlaybackService : MediaSessionService() {
             L.i("handleSetPlayWhenReady: $playWhenReady")
             if (playWhenReady) {
                 speakNextUtterance()
+                updatePlaybackState(Player.STATE_BUFFERING)
             } else {
                 textToSpeech.stop()
             }
@@ -307,7 +308,7 @@ class PlaybackService : MediaSessionService() {
         private fun speakNextUtterance() {
             val text = Tts.utterances.getOrNull(Tts.currentUtterance).orEmpty()
             if (text.isEmpty()) {
-                updatePlaybackState(STATE_ENDED, false)
+                updatePlaybackState(STATE_ENDED)
                 Tts.currentUtterance = 0
                 return
             }
