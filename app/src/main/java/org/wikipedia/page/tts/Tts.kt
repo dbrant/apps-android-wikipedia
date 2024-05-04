@@ -27,6 +27,9 @@ object Tts {
 
     var textToSpeech: TextToSpeech? = null
 
+    var utterances: List<String> = emptyList()
+    var currentUtterance = 0
+
     var audioUrl: String? = null
 
     private var currentPageTitle: PageTitle? = null
@@ -36,8 +39,10 @@ object Tts {
 
     var mediaController: MediaController? = null
 
-    fun start(context: Context, pageTitle: PageTitle?, audioUrl: String, text: String) {
+    fun start(context: Context, pageTitle: PageTitle?, audioUrl: String, utterances: List<String>) {
         currentPageTitle = pageTitle
+        this.utterances = utterances
+        currentUtterance = 0
 
         val shareFolder = ShareUtil.getClearShareFolder(context)
         fileToSpeak = File(shareFolder, SPEAK_FILE_NAME)
@@ -55,7 +60,7 @@ object Tts {
             textToSpeech = TextToSpeech(context) { status ->
                 if (status == TextToSpeech.SUCCESS) {
                     textToSpeech?.setLanguage(Locale.getDefault())
-                    generateAndSpeak(context, text)
+                    generateAndSpeak(context)
                 } else {
                     L.d("Failed to initialize TTS")
                     textToSpeech = null
@@ -84,11 +89,11 @@ object Tts {
             })
              */
         } else {
-            generateAndSpeak(context, text)
+            generateAndSpeak(context)
         }
     }
 
-    private fun generateAndSpeak(context: Context, text: String) {
+    private fun generateAndSpeak(context: Context) {
         if (textToSpeech == null) {
             return
         }

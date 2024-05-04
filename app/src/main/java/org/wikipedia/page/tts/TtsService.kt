@@ -203,17 +203,21 @@ class PlaybackService : MediaSessionService() {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
                     L.i("onStart")
-                    updatePlaybackState(STATE_READY, false)
+                    //updatePlaybackState(STATE_READY, false)
                 }
 
                 override fun onDone(utteranceId: String) {
                     L.i("onDone")
+
+                    Tts.currentUtterance++
+                    speakNextUtterance()
+
                     //updatePlaybackState(STATE_ENDED, false)
                 }
 
                 override fun onError(utteranceId: String) {
                     L.i("onError")
-                    //updatePlaybackState(STATE_ENDED, false)
+                    updatePlaybackState(STATE_ENDED, false)
                 }
             })
         }
@@ -273,12 +277,7 @@ class PlaybackService : MediaSessionService() {
         override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
             L.i("handleSetPlayWhenReady: $playWhenReady")
             if (playWhenReady) {
-                textToSpeech.speak(
-                    "Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background playback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background playback to work and a notification to show up. However none of that is working. Hello World, this is a sample text for testing Media3's SimpleBasePlayer. I expect background plyback to work and a notification to show up. However none of that is working.",
-                    TextToSpeech.QUEUE_FLUSH,
-                    null,
-                    TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID
-                )
+                speakNextUtterance()
             } else {
                 textToSpeech.stop()
             }
@@ -303,6 +302,24 @@ class PlaybackService : MediaSessionService() {
         override fun onInit(status: Int) {
             L.i("Tts init")
         }
+
+
+        private fun speakNextUtterance() {
+            val text = Tts.utterances.getOrNull(Tts.currentUtterance).orEmpty()
+            if (text.isEmpty()) {
+                updatePlaybackState(STATE_ENDED, false)
+                Tts.currentUtterance = 0
+                return
+            }
+
+            textToSpeech.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID
+            )
+        }
+
     }
 
 
