@@ -107,9 +107,9 @@ interface RestService {
     fun getOnThisDay(@Path("mm") month: Int, @Path("dd") day: Int): Observable<OnThisDay>
 
     // TODO: Remove this before next fundraising campaign in 2024
-    @get:GET("feed/announcements")
-    @get:Headers("Accept: " + ACCEPT_HEADER_PREFIX + "announcements/0.1.0\"")
-    val announcements: Observable<AnnouncementList>
+    @GET("feed/announcements")
+    @Headers("Accept: " + ACCEPT_HEADER_PREFIX + "announcements/0.1.0\"")
+    suspend fun getAnnouncements(): AnnouncementList
 
     @Headers("Accept: " + ACCEPT_HEADER_PREFIX + "aggregated-feed/0.5.0\"")
     @GET("feed/featured/{year}/{month}/{day}")
@@ -222,7 +222,7 @@ interface RestService {
     //  ------- Talk pages -------
     @Headers("Cache-Control: no-cache")
     @GET("page/talk/{title}")
-    fun getTalkPage(@Path("title") title: String?): Observable<TalkPage>
+    suspend fun getTalkPage(@Path("title") title: String?): TalkPage
 
     @Headers("Cache-Control: no-cache")
     @GET("metrics/edits/per-page/{wikiAuthority}/{title}/all-editor-types/monthly/{fromDate}/{toDate}")

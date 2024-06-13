@@ -87,7 +87,7 @@
   <string name="menu_page_recently_viewed">Easka čájehuvvon</string>
   <string name="menu_page_archive">Arkiiva</string>
   <string name="menu_long_press_open_page">Raba</string>
-  <string name="menu_long_press_open_in_new_tab">Raba ođđa leavggas</string>
+  <string name="menu_long_press_open_in_new_tab">Raba ođđa levgii</string>
   <string name="menu_long_press_copy_page">Máŋge liŋkka čujuhusa</string>
   <string name="menu_text_select_define">Meroštallan</string>
   <string name="on_this_day_page_share">Juoge</string>
@@ -192,7 +192,7 @@
   <string name="preferences_heading_data_usage">Data geavaheapmi</string>
   <string name="preferences_heading_experimental">Sesolaš</string>
   <string name="preference_title_sync_reading_lists_from_account">Lohkanlisttuid synkroniseren</string>
-  <string name="preference_title_download_reading_list_articles">Luđe vulos lohkanlistu ártihkkaliid</string>
+  <string name="preference_title_download_reading_list_articles">Viečča lohkanlisttu artihkkaliid</string>
   <string name="preference_summary_sync_reading_lists">Synkronisere lohkanlisttuid iešguđet ovttadagaid gaskka, go vurket daid iežat Wikipedia dovddaldahkii</string>
   <string name="preference_summary_sync_reading_lists_from_account">Synkronisere lohkanlisttuid iešguđet ovttadagaid gaskka, go vurket daid iežat Wikipedia dovddaldahkii \"%s\"</string>
   <string name="preference_dialog_of_turning_off_reading_list_sync_title">Sihko synkroniserejuvvon lohkanlisttuid \"%s:is\"?</string>
