@@ -13,6 +13,7 @@ import android.widget.PopupWindow
 import androidx.core.view.doOnDetach
 import androidx.core.view.isVisible
 import androidx.core.widget.PopupWindowCompat
+import androidx.media3.common.PlaybackParameters
 import org.wikipedia.R
 import org.wikipedia.databinding.ViewNarrationPopupBinding
 import org.wikipedia.page.PageTitle
@@ -67,13 +68,13 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
 
         binding.decreaseSpeedButton.setOnClickListener {
             Tts.speechRate -= 0.1f
-            Tts.textToSpeech?.setSpeechRate(Tts.speechRate)
+            Tts.mediaController?.setPlaybackSpeed(Tts.speechRate)
             updateSpeedButtons()
         }
 
         binding.increaseSpeedButton.setOnClickListener {
             Tts.speechRate += 0.1f
-            Tts.textToSpeech?.setSpeechRate(Tts.speechRate)
+            Tts.mediaController?.setPlaybackSpeed(Tts.speechRate)
             updateSpeedButtons()
         }
 

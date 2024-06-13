@@ -1573,7 +1573,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 val sentences = mutableListOf<String>()
                 var sentence = ""
 
-                val iterator = BreakIterator.getSentenceInstance(Locale.US)
+                val iterator = BreakIterator.getSentenceInstance(Locale.getDefault())
                 iterator.setText(text)
                 var start: Int = iterator.first()
                 if (start != BreakIterator.DONE) {

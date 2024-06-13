@@ -11,6 +11,7 @@ import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.Commands
 import androidx.media3.common.SimpleBasePlayer
@@ -46,15 +47,12 @@ class PlaybackService : MediaSessionService() {
                 .build(),
         )
 
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         L.d(">>>> PlaybackService onCreate")
         super.onCreate()
 
-        val player = if (Tts.audioUrl.isNullOrEmpty())
-            TtsPlayer(Looper.getMainLooper(), this, Tts.textToSpeech!!)
-        else ExoPlayer.Builder(this).build()
-
-        currentSession = MediaSession.Builder(this, player)
+        currentSession = MediaSession.Builder(this, createPlayer())
             .setCallback(object : MediaSession.Callback {
 
                 @OptIn(UnstableApi::class)
@@ -64,6 +62,12 @@ class PlaybackService : MediaSessionService() {
                 ): ConnectionResult {
                     L.d(">>>> MediaSession onConnect")
                     isRunning = true
+
+                    // Recreate the player upon connection to a new controller.
+                    // (It needs to be a different type of player based on TTS vs audio URL)
+                    // TODO: is this right?
+                    currentSession?.player?.stop()
+                    currentSession?.player = createPlayer()
 
                     if (session.isMediaNotificationController(controller)) {
                         val sessionCommands =
@@ -102,10 +106,10 @@ class PlaybackService : MediaSessionService() {
                 ): ListenableFuture<SessionResult> {
                     L.d(">>>> MediaSession onCustomCommand: ${customCommand.customAction}")
                     if (customCommand.customAction == CUSTOM_COMMAND_REWIND_SEC) {
-                        session.player.seekTo(player.currentPosition - 10_000)
+                        session.player.seekTo(session.player.currentPosition - 10_000)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     } else if (customCommand.customAction == CUSTOM_COMMAND_FORWARD_SEC) {
-                        session.player.seekTo(player.currentPosition + 10_000)
+                        session.player.seekTo(session.player.currentPosition + 10_000)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
@@ -118,6 +122,16 @@ class PlaybackService : MediaSessionService() {
                     L.d(">>>> MediaSession onDisconnected")
                     isRunning = false
                     super.onDisconnected(session, controller)
+                }
+
+                override fun onPlaybackResumption(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo
+                ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                    L.d(">>>> MediaSession onPlaybackResumption")
+                    // TODO: Implement playback resumption, i.e. restore the playback state after
+                    // the session was disconnected and reconnected.
+                    return super.onPlaybackResumption(mediaSession, controller)
                 }
             })
             .build()
@@ -152,6 +166,12 @@ class PlaybackService : MediaSessionService() {
         return currentSession
     }
 
+    private fun createPlayer(): Player {
+        return if (Tts.audioUrl.isNullOrEmpty())
+            TtsPlayer(Looper.getMainLooper(), this@PlaybackService, Tts.textToSpeech!!)
+        else ExoPlayer.Builder(this@PlaybackService).build()
+    }
+
     companion object {
         var isRunning = false
 
@@ -180,6 +200,9 @@ class PlaybackService : MediaSessionService() {
                     Player.COMMAND_CHANGE_MEDIA_ITEMS,
                     Player.COMMAND_PREPARE,
                     Player.COMMAND_SET_MEDIA_ITEM,
+                    Player.COMMAND_SEEK_BACK,
+                    Player.COMMAND_SEEK_FORWARD,
+                    Player.COMMAND_SET_SPEED_AND_PITCH
                 ).build()
             )
             //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
@@ -268,6 +291,16 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
+        override fun handleSetPlaybackParameters(playbackParameters: PlaybackParameters): ListenableFuture<*> {
+            L.d(">>>> handleSetPlaybackParameters")
+
+            textToSpeech.stop()
+            textToSpeech.setSpeechRate(Tts.speechRate)
+            speakNextUtterance()
+
+            return Futures.immediateVoidFuture()
+        }
+
         override fun handlePrepare(): ListenableFuture<*> {
             L.d(">>>> handlePrepare")
 
@@ -303,7 +336,6 @@ class PlaybackService : MediaSessionService() {
         override fun handleRelease(): ListenableFuture<*> {
             L.d(">>>> handleRelease")
             textToSpeech.stop()
-            textToSpeech.shutdown()
             return Futures.immediateVoidFuture()
         }
 
@@ -319,7 +351,7 @@ class PlaybackService : MediaSessionService() {
         }
 
         override fun onInit(status: Int) {
-            L.i("Tts init")
+            L.d(">>>> onInit")
         }
 
 
@@ -331,12 +363,7 @@ class PlaybackService : MediaSessionService() {
                 return
             }
 
-            textToSpeech.speak(
-                text,
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID
-            )
+            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
         }
 
     }
