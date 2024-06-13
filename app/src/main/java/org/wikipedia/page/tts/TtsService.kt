@@ -28,6 +28,7 @@ import org.wikipedia.R
 import org.wikipedia.util.log.L
 
 class PlaybackService : MediaSessionService() {
+    private var currentSession: MediaSession? = null
 
     private val customLayoutCommandButtons: List<CommandButton> =
         listOf(
@@ -61,6 +62,9 @@ class PlaybackService : MediaSessionService() {
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ): ConnectionResult {
+                    L.d(">>>> MediaSession onConnect")
+                    isRunning = true
+
                     if (session.isMediaNotificationController(controller)) {
                         val sessionCommands =
                             ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
@@ -96,7 +100,7 @@ class PlaybackService : MediaSessionService() {
                     customCommand: SessionCommand,
                     args: Bundle
                 ): ListenableFuture<SessionResult> {
-                    L.d(">>>> onCustomCommand: ${customCommand.customAction}")
+                    L.d(">>>> MediaSession onCustomCommand: ${customCommand.customAction}")
                     if (customCommand.customAction == CUSTOM_COMMAND_REWIND_SEC) {
                         session.player.seekTo(player.currentPosition - 10_000)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -111,14 +115,12 @@ class PlaybackService : MediaSessionService() {
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ) {
-                    L.d(">>>> onDisconnected")
+                    L.d(">>>> MediaSession onDisconnected")
                     isRunning = false
                     super.onDisconnected(session, controller)
                 }
             })
             .build()
-
-        isRunning = true
     }
 
     override fun onDestroy() {
@@ -143,7 +145,6 @@ class PlaybackService : MediaSessionService() {
             // otherwise.
             stopSelf()
         }
-        isRunning = false
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -153,9 +154,6 @@ class PlaybackService : MediaSessionService() {
 
     companion object {
         var isRunning = false
-
-        // TODO: move this back to be a private field of the service
-        var currentSession: MediaSession? = null
 
         private val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
         private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"

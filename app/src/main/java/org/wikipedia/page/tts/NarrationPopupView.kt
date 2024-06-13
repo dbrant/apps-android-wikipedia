@@ -55,11 +55,11 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
         }
 
         binding.playPauseButton.setOnClickListener {
-            PlaybackService.currentSession?.let {
-                if (it.player.isPlaying) {
-                    it.player.pause()
+            Tts.mediaController?.let {
+                if (it.isPlaying) {
+                    it.pause()
                 } else {
-                    it.player.play()
+                    it.play()
                 }
             }
             updatePlayPauseButton()
@@ -80,9 +80,6 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
         binding.stopButton.setOnClickListener {
 
             context.stopService(Intent(context, PlaybackService::class.java))
-
-            //PlaybackService.currentSession?.player?.stop()
-            //PlaybackService.currentSession?.release()
             Tts.cleanup()
 
             dismissPopupWindowHost()
@@ -97,8 +94,8 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
     }
 
     private fun updatePlayPauseButton() {
-        PlaybackService.currentSession?.let {
-            binding.playPauseButton.setImageResource(if (it.player.isPlaying) R.drawable.ic_pause_black_24dp else R.drawable.ic_play_arrow_black_24dp)
+        Tts.mediaController?.let {
+            binding.playPauseButton.setImageResource(if (it.isPlaying) R.drawable.ic_pause_black_24dp else R.drawable.ic_play_arrow_black_24dp)
         }
     }
 
