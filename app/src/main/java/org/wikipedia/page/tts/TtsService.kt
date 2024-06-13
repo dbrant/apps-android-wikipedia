@@ -33,7 +33,6 @@ import org.wikipedia.R
 import org.wikipedia.util.log.L
 
 class PlaybackService : MediaSessionService() {
-    private var mediaSession: MediaSession? = null
 
     private val customLayoutCommandButtons: List<CommandButton> =
         listOf(
@@ -52,15 +51,14 @@ class PlaybackService : MediaSessionService() {
         )
 
     override fun onCreate() {
+        L.d(">>>> PlaybackService onCreate")
         super.onCreate()
-
-        isRunning = true
 
         val player = if (Tts.audioUrl.isNullOrEmpty())
             TtsPlayer(Looper.getMainLooper(), this, Tts.textToSpeech!!)
         else ExoPlayer.Builder(this).build()
 
-        mediaSession = MediaSession.Builder(this, player)
+        currentSession = MediaSession.Builder(this, player)
             .setCallback(object : MediaSession.Callback {
 
                 @OptIn(UnstableApi::class)
@@ -124,20 +122,24 @@ class PlaybackService : MediaSessionService() {
                 }
             })
             .build()
+
+        isRunning = true
     }
 
     override fun onDestroy() {
-        mediaSession?.run {
+        L.d(">>>> PlaybackService onDestroy")
+        currentSession?.run {
             player.release()
             release()
-            mediaSession = null
+            currentSession = null
         }
         isRunning = false
         super.onDestroy()
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val player = mediaSession?.player
+        L.d(">>>> PlaybackService onTaskRemoved")
+        val player = currentSession?.player
         if (player != null && (!player.playWhenReady
             || player.mediaItemCount == 0
             || player.playbackState == Player.STATE_ENDED)) {
@@ -149,11 +151,23 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
+        L.d(">>>> PlaybackService onGetSession")
+        return currentSession
     }
 
     companion object {
         var isRunning = false
+
+        // TODO: move this back to be a private field of the service
+        var currentSession: MediaSession? = null
+
+        fun cleanup() {
+            currentSession?.player?.stop()
+            currentSession?.player?.release()
+            currentSession?.release()
+            currentSession = null
+        }
+
 
         private val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
         private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
@@ -201,12 +215,12 @@ class PlaybackService : MediaSessionService() {
         init {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
-                    L.d("onStart")
+                    L.d(">>>> TTS onStart")
                     //updatePlaybackState(STATE_READY, false)
                 }
 
                 override fun onDone(utteranceId: String) {
-                    L.d("onDone")
+                    L.d(">>>> TTS onDone")
 
                     Tts.currentUtterance++
                     speakNextUtterance()
@@ -215,7 +229,7 @@ class PlaybackService : MediaSessionService() {
                 }
 
                 override fun onError(utteranceId: String) {
-                    L.d("onError")
+                    L.d(">>>> TTS onError")
                     updatePlaybackState(STATE_ENDED)
                 }
             })
@@ -293,13 +307,13 @@ class PlaybackService : MediaSessionService() {
             if (playWhenReady) {
                 if (!textToSpeech.isSpeaking) {
                     speakNextUtterance()
-                    updatePlaybackState(STATE_READY, true)
                 }
+                updatePlaybackState(STATE_READY, true)
             } else {
                 if (textToSpeech.isSpeaking) {
                     textToSpeech.stop()
-                    updatePlaybackState(STATE_READY, false)
                 }
+                updatePlaybackState(STATE_READY, false)
             }
 
             return Futures.immediateVoidFuture()
@@ -345,6 +359,4 @@ class PlaybackService : MediaSessionService() {
         }
 
     }
-
-
 }

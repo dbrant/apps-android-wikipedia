@@ -50,6 +50,14 @@ object Tts {
 
     var mediaController: MediaController? = null
 
+    fun cleanup() {
+        textToSpeech?.stop()
+        mediaController?.stop()
+        mediaController?.release()
+        mediaController = null
+        PlaybackService.cleanup()
+    }
+
     fun start(context: Context, pageTitle: PageTitle?, audioUrl: String, utterances: List<String>) {
         currentPageTitle = pageTitle
         this.utterances = utterances
@@ -73,33 +81,11 @@ object Tts {
                     textToSpeech?.setLanguage(Locale.getDefault())
                     generateAndSpeak(context)
                 } else {
-                    L.d("Failed to initialize TTS")
+                    L.d(">>>> Failed to initialize TTS")
                     textToSpeech = null
                 }
             }
             speechRate = 1f
-
-            /*
-            textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {
-                    L.d("Utterance started: $utteranceId")
-                }
-
-                override fun onDone(utteranceId: String?) {
-                    L.d("Utterance done: $utteranceId")
-                    speak(context)
-                }
-
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) {
-                    L.d("Utterance error: $utteranceId")
-                }
-
-                override fun onError(utteranceId: String?, errorCode: Int) {
-                    L.d("Utterance error: $utteranceId, $errorCode")
-                }
-            })
-             */
         } else {
             generateAndSpeak(context)
         }
@@ -113,16 +99,11 @@ object Tts {
 
         speak(context)
 
-
-        //val params = Bundle()
-        //params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "uttId1");
-        //textToSpeech?.synthesizeToFile(text, params, fileToSpeak, "uttId1")
     }
 
     private fun speak(context: Context) {
         //if (mediaController?.isConnected == false) {
-            mediaController?.release()
-            mediaController = null
+            cleanup()
         //}
 
         if (mediaController == null) {
