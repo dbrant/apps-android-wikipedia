@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.icu.text.BreakIterator
 import android.net.Uri
 import android.os.Bundle
 import android.view.ActionMode
@@ -40,10 +41,7 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.float
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -126,6 +124,8 @@ import org.wikipedia.watchlist.WatchlistExpiryDialog
 import org.wikipedia.wiktionary.WiktionaryDialog
 import java.time.Duration
 import java.time.Instant
+import java.util.Locale
+
 
 class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.CommunicationBridgeListener, ThemeChooserDialog.Callback,
     ReferenceDialog.Callback, WiktionaryDialog.Callback, WatchlistExpiryDialog.Callback {
@@ -1567,14 +1567,35 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 // massage the text a bit further
                 text = text.replace("\\n", "\n").replace("\\\"", "\"").replace("\\'", "'")
 
-                // temporary: limit text to 1024 characters
-                if (text.length > 1024) {
-                    text = text.substring(0, 1024)
-                }
-
                 text = StringUtil.fromHtml(title?.displayText).toString() + "\n\n" + title?.description + "\n\n" + text
 
-                Tts.start(requireActivity(), title, "", listOf(text, "Text two.", "Text three."))
+
+                val sentences = mutableListOf<String>()
+                var sentence = ""
+
+                val iterator = BreakIterator.getSentenceInstance(Locale.US)
+                iterator.setText(text)
+                var start: Int = iterator.first()
+                if (start != BreakIterator.DONE) {
+                    var end: Int = iterator.next()
+                    while (end != BreakIterator.DONE) {
+                        val chunk = text.substring(start, end)
+                        sentence += "$chunk "
+                        // sentences should be at least 32 characters long.
+                        // TODO: limit size of sentences to 1024 characters?
+                        if (sentence.length + chunk.length > 32) {
+                            sentences.add(sentence)
+                            sentence = ""
+                        }
+                        start = end
+                        end = iterator.next()
+                    }
+                }
+                if (sentence.isNotEmpty()) {
+                    sentences.add(sentence)
+                }
+
+                Tts.start(requireActivity(), title, "", sentences)
             }
         }
     }
