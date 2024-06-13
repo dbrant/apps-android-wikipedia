@@ -55,7 +55,6 @@ object Tts {
         mediaController?.stop()
         mediaController?.release()
         mediaController = null
-        PlaybackService.cleanup()
     }
 
     fun start(context: Context, pageTitle: PageTitle?, audioUrl: String, utterances: List<String>) {

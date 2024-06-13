@@ -2,9 +2,6 @@ package org.wikipedia.page.tts
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,13 +9,11 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.OnInitListener
 import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
-import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Player.Commands
 import androidx.media3.common.SimpleBasePlayer
-import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
@@ -162,14 +157,6 @@ class PlaybackService : MediaSessionService() {
         // TODO: move this back to be a private field of the service
         var currentSession: MediaSession? = null
 
-        fun cleanup() {
-            currentSession?.player?.stop()
-            currentSession?.player?.release()
-            currentSession?.release()
-            currentSession = null
-        }
-
-
         private val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
         private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
     }
@@ -208,11 +195,6 @@ class PlaybackService : MediaSessionService() {
             //)
             .build()
 
-        /**
-         * Creates the [TextToSpeech] wrapper.
-         *
-         * @param looper The [Looper] used to call all methods on.
-         */
         init {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
