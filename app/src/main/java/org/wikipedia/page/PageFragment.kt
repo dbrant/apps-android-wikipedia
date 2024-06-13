@@ -1565,12 +1565,14 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 }
 
                 // massage the text a bit further
-                text = text.replace("\\n", "\n")
+                text = text.replace("\\n", "\n").replace("\\\"", "\"").replace("\\'", "'")
 
                 // temporary: limit text to 1024 characters
                 if (text.length > 1024) {
                     text = text.substring(0, 1024)
                 }
+
+                text = StringUtil.fromHtml(title?.displayText).toString() + "\n\n" + title?.description + "\n\n" + text
 
                 Tts.start(requireActivity(), title, "", listOf(text, "Text two.", "Text three."))
             }

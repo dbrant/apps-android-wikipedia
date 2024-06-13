@@ -215,7 +215,12 @@ object JavaScriptActionHandler {
     fun getSectionContents(): String {
         return "(function() {" +
                 "  let sections = document.querySelectorAll('section');" +
-                "  return sections[0].innerText;" +
+                "  let section = sections[0].cloneNode(true);" +
+                "  let elements = section.querySelectorAll('style,.IPA,.mw-ref,.hatnote,.pcs-collapse-table-container');" +
+                "  for (let i = 0; i < elements.length; i++) {" +
+                "    elements[i].remove();" +
+                "  }" +
+                "  return section.innerText;" +
                 "})();"
     }
 
