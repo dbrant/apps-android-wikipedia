@@ -150,7 +150,7 @@ object Tts {
             .setMediaMetadata(MediaMetadata.Builder()
                 .setArtist("Wikipedia")
                 .setTitle(StringUtil.fromHtml(currentPageTitle?.displayText.orEmpty()))
-                .setArtworkUri(Uri.parse(currentPageTitle?.thumbUrl.orEmpty()))  //"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/CMB_Timeline300_no_WMAP.jpg/640px-CMB_Timeline300_no_WMAP.jpg"))
+                .setArtworkUri(Uri.parse(currentPageTitle?.thumbUrl.orEmpty()))
                 .build()
             ).build()
 

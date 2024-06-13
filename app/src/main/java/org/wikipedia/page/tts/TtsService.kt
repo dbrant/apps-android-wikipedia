@@ -51,7 +51,6 @@ class PlaybackService : MediaSessionService() {
                 .build(),
         )
 
-    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
 
@@ -89,7 +88,7 @@ class PlaybackService : MediaSessionService() {
                         // Custom layout and available commands to configure the legacy/framework session.
                         return ConnectionResult.AcceptedResultBuilder(session)
                             .setCustomLayout(customLayoutCommandButtons)
-                            //.setAvailablePlayerCommands(playerCommands)
+                            .setAvailablePlayerCommands(playerCommands)
                             .setAvailableSessionCommands(sessionCommands)
                             .build()
                     }
@@ -104,6 +103,7 @@ class PlaybackService : MediaSessionService() {
                     customCommand: SessionCommand,
                     args: Bundle
                 ): ListenableFuture<SessionResult> {
+                    L.d(">>>> onCustomCommand: ${customCommand.customAction}")
                     if (customCommand.customAction == CUSTOM_COMMAND_REWIND_SEC) {
                         session.player.seekTo(player.currentPosition - 10_000)
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -118,6 +118,7 @@ class PlaybackService : MediaSessionService() {
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ) {
+                    L.d(">>>> onDisconnected")
                     isRunning = false
                     super.onDisconnected(session, controller)
                 }
@@ -200,12 +201,12 @@ class PlaybackService : MediaSessionService() {
         init {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
-                    L.i("onStart")
+                    L.d("onStart")
                     //updatePlaybackState(STATE_READY, false)
                 }
 
                 override fun onDone(utteranceId: String) {
-                    L.i("onDone")
+                    L.d("onDone")
 
                     Tts.currentUtterance++
                     speakNextUtterance()
@@ -214,7 +215,7 @@ class PlaybackService : MediaSessionService() {
                 }
 
                 override fun onError(utteranceId: String) {
-                    L.i("onError")
+                    L.d("onError")
                     updatePlaybackState(STATE_ENDED)
                 }
             })
@@ -228,7 +229,7 @@ class PlaybackService : MediaSessionService() {
             index: Int,
             mediaItems: MutableList<MediaItem>
         ): ListenableFuture<*> {
-            L.d("handleAddMediaItems")
+            L.d(">>>> handleAddMediaItems")
             return Futures.immediateVoidFuture()
         }
 
@@ -237,6 +238,7 @@ class PlaybackService : MediaSessionService() {
             startIndex: Int,
             startPositionMs: Long
         ): ListenableFuture<*> {
+            L.d(">>>> handleSetMediaItems")
             Handler(Looper.getMainLooper()).post {
                 state = state.buildUpon()
                     .setPlaylist(listOf(MediaItemData
@@ -250,53 +252,74 @@ class PlaybackService : MediaSessionService() {
                     .build()
                 invalidateState()
             }
-            L.d("handleSetMediaItems")
             return Futures.immediateVoidFuture()
         }
 
         override fun handleSetPlaylistMetadata(playlistMetadata: MediaMetadata): ListenableFuture<*> {
-            L.d("handleSetPlaylistMetadata")
+            L.d(">>>> handleSetPlaylistMetadata")
             return Futures.immediateVoidFuture()
         }
 
-        private fun updatePlaybackState(playbackState: Int) {
+        private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean = true) {
+            L.d(">>>> updatePlaybackState: $playbackState")
+
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.post {
                 state = state.buildUpon()
                     .setPlaybackState(playbackState)
+                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
                     .build()
                 invalidateState()
             }
         }
 
         override fun handlePrepare(): ListenableFuture<*> {
-            L.d("handlePrepare")
+            L.d(">>>> handlePrepare")
+
+            if (playWhenReady) {
+                speakNextUtterance()
+                updatePlaybackState(STATE_READY, true)
+            } else {
+                textToSpeech.stop()
+                updatePlaybackState(STATE_READY, false)
+            }
+
             return Futures.immediateVoidFuture()
         }
 
         override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
-            L.i("handleSetPlayWhenReady: $playWhenReady")
+            L.d(">>>> handleSetPlayWhenReady: $playWhenReady")
+
             if (playWhenReady) {
-                speakNextUtterance()
-                updatePlaybackState(Player.STATE_BUFFERING)
+                if (!textToSpeech.isSpeaking) {
+                    speakNextUtterance()
+                    updatePlaybackState(STATE_READY, true)
+                }
             } else {
-                textToSpeech.stop()
+                if (textToSpeech.isSpeaking) {
+                    textToSpeech.stop()
+                    updatePlaybackState(STATE_READY, false)
+                }
             }
+
             return Futures.immediateVoidFuture()
         }
 
         override fun handleRelease(): ListenableFuture<*> {
+            L.d(">>>> handleRelease")
             textToSpeech.stop()
             textToSpeech.shutdown()
             return Futures.immediateVoidFuture()
         }
 
         override fun handleStop(): ListenableFuture<*> {
+            L.d(">>>> handleStop")
             textToSpeech.stop()
             return Futures.immediateVoidFuture()
         }
 
         override fun handleSetShuffleModeEnabled(shuffleModeEnabled: Boolean): ListenableFuture<*> {
+            L.d(">>>> handleSetShuffleModeEnabled")
             return Futures.immediateVoidFuture()
         }
 
