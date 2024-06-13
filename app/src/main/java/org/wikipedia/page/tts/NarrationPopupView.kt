@@ -1,6 +1,7 @@
 package org.wikipedia.page.tts
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
@@ -77,8 +78,11 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
         }
 
         binding.stopButton.setOnClickListener {
-            PlaybackService.currentSession?.player?.stop()
-            PlaybackService.currentSession?.release()
+
+            context.stopService(Intent(context, PlaybackService::class.java))
+
+            //PlaybackService.currentSession?.player?.stop()
+            //PlaybackService.currentSession?.release()
             Tts.cleanup()
 
             dismissPopupWindowHost()

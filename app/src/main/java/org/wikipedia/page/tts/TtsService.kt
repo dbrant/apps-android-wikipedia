@@ -129,6 +129,7 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         L.d(">>>> PlaybackService onDestroy")
         currentSession?.run {
+            player.stop()
             player.release()
             release()
             currentSession = null
