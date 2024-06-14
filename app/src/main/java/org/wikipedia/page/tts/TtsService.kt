@@ -106,10 +106,18 @@ class PlaybackService : MediaSessionService() {
                 ): ListenableFuture<SessionResult> {
                     L.d(">>>> MediaSession onCustomCommand: ${customCommand.customAction}")
                     if (customCommand.customAction == CUSTOM_COMMAND_REWIND_SEC) {
-                        session.player.seekTo(session.player.currentPosition - 10_000)
+                        if (session.player is TtsPlayer) {
+                            (session.player as TtsPlayer).speakPrevUtterance()
+                        } else {
+                            session.player.seekTo(session.player.currentPosition - 10_000)
+                        }
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     } else if (customCommand.customAction == CUSTOM_COMMAND_FORWARD_SEC) {
-                        session.player.seekTo(session.player.currentPosition + 10_000)
+                        if (session.player is TtsPlayer) {
+                            (session.player as TtsPlayer).speakNextUtterance()
+                        } else {
+                            session.player.seekTo(session.player.currentPosition + 10_000)
+                        }
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
@@ -220,16 +228,11 @@ class PlaybackService : MediaSessionService() {
             textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String) {
                     L.d(">>>> TTS onStart")
-                    //updatePlaybackState(STATE_READY, false)
                 }
 
                 override fun onDone(utteranceId: String) {
                     L.d(">>>> TTS onDone")
-
-                    Tts.currentUtterance++
                     speakNextUtterance()
-
-                    //updatePlaybackState(STATE_ENDED, false)
                 }
 
                 override fun onError(utteranceId: String) {
@@ -296,7 +299,7 @@ class PlaybackService : MediaSessionService() {
 
             textToSpeech.stop()
             textToSpeech.setSpeechRate(Tts.speechRate)
-            speakNextUtterance()
+            speakCurrentUtterance()
 
             return Futures.immediateVoidFuture()
         }
@@ -305,7 +308,7 @@ class PlaybackService : MediaSessionService() {
             L.d(">>>> handlePrepare")
 
             if (playWhenReady) {
-                speakNextUtterance()
+                speakCurrentUtterance()
                 updatePlaybackState(STATE_READY, true)
             } else {
                 textToSpeech.stop()
@@ -320,7 +323,7 @@ class PlaybackService : MediaSessionService() {
 
             if (playWhenReady) {
                 if (!textToSpeech.isSpeaking) {
-                    speakNextUtterance()
+                    speakCurrentUtterance()
                 }
                 updatePlaybackState(STATE_READY, true)
             } else {
@@ -354,8 +357,20 @@ class PlaybackService : MediaSessionService() {
             L.d(">>>> onInit")
         }
 
+        fun speakPrevUtterance() {
+            Tts.currentUtterance--
+            if (Tts.currentUtterance < 0) {
+                Tts.currentUtterance = 0
+            }
+            speakCurrentUtterance()
+        }
 
-        private fun speakNextUtterance() {
+        fun speakNextUtterance() {
+            Tts.currentUtterance++
+            speakCurrentUtterance()
+        }
+
+        private fun speakCurrentUtterance() {
             val text = Tts.utterances.getOrNull(Tts.currentUtterance).orEmpty()
             if (text.isEmpty()) {
                 updatePlaybackState(STATE_ENDED)
