@@ -34,6 +34,8 @@ import java.util.Locale
 class PlaybackService : MediaSessionService() {
     private var currentSession: MediaSession? = null
 
+    var textToSpeech: TextToSpeech? = null
+
     private val customLayoutCommandButtons: List<CommandButton> =
         listOf(
             CommandButton.Builder()
@@ -212,28 +214,10 @@ class PlaybackService : MediaSessionService() {
 
 
     @OptIn(UnstableApi::class)
-    class TtsPlayer(looper: Looper) : SimpleBasePlayer(looper), OnInitListener {
-
-        var textToSpeech: TextToSpeech? = null
+    inner class TtsPlayer(looper: Looper) : SimpleBasePlayer(looper), OnInitListener {
 
         private var state = State.Builder()
-            .setAvailableCommands(
-                Commands.Builder().addAll(
-                    COMMAND_PLAY_PAUSE,
-                    COMMAND_SEEK_BACK,
-                    COMMAND_SEEK_FORWARD,
-                    COMMAND_SET_SHUFFLE_MODE,
-                    COMMAND_GET_METADATA,
-                    COMMAND_GET_CURRENT_MEDIA_ITEM,
-                    COMMAND_GET_MEDIA_ITEMS_METADATA,
-                    COMMAND_CHANGE_MEDIA_ITEMS,
-                    COMMAND_PREPARE,
-                    COMMAND_SET_MEDIA_ITEM,
-                    COMMAND_SEEK_BACK,
-                    COMMAND_SEEK_FORWARD,
-                    COMMAND_SET_SPEED_AND_PITCH
-                ).build()
-            )
+            .setAvailableCommands(Commands.Builder().addAllCommands().build())
             //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .setPlaybackState(STATE_IDLE)
             //.setAudioAttributes(AudioAttributes.DEFAULT)
@@ -384,13 +368,17 @@ class PlaybackService : MediaSessionService() {
         override fun handleRelease(): ListenableFuture<*> {
             L.d(">>>> handleRelease")
             textToSpeech?.stop()
-            textToSpeech?.shutdown()
             return Futures.immediateVoidFuture()
         }
 
         override fun handleStop(): ListenableFuture<*> {
             L.d(">>>> handleStop")
             textToSpeech?.stop()
+            return Futures.immediateVoidFuture()
+        }
+
+        override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> {
+            // TODO
             return Futures.immediateVoidFuture()
         }
 
