@@ -1,6 +1,5 @@
 package org.wikipedia.page.tts
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -229,23 +228,38 @@ class PlaybackService : MediaSessionService() {
             //)
             .build()
 
+        private val utteranceListener = object :
+            UtteranceProgressListener() {
+            override fun onStart(utteranceId: String) {
+                L.d(">>>> TTS onStart")
+            }
+
+            override fun onDone(utteranceId: String) {
+                L.d(">>>> TTS onDone")
+                speakNextUtterance()
+            }
+
+            override fun onError(utteranceId: String) {
+                L.d(">>>> TTS onError")
+                updatePlaybackState(STATE_ENDED)
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                L.d(">>>> TTS onError: $errorCode")
+                updatePlaybackState(STATE_ENDED)
+            }
+        }
+
         override fun getState(): State {
             return state
         }
 
-        override fun handleAddMediaItems(
-            index: Int,
-            mediaItems: MutableList<MediaItem>
-        ): ListenableFuture<*> {
+        override fun handleAddMediaItems(index: Int, mediaItems: MutableList<MediaItem>): ListenableFuture<*> {
             L.d(">>>> handleAddMediaItems")
             return Futures.immediateVoidFuture()
         }
 
-        override fun handleSetMediaItems(
-            mediaItems: MutableList<MediaItem>,
-            startIndex: Int,
-            startPositionMs: Long
-        ): ListenableFuture<*> {
+        override fun handleSetMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long): ListenableFuture<*> {
             L.d(">>>> handleSetMediaItems")
             Handler(Looper.getMainLooper()).post {
                 state = state.buildUpon()
@@ -309,28 +323,11 @@ class PlaybackService : MediaSessionService() {
             }
 
             return CallbackToFutureAdapter.getFuture { completer ->
-
                 textToSpeech = TextToSpeech(WikipediaApp.instance) { status ->
                     if (status == TextToSpeech.SUCCESS) {
+                        textToSpeech?.setOnUtteranceProgressListener(utteranceListener)
                         textToSpeech?.setLanguage(Locale.getDefault())
                         textToSpeech?.setSpeechRate(speechRate)
-
-                        textToSpeech?.setOnUtteranceProgressListener(object :
-                            UtteranceProgressListener() {
-                            override fun onStart(utteranceId: String) {
-                                L.d(">>>> TTS onStart")
-                            }
-
-                            override fun onDone(utteranceId: String) {
-                                L.d(">>>> TTS onDone")
-                                speakNextUtterance()
-                            }
-
-                            override fun onError(utteranceId: String) {
-                                L.d(">>>> TTS onError")
-                                updatePlaybackState(STATE_ENDED)
-                            }
-                        })
 
                         if (playWhenReady) {
                             speakCurrentUtterance()
@@ -378,17 +375,18 @@ class PlaybackService : MediaSessionService() {
         }
 
         override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> {
+            L.d(">>>> handleSeek: $positionMs")
             // TODO
             return Futures.immediateVoidFuture()
         }
 
         override fun handleSetShuffleModeEnabled(shuffleModeEnabled: Boolean): ListenableFuture<*> {
-            L.d(">>>> handleSetShuffleModeEnabled")
+            L.d(">>>> handleSetShuffleModeEnabled: $shuffleModeEnabled")
             return Futures.immediateVoidFuture()
         }
 
         override fun onInit(status: Int) {
-            L.d(">>>> onInit")
+            L.d(">>>> onInit: $status")
         }
 
         fun speakPrevUtterance() {

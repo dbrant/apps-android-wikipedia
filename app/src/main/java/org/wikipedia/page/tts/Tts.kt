@@ -8,6 +8,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.ShareUtil
@@ -92,7 +93,7 @@ object Tts {
             .setMediaId("media-1")
             .setUri(uri)
             .setMediaMetadata(MediaMetadata.Builder()
-                .setArtist("Wikipedia")
+                .setArtist(context.getString(R.string.app_name))
                 .setTitle(StringUtil.fromHtml(currentPageTitle?.displayText.orEmpty()))
                 .setArtworkUri(Uri.parse(currentPageTitle?.thumbUrl.orEmpty()))
                 .build()
