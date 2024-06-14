@@ -3,7 +3,6 @@ package org.wikipedia.page.tts
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
-import android.speech.tts.TextToSpeech
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
@@ -13,14 +12,9 @@ import org.wikipedia.WikipediaApp
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.ShareUtil
 import org.wikipedia.util.StringUtil
-import org.wikipedia.util.log.L
 import java.io.File
-import java.util.Locale
 
 object Tts {
-
-    var textToSpeech: TextToSpeech? = null
-    var speechRate = 1f
 
     var utterances: List<String> = emptyList()
     var currentUtterance = 0
@@ -45,7 +39,6 @@ object Tts {
     var mediaController: MediaController? = null
 
     fun cleanup() {
-        textToSpeech?.stop()
         mediaController?.stop()
         mediaController?.release()
         mediaController = null
@@ -68,30 +61,7 @@ object Tts {
             return
         }
 
-        if (textToSpeech == null) {
-            textToSpeech = TextToSpeech(context) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    textToSpeech?.setLanguage(Locale.getDefault())
-                    generateAndSpeak(context)
-                } else {
-                    L.d(">>>> Failed to initialize TTS")
-                    textToSpeech = null
-                }
-            }
-            speechRate = 1f
-        } else {
-            generateAndSpeak(context)
-        }
-    }
-
-    private fun generateAndSpeak(context: Context) {
-        if (textToSpeech == null) {
-            return
-        }
-
-
         speak(context)
-
     }
 
     private fun speak(context: Context) {

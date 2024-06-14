@@ -71,14 +71,14 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
         }
 
         binding.decreaseSpeedButton.setOnClickListener {
-            Tts.speechRate -= 0.1f
-            Tts.mediaController?.setPlaybackSpeed(Tts.speechRate)
+            PlaybackService.speechRate -= 0.1f
+            Tts.mediaController?.setPlaybackSpeed(PlaybackService.speechRate)
             updateSpeedButtons()
         }
 
         binding.increaseSpeedButton.setOnClickListener {
-            Tts.speechRate += 0.1f
-            Tts.mediaController?.setPlaybackSpeed(Tts.speechRate)
+            PlaybackService.speechRate += 0.1f
+            Tts.mediaController?.setPlaybackSpeed(PlaybackService.speechRate)
             updateSpeedButtons()
         }
 
@@ -105,8 +105,8 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
     }
 
     private fun updateSpeedButtons() {
-        binding.decreaseSpeedButton.isEnabled = Tts.speechRate > 0.1f
-        binding.increaseSpeedButton.isEnabled = Tts.speechRate < 2.0f
-        binding.speedText.text = String.format("%.1fx", Tts.speechRate)
+        binding.decreaseSpeedButton.isEnabled = PlaybackService.speechRate > 0.1f
+        binding.increaseSpeedButton.isEnabled = PlaybackService.speechRate < 2.0f
+        binding.speedText.text = String.format("%.1fx", PlaybackService.speechRate)
     }
 }

@@ -9,6 +9,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.OnInitListener
 import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
+import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
@@ -26,7 +27,9 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import org.wikipedia.R
+import org.wikipedia.WikipediaApp
 import org.wikipedia.util.log.L
+import java.util.Locale
 
 class PlaybackService : MediaSessionService() {
     private var currentSession: MediaSession? = null
@@ -52,10 +55,14 @@ class PlaybackService : MediaSessionService() {
         L.d(">>>> PlaybackService onCreate")
         super.onCreate()
 
+        createSession()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun createSession() {
         currentSession = MediaSession.Builder(this, createPlayer())
             .setCallback(object : MediaSession.Callback {
 
-                @OptIn(UnstableApi::class)
                 override fun onConnect(
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
@@ -67,6 +74,7 @@ class PlaybackService : MediaSessionService() {
                     // (It needs to be a different type of player based on TTS vs audio URL)
                     // TODO: is this right?
                     currentSession?.player?.stop()
+                    currentSession?.player?.release()
                     currentSession?.player = createPlayer()
 
                     if (session.isMediaNotificationController(controller)) {
@@ -110,7 +118,6 @@ class PlaybackService : MediaSessionService() {
                     }
                 }
 
-                @OptIn(UnstableApi::class)
                 override fun onCustomCommand(
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo,
@@ -189,12 +196,14 @@ class PlaybackService : MediaSessionService() {
 
     private fun createPlayer(): Player {
         return if (Tts.audioUrl.isNullOrEmpty())
-            TtsPlayer(Looper.getMainLooper(), this@PlaybackService, Tts.textToSpeech!!)
+            TtsPlayer(Looper.getMainLooper())
         else ExoPlayer.Builder(this@PlaybackService).build()
     }
 
     companion object {
         var isRunning = false
+
+        var speechRate = 1f
 
         val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
         val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
@@ -202,11 +211,10 @@ class PlaybackService : MediaSessionService() {
 
 
 
-
-
-
     @OptIn(UnstableApi::class)
-    class TtsPlayer(looper: Looper, context: Context, val textToSpeech: TextToSpeech) : SimpleBasePlayer(looper), OnInitListener {
+    class TtsPlayer(looper: Looper) : SimpleBasePlayer(looper), OnInitListener {
+
+        var textToSpeech: TextToSpeech? = null
 
         private var state = State.Builder()
             .setAvailableCommands(
@@ -236,24 +244,6 @@ class PlaybackService : MediaSessionService() {
             //        .build()
             //)
             .build()
-
-        init {
-            textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String) {
-                    L.d(">>>> TTS onStart")
-                }
-
-                override fun onDone(utteranceId: String) {
-                    L.d(">>>> TTS onDone")
-                    speakNextUtterance()
-                }
-
-                override fun onError(utteranceId: String) {
-                    L.d(">>>> TTS onError")
-                    updatePlaybackState(STATE_ENDED)
-                }
-            })
-        }
 
         override fun getState(): State {
             return state
@@ -310,8 +300,8 @@ class PlaybackService : MediaSessionService() {
         override fun handleSetPlaybackParameters(playbackParameters: PlaybackParameters): ListenableFuture<*> {
             L.d(">>>> handleSetPlaybackParameters")
 
-            textToSpeech.stop()
-            textToSpeech.setSpeechRate(Tts.speechRate)
+            textToSpeech?.stop()
+            textToSpeech?.setSpeechRate(playbackParameters.speed)
             speakCurrentUtterance()
 
             return Futures.immediateVoidFuture()
@@ -321,27 +311,69 @@ class PlaybackService : MediaSessionService() {
             L.d(">>>> handlePrepare")
 
             if (playWhenReady) {
-                speakCurrentUtterance()
+                if (textToSpeech != null) {
+                    speakCurrentUtterance()
+                }
                 updatePlaybackState(STATE_READY, true)
             } else {
-                textToSpeech.stop()
+                textToSpeech?.stop()
                 updatePlaybackState(STATE_READY, false)
             }
 
-            return Futures.immediateVoidFuture()
+            if (textToSpeech != null) {
+                return Futures.immediateVoidFuture()
+            }
+
+            return CallbackToFutureAdapter.getFuture { completer ->
+
+                textToSpeech = TextToSpeech(WikipediaApp.instance) { status ->
+                    if (status == TextToSpeech.SUCCESS) {
+                        textToSpeech?.setLanguage(Locale.getDefault())
+                        textToSpeech?.setSpeechRate(speechRate)
+
+                        textToSpeech?.setOnUtteranceProgressListener(object :
+                            UtteranceProgressListener() {
+                            override fun onStart(utteranceId: String) {
+                                L.d(">>>> TTS onStart")
+                            }
+
+                            override fun onDone(utteranceId: String) {
+                                L.d(">>>> TTS onDone")
+                                speakNextUtterance()
+                            }
+
+                            override fun onError(utteranceId: String) {
+                                L.d(">>>> TTS onError")
+                                updatePlaybackState(STATE_ENDED)
+                            }
+                        })
+
+                        if (playWhenReady) {
+                            speakCurrentUtterance()
+                            updatePlaybackState(STATE_READY, true)
+                        }
+
+                    } else {
+                        L.d(">>>> Failed to initialize TTS")
+                        textToSpeech = null
+                    }
+                    completer.set(Unit)
+                }
+                Unit
+            }
         }
 
         override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
             L.d(">>>> handleSetPlayWhenReady: $playWhenReady")
 
             if (playWhenReady) {
-                if (!textToSpeech.isSpeaking) {
+                if (textToSpeech?.isSpeaking == false) {
                     speakCurrentUtterance()
                 }
                 updatePlaybackState(STATE_READY, true)
             } else {
-                if (textToSpeech.isSpeaking) {
-                    textToSpeech.stop()
+                if (textToSpeech?.isSpeaking == true) {
+                    textToSpeech?.stop()
                 }
                 updatePlaybackState(STATE_READY, false)
             }
@@ -351,13 +383,14 @@ class PlaybackService : MediaSessionService() {
 
         override fun handleRelease(): ListenableFuture<*> {
             L.d(">>>> handleRelease")
-            textToSpeech.stop()
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
             return Futures.immediateVoidFuture()
         }
 
         override fun handleStop(): ListenableFuture<*> {
             L.d(">>>> handleStop")
-            textToSpeech.stop()
+            textToSpeech?.stop()
             return Futures.immediateVoidFuture()
         }
 
@@ -391,7 +424,8 @@ class PlaybackService : MediaSessionService() {
                 return
             }
 
-            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
+            textToSpeech?.stop()
+            textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
         }
 
     }
