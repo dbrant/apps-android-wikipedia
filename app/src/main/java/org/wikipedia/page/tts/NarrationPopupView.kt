@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +15,7 @@ import androidx.core.view.doOnDetach
 import androidx.core.view.isVisible
 import androidx.core.widget.PopupWindowCompat
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.session.SessionCommand
 import org.wikipedia.R
 import org.wikipedia.databinding.ViewNarrationPopupBinding
 import org.wikipedia.page.PageTitle
@@ -50,9 +52,11 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
         updatePlayPauseButton()
 
         binding.seekBackButton.setOnClickListener {
+            Tts.mediaController?.sendCustomCommand(SessionCommand(PlaybackService.CUSTOM_COMMAND_REWIND_SEC, Bundle()), Bundle())
         }
 
         binding.seekForwardButton.setOnClickListener {
+            Tts.mediaController?.sendCustomCommand(SessionCommand(PlaybackService.CUSTOM_COMMAND_FORWARD_SEC, Bundle()), Bundle())
         }
 
         binding.playPauseButton.setOnClickListener {

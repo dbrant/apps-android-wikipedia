@@ -92,9 +92,22 @@ class PlaybackService : MediaSessionService() {
                             .setAvailablePlayerCommands(playerCommands)
                             .setAvailableSessionCommands(sessionCommands)
                             .build()
+                    } else {
+                        // Default commands with default custom layout for all other controllers.
+
+                        val sessionCommands = ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                            .also { builder ->
+                                customLayoutCommandButtons.forEach { commandButton ->
+                                    commandButton.sessionCommand?.let { builder.add(it) }
+                                }
+                            }.build()
+                        val playerCommands = ConnectionResult.DEFAULT_PLAYER_COMMANDS
+
+                        return ConnectionResult.AcceptedResultBuilder(session)
+                            .setAvailablePlayerCommands(playerCommands)
+                            .setAvailableSessionCommands(sessionCommands)
+                            .build()
                     }
-                    // Default commands with default custom layout for all other controllers.
-                    return ConnectionResult.AcceptedResultBuilder(session).build()
                 }
 
                 @OptIn(UnstableApi::class)
@@ -183,8 +196,8 @@ class PlaybackService : MediaSessionService() {
     companion object {
         var isRunning = false
 
-        private val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
-        private val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
+        val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
+        val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
     }
 
 
@@ -202,15 +215,15 @@ class PlaybackService : MediaSessionService() {
                     COMMAND_SEEK_BACK,
                     COMMAND_SEEK_FORWARD,
                     COMMAND_SET_SHUFFLE_MODE,
-                    Player.COMMAND_GET_METADATA,
-                    Player.COMMAND_GET_CURRENT_MEDIA_ITEM,
-                    Player.COMMAND_GET_MEDIA_ITEMS_METADATA,
-                    Player.COMMAND_CHANGE_MEDIA_ITEMS,
-                    Player.COMMAND_PREPARE,
-                    Player.COMMAND_SET_MEDIA_ITEM,
-                    Player.COMMAND_SEEK_BACK,
-                    Player.COMMAND_SEEK_FORWARD,
-                    Player.COMMAND_SET_SPEED_AND_PITCH
+                    COMMAND_GET_METADATA,
+                    COMMAND_GET_CURRENT_MEDIA_ITEM,
+                    COMMAND_GET_MEDIA_ITEMS_METADATA,
+                    COMMAND_CHANGE_MEDIA_ITEMS,
+                    COMMAND_PREPARE,
+                    COMMAND_SET_MEDIA_ITEM,
+                    COMMAND_SEEK_BACK,
+                    COMMAND_SEEK_FORWARD,
+                    COMMAND_SET_SPEED_AND_PITCH
                 ).build()
             )
             //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
