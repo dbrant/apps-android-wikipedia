@@ -53,10 +53,12 @@ class NarrationPopupView(context: Context) : FrameLayout(context) {
 
         binding.seekBackButton.setOnClickListener {
             Tts.mediaController?.sendCustomCommand(SessionCommand(PlaybackService.CUSTOM_COMMAND_REWIND_SEC, Bundle()), Bundle())
+            updatePlayPauseButton()
         }
 
         binding.seekForwardButton.setOnClickListener {
             Tts.mediaController?.sendCustomCommand(SessionCommand(PlaybackService.CUSTOM_COMMAND_FORWARD_SEC, Bundle()), Bundle())
+            updatePlayPauseButton()
         }
 
         binding.playPauseButton.setOnClickListener {

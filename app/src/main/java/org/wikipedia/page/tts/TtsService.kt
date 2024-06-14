@@ -29,6 +29,7 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.util.log.L
 import java.util.Locale
+import kotlin.math.max
 
 class PlaybackService : MediaSessionService() {
     private var currentSession: MediaSession? = null
@@ -216,7 +217,10 @@ class PlaybackService : MediaSessionService() {
     inner class TtsPlayer(looper: Looper) : SimpleBasePlayer(looper), OnInitListener {
 
         private var state = State.Builder()
-            .setAvailableCommands(Commands.Builder().addAllCommands().build())
+            .setAvailableCommands(Commands.Builder().addAllCommands()
+                .remove(COMMAND_SEEK_TO_NEXT)
+                .remove(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .build())
             //.setPlayWhenReady(true, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .setPlaybackState(STATE_IDLE)
             //.setAudioAttributes(AudioAttributes.DEFAULT)
@@ -262,15 +266,18 @@ class PlaybackService : MediaSessionService() {
         override fun handleSetMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long): ListenableFuture<*> {
             L.d(">>>> handleSetMediaItems")
             Handler(Looper.getMainLooper()).post {
+
+                val totalDuration = max(Tts.utterances.size * 10_000L, 10_000L)
+
                 state = state.buildUpon()
                     .setPlaylist(listOf(MediaItemData
                         .Builder("test")
                         .setMediaItem(mediaItems[0])
                         .setIsSeekable(true)
-                        .setDurationUs(10000000L)
+                        .setDurationUs(totalDuration * 1000)
                         .build()))
                     .setIsLoading(false)
-                    .setContentPositionMs(2000)
+                    .setContentPositionMs(0)
                     .build()
                 invalidateState()
             }
@@ -280,19 +287,6 @@ class PlaybackService : MediaSessionService() {
         override fun handleSetPlaylistMetadata(playlistMetadata: MediaMetadata): ListenableFuture<*> {
             L.d(">>>> handleSetPlaylistMetadata")
             return Futures.immediateVoidFuture()
-        }
-
-        private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean = true) {
-            L.d(">>>> updatePlaybackState: $playbackState")
-
-            val mainHandler = Handler(Looper.getMainLooper())
-            mainHandler.post {
-                state = state.buildUpon()
-                    .setPlaybackState(playbackState)
-                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
-                    .build()
-                invalidateState()
-            }
         }
 
         override fun handleSetPlaybackParameters(playbackParameters: PlaybackParameters): ListenableFuture<*> {
@@ -376,7 +370,19 @@ class PlaybackService : MediaSessionService() {
 
         override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> {
             L.d(">>>> handleSeek: $positionMs")
-            // TODO
+
+            if (seekCommand == COMMAND_SEEK_TO_DEFAULT_POSITION) {
+                Tts.currentUtterance = 0
+                if (playWhenReady) {
+                    speakCurrentUtterance()
+                }
+            } else if (seekCommand == COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) {
+                Tts.currentUtterance = (positionMs / 10_000).toInt()
+                if (playWhenReady) {
+                    speakCurrentUtterance()
+                }
+            }
+
             return Futures.immediateVoidFuture()
         }
 
@@ -387,6 +393,31 @@ class PlaybackService : MediaSessionService() {
 
         override fun onInit(status: Int) {
             L.d(">>>> onInit: $status")
+        }
+
+        private fun updatePlaybackState(playbackState: Int, playWhenReady: Boolean = true) {
+            L.d(">>>> updatePlaybackState: $playbackState")
+
+            val mainHandler = Handler(Looper.getMainLooper())
+            mainHandler.post {
+                state = state.buildUpon()
+                    .setPlaybackState(playbackState)
+                    .setPlayWhenReady(playWhenReady, PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                    .build()
+                invalidateState()
+            }
+        }
+
+        private fun updatePlaybackPosition(positionMs: Long) {
+            L.d(">>>> updatePlaybackPosition: $positionMs")
+
+            val mainHandler = Handler(Looper.getMainLooper())
+            mainHandler.post {
+                state = state.buildUpon()
+                    .setContentPositionMs(positionMs)
+                    .build()
+                invalidateState()
+            }
         }
 
         fun speakPrevUtterance() {
@@ -409,6 +440,8 @@ class PlaybackService : MediaSessionService() {
                 Tts.currentUtterance = 0
                 return
             }
+
+            updatePlaybackPosition(Tts.currentUtterance * 10_000L)
 
             textToSpeech?.stop()
             textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID)
