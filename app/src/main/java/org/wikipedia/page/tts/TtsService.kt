@@ -197,8 +197,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun createPlayer(): Player {
-        return if (Tts.audioUrl.isNullOrEmpty())
-            TtsPlayer(Looper.getMainLooper())
+        return if (Tts.audioUrl.isEmpty()) TtsPlayer(Looper.getMainLooper())
         else ExoPlayer.Builder(this@PlaybackService).build()
     }
 
@@ -207,8 +206,8 @@ class PlaybackService : MediaSessionService() {
 
         var speechRate = 1f
 
-        val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
-        val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
+        const val CUSTOM_COMMAND_REWIND_SEC = "CUSTOM_COMMAND_REWIND_SEC"
+        const val CUSTOM_COMMAND_FORWARD_SEC = "CUSTOM_COMMAND_FORWARD_SEC"
     }
 
 
@@ -294,7 +293,9 @@ class PlaybackService : MediaSessionService() {
 
             textToSpeech?.stop()
             textToSpeech?.setSpeechRate(playbackParameters.speed)
-            speakCurrentUtterance()
+            if (playWhenReady) {
+                speakCurrentUtterance()
+            }
 
             return Futures.immediateVoidFuture()
         }
@@ -373,11 +374,13 @@ class PlaybackService : MediaSessionService() {
 
             if (seekCommand == COMMAND_SEEK_TO_DEFAULT_POSITION) {
                 Tts.currentUtterance = 0
+                updatePlaybackPosition(0)
                 if (playWhenReady) {
                     speakCurrentUtterance()
                 }
             } else if (seekCommand == COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) {
                 Tts.currentUtterance = (positionMs / 10_000).toInt()
+                updatePlaybackPosition(Tts.currentUtterance * 10_000L)
                 if (playWhenReady) {
                     speakCurrentUtterance()
                 }

@@ -11,16 +11,15 @@ import com.google.common.util.concurrent.MoreExecutors
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.page.PageTitle
-import org.wikipedia.util.ShareUtil
 import org.wikipedia.util.StringUtil
-import java.io.File
 
 object Tts {
 
     var utterances: List<String> = emptyList()
     var currentUtterance = 0
 
-    var audioUrl: String? = null
+    var audioUrl: String = ""
+
 
     var currentPageTitle: PageTitle? = null
         set(value) {
@@ -33,9 +32,6 @@ object Tts {
                 field = title
             }
         }
-
-    private const val SPEAK_FILE_NAME = "audio.wav"
-    private var fileToSpeak: File? = null
 
     var mediaController: MediaController? = null
 
@@ -50,22 +46,8 @@ object Tts {
         this.utterances = utterances
         currentUtterance = 0
 
-        val shareFolder = ShareUtil.getClearShareFolder(context)
-        fileToSpeak = File(shareFolder, SPEAK_FILE_NAME)
-        if (fileToSpeak?.exists() == true) {
-            fileToSpeak?.delete()
-        }
-
         this.audioUrl = audioUrl
-        if (audioUrl.isNotEmpty()) {
-            speak(context)
-            return
-        }
 
-        speak(context)
-    }
-
-    private fun speak(context: Context) {
         //if (mediaController?.isConnected == false) {
             cleanup()
         //}
@@ -77,30 +59,34 @@ object Tts {
                 {
                     mediaController = controllerFuture.get()
                     // playerView.setPlayer(controller)
-                    actuallySpeak(context)
+                    speak(context, audioUrl)
                 },
                 MoreExecutors.directExecutor()
             )
         } else {
-            actuallySpeak(context)
+            speak(context, audioUrl)
         }
     }
 
-    private fun actuallySpeak(context: Context) {
-        val uri = if (audioUrl.isNullOrBlank()) ShareUtil.getUriFromFile(context, fileToSpeak) else Uri.parse(audioUrl)
+    private fun speak(context: Context, audioUrl: String) {
 
-        val mediaItem = MediaItem.Builder()
+        val mediaItemBuilder = MediaItem.Builder()
             .setMediaId("media-1")
-            .setUri(uri)
             .setMediaMetadata(MediaMetadata.Builder()
                 .setArtist(context.getString(R.string.app_name))
                 .setTitle(StringUtil.fromHtml(currentPageTitle?.displayText.orEmpty()))
                 .setArtworkUri(Uri.parse(currentPageTitle?.thumbUrl.orEmpty()))
                 .build()
-            ).build()
+            )
+
+        if (audioUrl.isNotBlank()) {
+            mediaItemBuilder.setUri(Uri.parse(audioUrl))
+        } else {
+            mediaItemBuilder.setUri(Uri.parse(currentPageTitle!!.uri))
+        }
 
         WikipediaApp.instance.mainThreadHandler.post {
-            mediaController?.setMediaItem(mediaItem)
+            mediaController?.setMediaItem(mediaItemBuilder.build())
             mediaController?.prepare()
             mediaController?.play()
         }
