@@ -181,6 +181,7 @@ dependencies {
     implementation libs.material
     implementation libs.appcompat
     implementation libs.core.ktx
+    implementation libs.concurrent.futures
     implementation libs.browser
     implementation libs.constraintlayout
     implementation libs.fragment.ktx
@@ -222,6 +223,10 @@ dependencies {
     ksp libs.androidx.room.compiler
     implementation libs.androidx.room.ktx
     implementation libs.androidx.room.rxjava3
+    implementation libs.media3.common
+    implementation libs.media3.exoplayer
+    implementation libs.media3.session
+    implementation libs.media3.ui
 
     // For language detection during editing
     prodImplementation libs.com.google.mlkit.language.id
