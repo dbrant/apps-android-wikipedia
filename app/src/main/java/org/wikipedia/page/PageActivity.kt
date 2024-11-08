@@ -45,6 +45,7 @@ import org.wikipedia.auth.AccountUtil
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.concurrency.FlowEventBus
 import org.wikipedia.databinding.ActivityPageBinding
+import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.donate.CampaignCollection
 import org.wikipedia.dataclient.mwapi.MwQueryPage
@@ -103,6 +104,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     private val isCabOpen get() = currentActionModes.isNotEmpty()
     private var exclusiveTooltipRunnable: Runnable? = null
     private var isTooltipShowing = false
+    private var suggestedSearchTerm: String? = null
 
     private val requestEditSectionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == EditHandler.RESULT_REFRESH_PAGE) {
@@ -214,7 +216,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
             pageFragment.articleInteractionEvent?.logSearchWikipediaClick()
             pageFragment.metricsPlatformArticleEventToolbarInteraction.logSearchWikipediaClick()
             startActivity(SearchActivity.newIntent(this@PageActivity, InvokeSource.TOOLBAR, null,
-                suggestedSearchQuery = "Fooooooo"))
+                suggestedSearchQuery = suggestedSearchTerm))
         }
         binding.pageToolbarButtonTabs.updateTabCount(false)
         binding.pageToolbarButtonTabs.setOnClickListener {
@@ -397,6 +399,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     override fun onPageLoadComplete() {
         removeTransitionAnimState()
         maybeShowThemeTooltip()
+
+        maybeStartRabbitHole()
     }
 
     override fun onPageDismissBottomSheet() {
@@ -792,6 +796,22 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
                 outContent.setWebUri(Uri.parse(it.uri))
             }
         }
+    }
+
+    private fun maybeStartRabbitHole() {
+        lifecycleScope.launch {
+            pageFragment.title?.let { title ->
+                val response = ServiceFactory.get(title.wikiSite).searchMoreLike(title.prefixedText, 10, 10)
+                response.query?.pages?.firstOrNull()?.let { page ->
+                    applySuggestedSearchTerm(page.displayTitle(title.wikiSite.languageCode))
+                }
+            }
+        }
+    }
+
+    private fun applySuggestedSearchTerm(term: String) {
+        suggestedSearchTerm = term
+        binding.pageToolbarButtonSearch.text = term
     }
 
     companion object {
