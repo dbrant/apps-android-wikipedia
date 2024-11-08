@@ -123,6 +123,11 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
             Prefs.selectedLanguagePositionInSearch = app.languageState.appLanguageCodes.indexOf(Prefs.placesWikiCode)
             PlacesEvent.logImpression("search_view")
         }
+
+        requireActivity().intent.getStringExtra(SearchActivity.EXTRA_SUGGESTED_QUERY)?.let {
+            binding.searchCabView.queryHint = it
+        }
+
         return binding.root
     }
 

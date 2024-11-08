@@ -213,7 +213,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         binding.pageToolbarButtonSearch.setOnClickListener {
             pageFragment.articleInteractionEvent?.logSearchWikipediaClick()
             pageFragment.metricsPlatformArticleEventToolbarInteraction.logSearchWikipediaClick()
-            startActivity(SearchActivity.newIntent(this@PageActivity, InvokeSource.TOOLBAR, null))
+            startActivity(SearchActivity.newIntent(this@PageActivity, InvokeSource.TOOLBAR, null,
+                suggestedSearchQuery = "Fooooooo"))
         }
         binding.pageToolbarButtonTabs.updateTabCount(false)
         binding.pageToolbarButtonTabs.setOnClickListener {

@@ -1815,6 +1815,11 @@
     <string name="contributions_dashboard_app_icon_updated">App icon updated</string>
     <!-- /Contributions Dashboard -->
 
+    <!-- Rabbit holes -->
+    <string name="recent_searches_title">Recent searches</string>
+    <string name="recent_searches_related_to_reading">Related to what you\'re reading</string>
+    <!-- /Rabbit holes -->
+
     <!-- Survey dialog -->
     <string name="survey_dialog_title">Help us improve this feature</string>
     <string name="survey_dialog_message">Are you satisfied with this feature?</string>
