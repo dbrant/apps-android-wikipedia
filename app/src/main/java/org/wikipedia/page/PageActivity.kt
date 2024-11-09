@@ -31,16 +31,19 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.encodeToJsonElement
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.activity.SingleWebViewActivity
+import org.wikipedia.analytics.ABTest
 import org.wikipedia.analytics.eventplatform.ArticleLinkPreviewInteractionEvent
 import org.wikipedia.analytics.eventplatform.BreadCrumbLogEvent
 import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
 import org.wikipedia.analytics.metricsplatform.ArticleLinkPreviewInteraction
+import org.wikipedia.analytics.metricsplatform.RabbitHolesAnalyticsHelper
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.concurrency.FlowEventBus
@@ -59,12 +62,14 @@ import org.wikipedia.events.ChangeTextSizeEvent
 import org.wikipedia.extensions.parcelableExtra
 import org.wikipedia.gallery.GalleryActivity
 import org.wikipedia.history.HistoryEntry
+import org.wikipedia.json.JsonUtil
 import org.wikipedia.language.LangLinksActivity
 import org.wikipedia.notifications.AnonymousNotificationHelper
 import org.wikipedia.notifications.NotificationActivity
 import org.wikipedia.page.linkpreview.LinkPreviewDialog
 import org.wikipedia.page.tabs.TabActivity
 import org.wikipedia.readinglist.ReadingListActivity
+import org.wikipedia.readinglist.ReadingListsShareHelper
 import org.wikipedia.search.SearchActivity
 import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.MainPageNameData
@@ -799,11 +804,20 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     }
 
     private fun maybeStartRabbitHole() {
+        if (!RabbitHolesAnalyticsHelper.rabbitHolesEnabled || RabbitHolesAnalyticsHelper.abcTest.group == ABTest.GROUP_1) {
+            return
+        }
         lifecycleScope.launch {
             pageFragment.title?.let { title ->
-                val response = ServiceFactory.get(title.wikiSite).searchMoreLike(title.prefixedText, 10, 10)
-                response.query?.pages?.firstOrNull()?.let { page ->
-                    applySuggestedSearchTerm(page.displayTitle(title.wikiSite.languageCode))
+                val response = ServiceFactory.get(title.wikiSite).searchMoreLike("morelike:${title.prefixedText}", 10, 10)
+                if (RabbitHolesAnalyticsHelper.abcTest.group == ABTest.GROUP_2) {
+                    response.query?.pages?.firstOrNull()?.let { page ->
+                        applySuggestedSearchTerm(page.displayTitle(title.wikiSite.languageCode))
+                    }
+                } else if (RabbitHolesAnalyticsHelper.abcTest.group == ABTest.GROUP_3) {
+                    response.query?.pages?.let { pages ->
+                        applySuggestedReadingList(title.wikiSite.languageCode, pages)
+                    }
                 }
             }
         }
@@ -812,6 +826,28 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
     private fun applySuggestedSearchTerm(term: String) {
         suggestedSearchTerm = term
         binding.pageToolbarButtonSearch.text = term
+    }
+
+    private fun applySuggestedReadingList(lang: String, pages: List<MwQueryPage>) {
+        val listItems = pages.map {
+            JsonUtil.json.encodeToJsonElement(
+                ReadingListsShareHelper.ExportedReadingListPage(
+                    lang,
+                    it.displayTitle(lang),
+                    it.ns,
+                    it.description,
+                    it.thumbUrl()
+                )
+            )
+        }
+        val readingList = ReadingListsShareHelper.ExportedReadingList(
+            list = mapOf(lang to listItems),
+            name = "Suggested reading",
+            description = "description"
+        )
+        Prefs.importReadingListsDialogShown = false
+        Prefs.suggestedReadingListsData = JsonUtil.encodeToString(readingList)
+        startActivity(ReadingListActivity.newIntent(this, true, suggestedList = true).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
     }
 
     companion object {
