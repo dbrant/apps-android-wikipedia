@@ -24,8 +24,8 @@ import java.util.*
 
 object ReadingListsReceiveHelper {
 
-    suspend fun receiveReadingLists(context: Context, encodedJson: String): ReadingList {
-        val readingListData = getExportedReadingLists(encodedJson)
+    suspend fun receiveReadingLists(context: Context, json: String, encoded: Boolean): ReadingList {
+        val readingListData = getExportedReadingLists(json, encoded)
         val listTitle = readingListData?.name.orEmpty().ifEmpty { context.getString(R.string.reading_lists_preview_header_title) }
         val listDescription = readingListData?.description.orEmpty().ifEmpty { DateUtil.getTimeAndDateString(context, Date()) }
         val listPages = mutableListOf<ReadingListPage>()
@@ -84,7 +84,7 @@ object ReadingListsReceiveHelper {
         return readingList
     }
 
-    private fun getExportedReadingLists(encodedJson: String): ReadingListsShareHelper.ExportedReadingList? {
-        return JsonUtil.decodeFromString(String(Base64.decode(encodedJson, Base64.NO_WRAP)))
+    private fun getExportedReadingLists(json: String, encoded: Boolean): ReadingListsShareHelper.ExportedReadingList? {
+        return JsonUtil.decodeFromString(if (encoded) String(Base64.decode(json, Base64.NO_WRAP)) else json)
     }
 }

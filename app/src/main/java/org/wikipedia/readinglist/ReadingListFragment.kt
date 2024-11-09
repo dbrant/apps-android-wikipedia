@@ -333,11 +333,9 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
                     requireActivity().finish()
                 }) {
                     if (isSuggested) {
-                        val encodedJson = Prefs.suggestedReadingListsData
-                        if (!encodedJson.isNullOrEmpty()) {
-                            readingList = ReadingListsReceiveHelper.receiveReadingLists(requireContext(), encodedJson)
-
-
+                        val json = Prefs.suggestedReadingListsData
+                        if (!json.isNullOrEmpty()) {
+                            readingList = ReadingListsReceiveHelper.receiveReadingLists(requireContext(), json, encoded = false)
                             readingList?.let {
                                 ReadingListsAnalyticsHelper.logReceivePreview(requireContext(), it)
                                 binding.searchEmptyView.setEmptyText(getString(R.string.search_reading_list_no_results, it.title))
@@ -346,9 +344,9 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
                         }
 
                     } else {
-                        val encodedJson = Prefs.receiveReadingListsData
-                        if (!encodedJson.isNullOrEmpty()) {
-                            readingList = ReadingListsReceiveHelper.receiveReadingLists(requireContext(), encodedJson)
+                        val json = Prefs.receiveReadingListsData
+                        if (!json.isNullOrEmpty()) {
+                            readingList = ReadingListsReceiveHelper.receiveReadingLists(requireContext(), json, encoded = true)
                             readingList?.let {
                                 ReadingListsAnalyticsHelper.logReceivePreview(requireContext(), it)
                                 binding.searchEmptyView.setEmptyText(getString(R.string.search_reading_list_no_results, it.title))
