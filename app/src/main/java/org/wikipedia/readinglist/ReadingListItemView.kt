@@ -47,6 +47,7 @@ class ReadingListItemView : ConstraintLayout {
     init {
         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         setPadding(0, DimenUtil.roundedDpToPx(16f), 0, DimenUtil.roundedDpToPx(16f))
+        clipToPadding = false
         setBackgroundResource(ResourceUtil.getThemedAttributeId(context, androidx.appcompat.R.attr.selectableItemBackground))
         isClickable = true
         isFocusable = true
@@ -105,7 +106,8 @@ class ReadingListItemView : ConstraintLayout {
         FeedbackUtil.setButtonTooltip(binding.itemShareButton, binding.itemOverflowMenu)
     }
 
-    fun setReadingList(readingList: ReadingList, description: Description, selectMode: Boolean = false, newImport: Boolean = false) {
+    fun setReadingList(readingList: ReadingList, description: Description, selectMode: Boolean = false,
+                       newImport: Boolean = false, isSuggested: Boolean = false) {
         this.readingList = readingList
         val isDetailView = description == Description.DETAIL
         binding.itemDescription.maxLines = if (isDetailView) Int.MAX_VALUE else resources.getInteger(R.integer.reading_list_description_summary_view_max_lines)
@@ -115,6 +117,13 @@ class ReadingListItemView : ConstraintLayout {
         updateDetails(selectMode)
         if (binding.itemImage1.visibility == VISIBLE) {
             updateThumbnails()
+        }
+
+        binding.experimentLabel.isVisible = isSuggested
+        binding.itemSaveButtonSecondary.isVisible = isSuggested
+        binding.backgroundShape.isVisible = isSuggested
+        if (isSuggested) {
+
         }
     }
 
@@ -201,7 +210,7 @@ class ReadingListItemView : ConstraintLayout {
         return readingList.sizeBytesFromPages / 1.coerceAtLeast(resources.getInteger(R.integer.reading_list_item_size_bytes_per_unit)).toFloat()
     }
 
-    private inner class OverflowMenuClickListener constructor(private val list: ReadingList?) : PopupMenu.OnMenuItemClickListener {
+    private inner class OverflowMenuClickListener(private val list: ReadingList?) : PopupMenu.OnMenuItemClickListener {
         override fun onMenuItemClick(item: MenuItem): Boolean {
             BreadCrumbLogEvent.logClick(context, item)
             when (item.itemId) {
