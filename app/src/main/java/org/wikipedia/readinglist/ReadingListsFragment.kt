@@ -440,6 +440,11 @@ class ReadingListsFragment : Fragment(), SortReadingListsDialog.Callback, Readin
             view.setReadingList(readingList, ReadingListItemView.Description.SUMMARY, selectMode,
                 newImport = readingList.id == recentPreviewSavedReadingList?.id, isSuggested = isSuggested)
             view.setSearchQuery(currentSearchQuery)
+            if (isSuggested) {
+                view.previewSaveButton.setOnClickListener {
+                    startActivity(ReadingListActivity.newIntent(requireActivity(), true, suggestedList = true, suggestedListSave = true))
+                }
+            }
         }
 
         override val view get() = itemView as ReadingListItemView

@@ -78,7 +78,9 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
     private lateinit var headerView: ReadingListItemView
     private var previewSaveDialog: AlertDialog? = null
     private var isPreview: Boolean = false
+
     private var isSuggested: Boolean = false
+    private var isSuggestedSave: Boolean = false
 
     private var readingListId: Long = 0
     private val adapter = ReadingListPageItemAdapter()
@@ -108,6 +110,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
 
         isPreview = requireArguments().getBoolean(ReadingListActivity.EXTRA_READING_LIST_PREVIEW, false)
         isSuggested = requireActivity().intent.getBooleanExtra(ReadingListActivity.EXTRA_READING_LIST_SUGGESTED, false)
+        isSuggestedSave = requireActivity().intent.getBooleanExtra(ReadingListActivity.EXTRA_READING_LIST_SUGGESTED_SAVE, false)
 
         readingListId = requireArguments().getLong(ReadingListActivity.EXTRA_READING_LIST_ID, -1)
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
@@ -264,7 +267,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
         headerView.setThumbnailVisible(false)
         headerView.setTitleTextAppearance(R.style.H2)
         headerView.setOverflowViewVisibility(View.VISIBLE)
-        headerView.setPreviewMode(isPreview, isSuggested)
+        headerView.setPreviewMode(isPreview)
 
         if (isPreview) {
             headerView.previewSaveButton.setOnClickListener {
@@ -320,6 +323,11 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
                 val message = getString(R.string.reading_list_article_limit_message, readingList.title, Constants.MAX_READING_LIST_ARTICLE_LIMIT)
                 FeedbackUtil.makeSnackbar(requireActivity(), message).show()
                 articleLimitMessageShown = true
+            }
+
+            if (isSuggested && isSuggestedSave) {
+                isSuggestedSave = false
+                previewSaveDialog()
             }
         }
     }
@@ -505,6 +513,11 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
                     it.id = AppDatabase.instance.readingListDao().insertReadingList(it)
                     AppDatabase.instance.readingListPageDao().addPagesToList(it, it.pages, true)
                     Prefs.readingListRecentReceivedId = it.id
+
+                    if (isSuggested) {
+                        Prefs.suggestedReadingListsData = null
+                    }
+
                     requireActivity().startActivity(MainActivity.newIntent(requireContext())
                         .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra(Constants.INTENT_EXTRA_PREVIEW_SAVED_READING_LISTS, true))
                     requireActivity().finish()

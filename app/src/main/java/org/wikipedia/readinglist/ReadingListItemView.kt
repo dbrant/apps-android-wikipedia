@@ -35,10 +35,11 @@ class ReadingListItemView : ConstraintLayout {
     private val binding = ItemReadingListBinding.inflate(LayoutInflater.from(context), this)
     private var readingList: ReadingList? = null
     private val imageViews = listOf(binding.itemImage1, binding.itemImage2, binding.itemImage3, binding.itemImage4)
+    private var isSingle = false
     var callback: Callback? = null
     val shareButton get() = binding.itemShareButton
     val listTitle get() = binding.itemTitle
-    val previewSaveButton get() = binding.itemPreviewSaveButton
+    val previewSaveButton get() = if (isSingle) binding.itemPreviewSaveButton else binding.itemSaveButtonSecondary
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
@@ -119,6 +120,7 @@ class ReadingListItemView : ConstraintLayout {
             updateThumbnails()
         }
 
+        this.isSingle = isSingle
         binding.experimentLabel.isVisible = isSuggested
         binding.experimentLabel.backgroundTintList = ResourceUtil.getThemedColorStateList(context, if (isSingle) R.attr.background_color else R.attr.paper_color)
         binding.experimentAboutLabel.isVisible = isSuggested && isSingle
@@ -146,7 +148,7 @@ class ReadingListItemView : ConstraintLayout {
         binding.itemOverflowMenu.visibility = visibility
     }
 
-    fun setPreviewMode(isPreview: Boolean, isSuggested: Boolean = false) {
+    fun setPreviewMode(isPreview: Boolean) {
         binding.itemPreviewSaveButton.isVisible = isPreview
         binding.itemOverflowMenu.isVisible = !isPreview
         binding.itemReadingListStatisticalDescription.visibility = if (isPreview) View.GONE else View.VISIBLE
