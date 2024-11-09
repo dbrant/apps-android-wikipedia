@@ -521,7 +521,11 @@ class ReadingListsFragment : Fragment(), SortReadingListsDialog.Callback, Readin
                 toggleSelectList(readingList)
             } else {
                 actionMode?.finish()
-                startActivity(ReadingListActivity.newIntent(requireContext(), readingList))
+                if (readingList == suggestedReadingList) {
+                    startActivity(ReadingListActivity.newIntent(requireActivity(), true, suggestedList = true))
+                } else {
+                    startActivity(ReadingListActivity.newIntent(requireContext(), readingList))
+                }
             }
         }
 

@@ -264,7 +264,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
         headerView.setThumbnailVisible(false)
         headerView.setTitleTextAppearance(R.style.H2)
         headerView.setOverflowViewVisibility(View.VISIBLE)
-        headerView.setPreviewMode(isPreview)
+        headerView.setPreviewMode(isPreview, isSuggested)
 
         if (isPreview) {
             headerView.previewSaveButton.setOnClickListener {
@@ -309,7 +309,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
     private fun update(readingList: ReadingList? = this.readingList) {
         readingList?.let {
             binding.readingListEmptyText.visibility = if (it.pages.isEmpty()) View.VISIBLE else View.GONE
-            headerView.setReadingList(it, ReadingListItemView.Description.DETAIL)
+            headerView.setReadingList(it, ReadingListItemView.Description.DETAIL, isSuggested = isSuggested, isSingle = true)
             binding.readingListHeader.setReadingList(it)
             ReadingList.sort(readingList, Prefs.getReadingListPageSortMode(ReadingList.SORT_BY_NAME_ASC))
             setSearchQuery()
@@ -639,7 +639,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
         }
     }
 
-    private inner class ReadingListItemHolder constructor(itemView: ReadingListItemView) : DefaultViewHolder<View>(itemView) {
+    private inner class ReadingListItemHolder(itemView: ReadingListItemView) : DefaultViewHolder<View>(itemView) {
         fun bindItem(readingList: ReadingList) {
             view.setReadingList(readingList, ReadingListItemView.Description.SUMMARY)
             view.setPreviewMode(isPreview)

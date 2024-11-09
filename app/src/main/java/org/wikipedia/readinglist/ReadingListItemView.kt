@@ -107,7 +107,7 @@ class ReadingListItemView : ConstraintLayout {
     }
 
     fun setReadingList(readingList: ReadingList, description: Description, selectMode: Boolean = false,
-                       newImport: Boolean = false, isSuggested: Boolean = false) {
+                       newImport: Boolean = false, isSuggested: Boolean = false, isSingle: Boolean = false) {
         this.readingList = readingList
         val isDetailView = description == Description.DETAIL
         binding.itemDescription.maxLines = if (isDetailView) Int.MAX_VALUE else resources.getInteger(R.integer.reading_list_description_summary_view_max_lines)
@@ -120,11 +120,10 @@ class ReadingListItemView : ConstraintLayout {
         }
 
         binding.experimentLabel.isVisible = isSuggested
-        binding.itemSaveButtonSecondary.isVisible = isSuggested
-        binding.backgroundShape.isVisible = isSuggested
-        if (isSuggested) {
-
-        }
+        binding.experimentLabel.backgroundTintList = ResourceUtil.getThemedColorStateList(context, if (isSingle) R.attr.background_color else R.attr.paper_color)
+        binding.experimentAboutLabel.isVisible = isSuggested && isSingle
+        binding.itemSaveButtonSecondary.isVisible = isSuggested && !isSingle
+        binding.backgroundShape.isVisible = isSuggested&& !isSingle
     }
 
     fun setThumbnailVisible(visible: Boolean) {
@@ -147,7 +146,7 @@ class ReadingListItemView : ConstraintLayout {
         binding.itemOverflowMenu.visibility = visibility
     }
 
-    fun setPreviewMode(isPreview: Boolean) {
+    fun setPreviewMode(isPreview: Boolean, isSuggested: Boolean = false) {
         binding.itemPreviewSaveButton.isVisible = isPreview
         binding.itemOverflowMenu.isVisible = !isPreview
         binding.itemReadingListStatisticalDescription.visibility = if (isPreview) View.GONE else View.VISIBLE
