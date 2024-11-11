@@ -852,7 +852,7 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
                 toggleSelectPage(item)
             } else if (item != null) {
                 val title = ReadingListPage.toPageTitle(item)
-                val entry = HistoryEntry(title, HistoryEntry.SOURCE_READING_LIST)
+                val entry = HistoryEntry(title, if (isSuggested) HistoryEntry.SOURCE_RABBIT_HOLE_READING_LIST else HistoryEntry.SOURCE_READING_LIST)
                 item.touch()
                 ReadingListBehaviorsUtil.updateReadingListPage(item)
                 startActivity(PageActivity.newIntentForCurrentTab(requireContext(), entry, entry.title))

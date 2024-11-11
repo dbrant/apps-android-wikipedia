@@ -1820,6 +1820,8 @@
     <string name="recent_searches_related_to_reading">Related to what you\'re reading</string>
     <string name="rabbit_holes_experiment">Experiment</string>
     <string name="rabbit_holes_experiment_about">About this experiment</string>
+    <string name="rabbit_holes_survey_dialog_title">Help improve rabbit holes</string>
+    <string name="rabbit_holes_survey_dialog_body">Are you satisfied with this recommended search result?</string>
     <string name="suggested_reading_list_title">Based on your reading</string>
     <string name="suggested_reading_list_description">Inspired by \"%s\"</string>
     <string name="suggested_reading_list_later_snackbar">If you want to visit your reading list later, go to the Saved tab on the home screen.</string>
@@ -1841,5 +1843,5 @@
     <string name="survey_dialog_cancel">Cancel</string>
     <string name="survey_dialog_submit">Submit</string>
     <string name="survey_dialog_input_hint">Additional feedback</string>
-    <string name="survey_dialog_submitted_snackbar">Feedback submitted.</string>
+    <string name="survey_dialog_submitted_snackbar">Feedback submitted. Thank you!</string>
 </resources>

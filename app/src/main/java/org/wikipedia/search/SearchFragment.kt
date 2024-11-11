@@ -208,7 +208,7 @@ class SearchFragment : Fragment(), SearchResultsFragment.Callback, RecentSearche
             requireActivity().setResult(SearchActivity.RESULT_LINK_SUCCESS, intent)
             requireActivity().finish()
         } else {
-            val historyEntry = HistoryEntry(item, HistoryEntry.SOURCE_SEARCH)
+            val historyEntry = HistoryEntry(item, if (query == suggestedSearchQuery) HistoryEntry.SOURCE_RABBIT_HOLE_SEARCH else HistoryEntry.SOURCE_SEARCH)
             startActivity(if (inNewTab) PageActivity.newIntentForNewTab(requireContext(), historyEntry, historyEntry.title)
             else PageActivity.newIntentForCurrentTab(requireContext(), historyEntry, historyEntry.title, false))
         }

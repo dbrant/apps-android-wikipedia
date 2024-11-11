@@ -30,6 +30,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.encodeToJsonElement
@@ -91,9 +92,11 @@ import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.FrameLayoutNavMenuTriggerer
 import org.wikipedia.views.ObservableWebView
+import org.wikipedia.views.SurveyDialog
 import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.LoadPageCallback, FrameLayoutNavMenuTriggerer.Callback {
 
@@ -838,6 +841,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
                 }
             }
         }
+        maybeShowRabbitHolesSurvey()
     }
 
     private fun applySuggestedSearchTerm(term: String) {
@@ -864,6 +868,32 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         )
         Prefs.importReadingListsDialogShown = false
         Prefs.suggestedReadingListsData = JsonUtil.encodeToString(readingList)
+    }
+
+    private fun maybeShowRabbitHolesSurvey() {
+        if (Prefs.suggestedContentSurveyShown) {
+            return
+        }
+        lifecycleScope.launch(CoroutineExceptionHandler { _, t ->
+            L.e(t)
+        }) {
+            delay(TimeUnit.SECONDS.toMillis(if (ReleaseUtil.isDevRelease) 1L else 10L))
+            pageFragment.historyEntry?.let {
+                if (it.source == HistoryEntry.SOURCE_RABBIT_HOLE_SEARCH ||
+                    it.source == HistoryEntry.SOURCE_RABBIT_HOLE_READING_LIST
+                ) {
+                    Prefs.suggestedContentSurveyShown = true
+                    SurveyDialog.showFeedbackOptionsDialog(
+                        this@PageActivity,
+                        titleId = R.string.rabbit_holes_survey_dialog_title,
+                        messageId = R.string.rabbit_holes_survey_dialog_body,
+                        snackbarMessageId = R.string.survey_dialog_submitted_snackbar,
+                        invokeSource = InvokeSource.PAGE_ACTIVITY,
+                        historyEntry = it
+                    )
+                }
+            }
+        }
     }
 
     companion object {
