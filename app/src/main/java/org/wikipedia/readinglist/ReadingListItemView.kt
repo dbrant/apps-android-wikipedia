@@ -35,6 +35,7 @@ class ReadingListItemView : ConstraintLayout {
     private val binding = ItemReadingListBinding.inflate(LayoutInflater.from(context), this)
     private var readingList: ReadingList? = null
     private val imageViews = listOf(binding.itemImage1, binding.itemImage2, binding.itemImage3, binding.itemImage4)
+    private var isSuggested = false
     private var isSingle = false
     var callback: Callback? = null
     val shareButton get() = binding.itemShareButton
@@ -62,6 +63,9 @@ class ReadingListItemView : ConstraintLayout {
         }
 
         setOnLongClickListener { view ->
+            if (isSuggested) {
+                return@setOnLongClickListener false
+            }
             readingList?.let {
                 PopupMenu(context, view, Gravity.END).let { menu ->
                     menu.menuInflater.inflate(R.menu.menu_reading_list_item, menu.menu)
@@ -120,6 +124,7 @@ class ReadingListItemView : ConstraintLayout {
             updateThumbnails()
         }
 
+        this.isSuggested = isSuggested
         this.isSingle = isSingle
         binding.experimentLabel.isVisible = isSuggested
         binding.experimentLabel.backgroundTintList = ResourceUtil.getThemedColorStateList(context, if (isSingle) R.attr.background_color else R.attr.paper_color)
