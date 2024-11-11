@@ -176,6 +176,7 @@ class RecentSearchesFragment : Fragment() {
         override fun bindItem(position: Int) {
             (itemView as TextView).apply {
                 setOnClickListener(this@SuggestedSearchItemViewHolder)
+                setBackgroundColor(ResourceUtil.getThemedColor(requireContext(), R.attr.addition_color))
                 setTypeface(null, Typeface.NORMAL)
                 text = suggestedSearchTerm
             }
@@ -187,6 +188,7 @@ class RecentSearchesFragment : Fragment() {
     private inner class SuggestedSearchHeadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bindItem(position: Int) {
             (itemView as TextView).apply {
+                setBackgroundColor(ResourceUtil.getThemedColor(requireContext(), R.attr.paper_color))
                 setTypeface(null, Typeface.BOLD)
                 text = if (position == 0) getString(R.string.recent_searches_related_to_reading) else getString(R.string.recent_searches_title)
             }
