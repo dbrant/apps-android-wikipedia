@@ -269,8 +269,8 @@ class ReadingListFragment : Fragment(), MenuProvider, ReadingListItemActionsDial
         headerView.setOverflowViewVisibility(View.VISIBLE)
         headerView.setPreviewMode(isPreview)
 
-        if (isPreview) {
-            headerView.previewSaveButton.setOnClickListener {
+        if (isPreview || isSuggested) {
+            headerView.saveClickListener = View.OnClickListener {
                 previewSaveDialog()
             }
             return

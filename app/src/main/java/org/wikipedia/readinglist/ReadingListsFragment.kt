@@ -441,7 +441,7 @@ class ReadingListsFragment : Fragment(), SortReadingListsDialog.Callback, Readin
                 newImport = readingList.id == recentPreviewSavedReadingList?.id, isSuggested = isSuggested)
             view.setSearchQuery(currentSearchQuery)
             if (isSuggested) {
-                view.previewSaveButton.setOnClickListener {
+                view.saveClickListener = View.OnClickListener {
                     startActivity(ReadingListActivity.newIntent(requireActivity(), true, suggestedList = true, suggestedListSave = true))
                 }
             }

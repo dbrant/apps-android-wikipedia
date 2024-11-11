@@ -35,6 +35,8 @@ class ReadingListActivity : SingleFragmentActivity<ReadingListFragment>() {
         super.onBackPressed()
         if (intent.getBooleanExtra(EXTRA_READING_LIST_PREVIEW, false)) {
             ReadingListsAnalyticsHelper.logReceiveCancel(this, fragment.readingList)
+        } else if (intent.getBooleanExtra(EXTRA_READING_LIST_SUGGESTED, false)) {
+            setResult(RESULT_CANCELED)
         }
     }
 

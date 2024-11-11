@@ -190,6 +190,12 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         }
     }
 
+    private val requestSuggestedReadingListLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == RESULT_CANCELED) {
+            FeedbackUtil.showMessage(this, R.string.suggested_reading_list_back_cancel)
+        }
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
@@ -831,7 +837,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
                             .setTitle(R.string.suggested_reading_list_dialog_title)
                             .setMessage(R.string.suggested_reading_list_dialog_body)
                             .setPositiveButton(R.string.suggested_reading_list_dialog_positive) { _, _ ->
-                                startActivity(ReadingListActivity.newIntent(this@PageActivity, true, suggestedList = true))
+                                requestSuggestedReadingListLauncher.launch(ReadingListActivity.newIntent(this@PageActivity, true, suggestedList = true))
                             }
                             .setNegativeButton(R.string.suggested_reading_list_dialog_negative, { _, _ ->
                                 FeedbackUtil.showMessage(this@PageActivity, R.string.suggested_reading_list_later_snackbar)

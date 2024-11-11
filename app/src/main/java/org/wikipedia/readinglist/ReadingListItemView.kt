@@ -38,9 +38,9 @@ class ReadingListItemView : ConstraintLayout {
     private var isSuggested = false
     private var isSingle = false
     var callback: Callback? = null
+    var saveClickListener: OnClickListener? = null
     val shareButton get() = binding.itemShareButton
     val listTitle get() = binding.itemTitle
-    val previewSaveButton get() = if (isSingle) binding.itemPreviewSaveButton else binding.itemSaveButtonSecondary
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
@@ -106,6 +106,13 @@ class ReadingListItemView : ConstraintLayout {
             readingList?.let {
                 callback?.onShare(it)
             }
+        }
+
+        binding.itemPreviewSaveButton.setOnClickListener {
+            saveClickListener?.onClick(it)
+        }
+        binding.itemSaveButtonSecondary.setOnClickListener {
+            saveClickListener?.onClick(it)
         }
 
         FeedbackUtil.setButtonTooltip(binding.itemShareButton, binding.itemOverflowMenu)
