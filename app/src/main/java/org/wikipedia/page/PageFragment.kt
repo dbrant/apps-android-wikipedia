@@ -48,6 +48,7 @@ import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.LongPressHandler
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
+import org.wikipedia.activity.BaseActivity
 import org.wikipedia.activity.FragmentUtil.getCallback
 import org.wikipedia.analytics.eventplatform.ArticleFindInPageInteractionEvent
 import org.wikipedia.analytics.eventplatform.ArticleInteractionEvent
@@ -74,6 +75,7 @@ import org.wikipedia.dataclient.okhttp.HttpStatusException
 import org.wikipedia.dataclient.okhttp.OkHttpWebViewClient
 import org.wikipedia.descriptions.DescriptionEditActivity
 import org.wikipedia.diff.ArticleEditDetailsActivity
+import org.wikipedia.donate.DonorHistoryActivity
 import org.wikipedia.edit.EditHandler
 import org.wikipedia.gallery.GalleryActivity
 import org.wikipedia.history.HistoryEntry
@@ -103,10 +105,10 @@ import org.wikipedia.settings.Prefs
 import org.wikipedia.suggestededits.PageSummaryForEdit
 import org.wikipedia.talk.TalkTopicsActivity
 import org.wikipedia.theme.ThemeChooserDialog
+import org.wikipedia.usercontrib.ContributionsDashboardHelper
 import org.wikipedia.util.ActiveTimer
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.FeedbackUtil
-import org.wikipedia.util.ReleaseUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.ShareUtil
 import org.wikipedia.util.StringUtil
@@ -115,7 +117,6 @@ import org.wikipedia.util.UriUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.ObservableWebView
 import org.wikipedia.views.PageActionOverflowView
-import org.wikipedia.views.SurveyDialog
 import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
@@ -123,7 +124,6 @@ import org.wikipedia.wiktionary.WiktionaryDialog
 import java.time.Duration
 import java.time.Instant
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.CommunicationBridgeListener, ThemeChooserDialog.Callback,
     ReferenceDialog.Callback, WiktionaryDialog.Callback, WatchlistExpiryDialog.Callback {
@@ -226,7 +226,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         _binding = FragmentPageBinding.inflate(inflater, container, false)
         webView = binding.pageWebView
         initWebViewListeners()
-        binding.pageRefreshContainer.setColorSchemeResources(ResourceUtil.getThemedAttributeId(requireContext(), R.attr.progressive_color))
         binding.pageRefreshContainer.scrollableChild = webView
         binding.pageRefreshContainer.setOnRefreshListener(pageRefreshListener)
         val swipeOffset = DimenUtil.getContentTopOffsetPx(requireActivity()) + REFRESH_SPINNER_ADDITIONAL_OFFSET
@@ -440,6 +439,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                     // tells us the page is finished loading. In such a case, we must infer that the
                     // page has now loaded and trigger the remaining logic ourselves.
                     if ("true" != pcsExists) {
+                        if (WikipediaApp.instance.currentTheme.isDark) {
+                            // TODO: remove when mobile web supports automatic dark mode through
+                            // the `prefers-color-scheme` media query.
+                            bridge.execute(JavaScriptActionHandler.mobileWebSetDarkMode())
+                        }
                         onPageSetupEvent()
                         bridge.onMetadataReady()
                         bridge.onPcsReady()
@@ -719,35 +723,19 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                             val dialog = CampaignDialog(requireActivity(), it)
                             dialog.setCancelable(false)
                             dialog.show()
+                            return@launch
                         }
                     }
+                    maybeShowContributionsDashboardDialog()
                 }
             }
         }
     }
 
-    private fun maybeShowRecommendedContentSurvey() {
-        if (Prefs.recommendedContentSurveyShown) {
-             return
-        }
-        historyEntry?.let {
-            val duration = if (ReleaseUtil.isDevRelease) 1L else 10L
-            binding.pageContentsContainer.postDelayed({
-                if (!isAdded) {
-                    return@postDelayed
-                }
-                if (it.source == HistoryEntry.SOURCE_RECOMMENDED_CONTENT_PERSONALIZED ||
-                    it.source == HistoryEntry.SOURCE_RECOMMENDED_CONTENT_GENERALIZED) {
-                    SurveyDialog.showFeedbackOptionsDialog(
-                        requireActivity(),
-                        titleId = R.string.recommended_content_survey_dialog_title,
-                        messageId = R.string.recommended_content_survey_dialog_message,
-                        snackbarMessageId = R.string.recommended_content_survey_dialog_submitted_message,
-                        invokeSource = InvokeSource.RECOMMENDED_CONTENT,
-                        historyEntry = it
-                    )
-                }
-            }, TimeUnit.SECONDS.toMillis(duration))
+    private fun maybeShowContributionsDashboardDialog() {
+        if (!Prefs.contributionsDashboardEntryDialogShown && ContributionsDashboardHelper.contributionsDashboardEnabled) {
+            ContributionsDashboardHelper.showEntryDialog(requireActivity())
+            Prefs.contributionsDashboardEntryDialogShown = true
         }
     }
 
@@ -994,7 +982,6 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             webView.visibility = View.VISIBLE
         }
         maybeShowAnnouncement()
-        maybeShowRecommendedContentSurvey()
         bridge.onMetadataReady()
         // Explicitly set the top margin (even though it might have already been set in the setup
         // handler), since the page metadata might have altered the lead image display state.
@@ -1325,11 +1312,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         PageActionOverflowView(requireContext()).show(anchor, pageActionItemCallback, currentTab, model)
     }
 
-    fun goToMainTab() {
-        startActivity(MainActivity.newIntent(requireContext())
+    fun goToMainActivity(tab: NavTab, tabExtra: String) {
+        startActivity(MainActivity.newIntent(requireActivity())
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(Constants.INTENT_RETURN_TO_MAIN, true)
-            .putExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB, NavTab.EXPLORE.code()))
+            .putExtra(tabExtra, tab.code()))
         requireActivity().finish()
     }
 
@@ -1519,7 +1506,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
 
         override fun onExploreSelected() {
-            goToMainTab()
+            goToMainActivity(tab = NavTab.EXPLORE, tabExtra = Constants.INTENT_EXTRA_GO_TO_MAIN_TAB)
             articleInteractionEvent?.logExploreClick()
             metricsPlatformArticleEventToolbarInteraction.logExploreClick()
         }
@@ -1556,6 +1543,18 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             metricsPlatformArticleEventToolbarInteraction.logForwardClick()
         }
 
+        override fun onDonorSelected() {
+            goToMainActivity(tab = NavTab.EDITS, tabExtra = Constants.INTENT_EXTRA_GO_TO_SE_TAB)
+        }
+
+        override fun onBecomeDonorSelected() {
+            (requireActivity() as? BaseActivity)?.launchDonateDialog(campaignId = ContributionsDashboardHelper.CAMPAIGN_ID)
+        }
+
+        override fun onUpdateDonorStatusSelected() {
+            startActivity(DonorHistoryActivity.newIntent(requireContext(), goBackToContributeTab = true))
+        }
+
         override fun onNarrateSelected() {
             bridge.evaluate(JavaScriptActionHandler.getSpokenFileName()) { result ->
                 var spokenUrl = if (result == null || result == "null") "" else result
@@ -1584,7 +1583,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 // massage the text a bit further
                 text = text.replace("\\n", "\n").replace("\\\"", "\"").replace("\\'", "'")
 
-                text = StringUtil.fromHtml(title?.displayText).toString() + "\n\n" + title?.description + "\n\n" + text
+                text = StringUtil.fromHtml(title?.displayText)
+                    .toString() + "\n\n" + title?.description + "\n\n" + text
 
 
                 val sentences = mutableListOf<String>()

@@ -114,6 +114,9 @@ enum class PageActionItem constructor(val id: Int,
         fun onViewOnMapSelected()
         fun forwardClick()
         fun onNarrateSelected()
+        fun onDonorSelected()
+        fun onBecomeDonorSelected()
+        fun onUpdateDonorStatusSelected()
     }
 
     companion object {
