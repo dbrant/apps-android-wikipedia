@@ -335,7 +335,7 @@
   <string name="page_view_in_browser">Säit am Browser weisen</string>
   <string name="tool_tip_toc_title">Inhaltsverzeechnes-Schnellzougrëff</string>
   <string name="error_response_malformed">D\'Äntwert vum Server war net richteg formatéiert.</string>
-  <string name="error_unknown">En onbekannte Feeler ass geschitt.</string>
+  <string name="error_unknown">Et ass en onbekannte Feller geschitt.</string>
   <string name="format_error_server_message">Message: \"%s\"</string>
   <string name="address_copied">Adress an den Tëschespäicher kopéiert.</string>
   <string name="text_copied">Text an den Tëschespäicher kopéiert.</string>
@@ -369,6 +369,7 @@
   <string name="link_preview_dialog_save_button">Späicheren</string>
   <string name="link_preview_dialog_saved_button">Gespäichert</string>
   <string name="link_preview_dialog_share_button">Deelen</string>
+  <string name="link_preview_stub_placeholder_text">Dësen Artikel ass eng Skizz, d.&amp;nbsp;h. et gëtt net genuch Contenu am Artikel, deen hei kéint ugewise ginn. Dir kënnt dat awer änneren.</string>
   <string name="error_page_does_not_exist">Dës Säit gëtt et net</string>
   <string name="error_user_page_does_not_exist">D\'Wikipedia huet keng &lt;a href=\"%1$s\"&gt;Benotzersäit&lt;/a&gt; mat exakt dësem Numm. Am Allgemenge sollt dës Säit vum &lt;b&gt;%2$s&lt;/b&gt; ugeluecht a geännert ginn. Am Zweiwelsfall iwwerpréift, ob \"%3$s\" existéiert.</string>
   <string name="view_wiki_error_message_offline">Kann net mam Internet verbannen</string>
@@ -735,6 +736,7 @@
   <string name="view_offline_card_text">Et ka keen Inhalt geluede gi wann Dir offline sidd.</string>
   <string name="view_featured_article_card_title">Exzellenten Artikel</string>
   <string name="view_static_card_save_button_label">Späicheren</string>
+  <string name="feed_configure_activity_title">De Feed upassen</string>
   <string name="feed_configure_menu_reset">Standard- Ausgesinn restauréieren</string>
   <string name="feed_configure_menu_select_all">All weisen</string>
   <string name="feed_configure_menu_deselect_all">All verstoppen</string>
@@ -1177,10 +1179,10 @@
   <string name="watchlist_details_prev_edit">Vireg Ännerung</string>
   <string name="thank_label">Merci soen</string>
   <string name="view_user_page">Benotzersäit weisen</string>
-  <string name="thank_dialog_title_text">\'Merci\' ëffentlech schécken</string>
+  <string name="thank_dialog_title_text">„Merci“ ëffentlech schécken</string>
   <string name="thank_dialog_positive_button_text">Merci soen</string>
   <string name="thank_dialog_negative_button_text">Ofbriechen</string>
-  <string name="thank_success_message">Äre \'Merci\' gouf dem %s geschéckt 👍</string>
+  <string name="thank_success_message">Äre „Merci“ gouf dem %s geschéckt 👍</string>
   <string name="menu_option_view_user_profile">Benotzersäit weisen</string>
   <string name="menu_option_view_user_talk">Diskussiounssäit weisen</string>
   <string name="menu_option_view_user_contributions">Benotzerkontributioune weisen</string>
@@ -1408,16 +1410,6 @@
   <string name="places_card_distance_suffix">%s ewech</string>
   <string name="places_card_distance_unknown">Onbekannt Distanz</string>
   <string name="places_empty_message_snackbar">Et gëtt keng Artikelen an der Géigend. Probéiert d\'Kaart ze verklengeren oder ze verréckelen.</string>
-  <string name="donor_history_save_button">Späicheren</string>
-  <string name="donor_history_last_donated_date_picker_title">Datum eraussichen</string>
-  <string name="donor_history_last_donated_date_picker_label">Datum aginn</string>
-  <string name="donor_history_last_donated_never">Ni</string>
-  <string name="contributions_dashboard_survey_dialog_cancel">Keng Meenung</string>
-  <string name="contributions_dashboard_donation_dialog_title">Merci, datt Dir fräit Wëssen ënnerstëtzt</string>
-  <string name="contributions_dashboard_donation_dialog_cancel">Nee, merci</string>
-  <string name="contributions_dashboard_entry_dialog_cancel">Nee, merci</string>
-  <string name="contributions_dashboard_tab_update_button">Aktualiséieren</string>
-  <string name="contributions_dashboard_donor_icon_dialog_cancel">Nee, merci</string>
   <string name="rabbit_holes_experiment_about">Iwwer dëst Experiment</string>
   <string name="suggested_reading_list_description">Inspiréiert vun „%s“</string>
   <string name="suggested_reading_list_description_multi">Inspiréiert vun %1$s an %2$s</string>
