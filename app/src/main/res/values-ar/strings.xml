@@ -7,6 +7,7 @@
 * Alshamiri1
 * Asaifm
 * Asma
+* Cigaryno
 * Cooltey
 * Dbrant
 * Dr-Taher
@@ -42,6 +43,7 @@
 * Tala Ali
 * Ulhvulgv
 * Wrai
+* XIDME
 * Youssef
 * أيوب
 * أَحمد
@@ -184,6 +186,10 @@
   <string name="dialog_message_leaving_edit">لم تُنشر تغييراتك حتى الآن. هل أنت متأكد أنك تريد ترك هذه الصفحة؟</string>
   <string name="dialog_message_leaving_edit_leave">المغادرة</string>
   <string name="dialog_message_leaving_edit_stay">البقاء</string>
+  <string name="dialog_confirm_delete_donation_history_title">تأكيد الحذف</string>
+  <string name="dialog_confirm_delete_donation_history_message">سيتم تطبيق هذا فقط على التبرعات المقدمة من هذا الجهاز.</string>
+  <string name="dialog_confirm_delete_donation_history_delete">حذف</string>
+  <string name="dialog_confirm_delete_donation_history_cancel">إلغاء</string>
   <string name="menu_show_toc">جدول المحتويات</string>
   <string name="search_no_results_found">لا توجد نتائج</string>
   <string name="search_reading_list_no_results">لا نتائج في %s</string>
@@ -480,6 +486,7 @@
   <string name="theme_chooser_dialog_image_dimming_switch_label">تخفيت الصور (في المظهر الداكن)</string>
   <string name="preference_title_prefer_offline_content">تفضيل المحتوى دون اتصال</string>
   <string name="preference_summary_prefer_offline_content">حفظ استخدام البيانات بتحميل المقالات المتاحة في وضع عدم الاتصال بدلا من تحميل أحدث إصدار من مقالة دائما</string>
+  <string name="preference_title_delete_local_donation_history">حذف سجل التبرعات المحلية</string>
   <string name="theme_chooser_dialog_match_system_theme_switch_label">تطابق موضوع النظام</string>
   <string name="page_footer_license_text">المحتوى متوفر تحت رخصة $1 إلا إذا ذُكر غير ذلك</string>
   <string name="empty_tab_title">تبويب جديد</string>
@@ -780,7 +787,7 @@
   <string name="notification_channel_description">تقدم التنزيل</string>
   <string name="notification_syncing_pause_button">وقف</string>
   <string name="notification_syncing_resume_button">استئناف</string>
-  <string name="notification_syncing_cancel_button">ألغ</string>
+  <string name="notification_syncing_cancel_button">إلغاء</string>
   <string name="notification_syncing_reading_list_channel_title">مزامنة قوائم القراءة</string>
   <string name="notification_syncing_reading_list_channel_description">جارٍ تقدم مزامنة قوائم القراءة</string>
   <string name="notification_many_unread">لديك  %d إشعارات غير مقروءة</string>
@@ -932,7 +939,7 @@
   <string name="notifications_swipe_action_read">مقروءة</string>
   <string name="notifications_swipe_action_unread">غير مقروءة</string>
   <string name="notifications_menu_check_all">حدّد كل العناصر</string>
-  <string name="notifications_menu_uncheck_all">ألغ تحديد كل العناصر</string>
+  <string name="notifications_menu_uncheck_all">إلغاء تحديد كل العناصر</string>
   <string name="notifications_wiki_filter_header">مرشّح الويكي</string>
   <string name="notifications_type_filter_header">مرشّح النوع</string>
   <string name="notifications_all_wikis_text">جميع الويكيات</string>
@@ -1024,7 +1031,7 @@
   <string name="description_edit_add_image_caption">إضافة تعليق الصورة</string>
   <string name="description_edit_edit_image_caption">تحرير تعليق الصورة</string>
   <string name="description_edit_translate_image_caption">ترجمة تعليق الصورة</string>
-  <string name="description_edit_cancel_hint">ألغ</string>
+  <string name="description_edit_cancel_hint">إلغاء</string>
   <string name="description_edit_help_title">معلومات: وصف المقالة</string>
   <string name="description_edit_help_about_wikidata">عن ويكي بيانات</string>
   <string name="description_edit_help_wikidata_guide">دليل ويكي بيانات لكتابة الوصوف</string>
@@ -1038,7 +1045,9 @@
   <string name="description_edit_description_learn_more_url">https://m.mediawiki.org/wiki/Wikimedia_Apps/Android_Suggested_edits#Article_descriptions</string>
   <string name="description_edit_image_caption_learn_more_url">https://m.mediawiki.org/wiki/Wikimedia_Apps/Android_Suggested_edits#Image_captions</string>
   <string name="description_too_short">النص قصير للغاية.</string>
+  <string name="description_too_long">حاول أن تجعل الأوصاف قصيرة حتى يتمكن المستخدمون من فهم موضوع المقالة في لمحة واحدة</string>
   <string name="description_ends_with_punctuation">النص يجب أن لا ينتهي بعلامة ترقيم.</string>
+  <string name="description_starts_with_article">تجنب البدء بأدوات التعريف مثل \"a\" أو \"the\".</string>
   <string name="description_starts_with_uppercase">ابدأ بحرف صغير إلا إذا كانت الكلمة الأولى هي اسم علم.</string>
   <string name="description_starts_with_lowercase">تجنّب البدء بأحرف صغيرة.</string>
   <string name="description_is_in_different_language">يظهر أن النص بلغة غير متوقّعة. اللغة يجب أن تكون %s.</string>
@@ -1139,8 +1148,6 @@
   <string name="suggested_edits_feed_card_add_image_caption">إضافة شرح الصورة</string>
   <string name="suggested_edits_feed_card_translate_image_caption">إضافة تعليق الصورة (%s)</string>
   <string name="suggested_edits_feed_card_add_image_tags">أضف وسومًا للصور</string>
-  <string name="suggested_edits_snackbar_survey_text">كيف كانت تجربة التحرير الخاصة بك؟ يُرجَى قضاء بعض الوقت لملء الاستبيان حول التعديل داخل التطبيق.</string>
-  <string name="suggested_edits_snackbar_survey_action_text">المشاركة في استبيان</string>
   <string name="suggested_edits_task_action_text_add">إضافة</string>
   <string name="suggested_edits_task_action_text_translate">ترجمة</string>
   <string name="suggested_edits_image_captions">تعليقات الصورة</string>
@@ -1571,7 +1578,7 @@
   <string name="thank_dialog_title_text">إرسال الشكر علنًا</string>
   <string name="thank_dialog_text">\"الشكر\" هي طريقةٌ سهلةٌ لإظهار التقدير لعمل أحد المحررين في ويكيبيديا. لا يمكن التراجع عن \"الشكر\" وهي معروضةٌ علنًا.</string>
   <string name="thank_dialog_positive_button_text">إرسال شكر</string>
-  <string name="thank_dialog_negative_button_text">ألغ</string>
+  <string name="thank_dialog_negative_button_text">إلغاء</string>
   <string name="thank_success_message">أُرسل \"شكرك\" إلى %s 👍</string>
   <string name="menu_option_view_user_profile">عرض صفحة المستخدم</string>
   <string name="menu_option_view_user_talk">اعرض صفحة النقاش</string>
@@ -1881,6 +1888,7 @@
   <string name="donate_gpay_help_other_ways">طرق أخرى للعطاء</string>
   <string name="donate_gpay_help_faq">الأسئلة الأكثر تكرارا</string>
   <string name="donate_gpay_help_tax">معلومات حول إمكانية خصم الضرائب</string>
+  <string name="donation_history_deleted_message_snackbar">تم حذف تاريخ المتبرع</string>
   <string name="places_title">أماكن</string>
   <string name="places_permissions_denied">يلزم الحصول على إذن تحديد الموقع الجغرافي لرؤية موقعك على الخريطة. يُرجى المحاولة مرة أخرى.</string>
   <string name="places_search_hint">ابحث عن أماكن</string>
@@ -1895,23 +1903,6 @@
   <string name="places_card_distance_suffix">%s بعيدا</string>
   <string name="places_card_distance_unknown">مسافة غير معروفة</string>
   <string name="places_empty_message_snackbar">لا توجد مقالات قريبة. حاول تصغير الخريطة وتحريكها.</string>
-  <string name="recent_searches_title">أحدث عمليات البحث</string>
-  <string name="recent_searches_related_to_reading">متعلق بما تقرأه</string>
-  <string name="rabbit_holes_experiment">تجريبي</string>
-  <string name="rabbit_holes_experiment_about">عن هذه التجربة</string>
-  <string name="rabbit_holes_survey_dialog_title">ساعد في تحسين جحور الأرانب</string>
-  <string name="rabbit_holes_survey_dialog_body">هل أنت راضٍ عن نتيجة البحث الموصى بها؟</string>
-  <string name="rabbit_holes_reading_list_survey_dialog_title">ساعد في تحسين قوائم القراءة الموصى بها</string>
-  <string name="rabbit_holes_reading_list_survey_dialog_body">هل أنت راضٍ عن قائمة القراءة الموصى بها؟</string>
-  <string name="suggested_reading_list_title">بناءً على ما قرأت</string>
-  <string name="suggested_reading_list_description">مستوحى من \"%s\"</string>
-  <string name="suggested_reading_list_description_multi">مستوحى من %1$s و %2$s</string>
-  <string name="suggested_reading_list_later_snackbar">إذا كنت تريد زيارة قائمة القراءة الخاصة بك لاحقًا، فانتقل إلى علامة التبويب المحفوظة على الشاشة الرئيسية.</string>
-  <string name="suggested_reading_list_dialog_title">لديك قائمة قراءة مقترحة جديدة.</string>
-  <string name="suggested_reading_list_dialog_body">هذه ميزة تجريبية. يعتمد المحتوى على سجل قراءتك الأخير. هل تريد الاطلاع على قائمة القراءة الجديدة هذه؟</string>
-  <string name="suggested_reading_list_dialog_positive">جربها الآن</string>
-  <string name="suggested_reading_list_dialog_negative">ربما لاحقًا</string>
-  <string name="suggested_reading_list_back_cancel">يمكنك رؤية قائمة القراءة المقترحة في أي وقت في علامة التبويب \"المحفوظة\" على الشاشة الرئيسية.</string>
   <string name="survey_dialog_title">ساعدنا على تحسين هذه الميزة</string>
   <string name="survey_dialog_message">هل أنت راض عن هذه الميزة؟</string>
   <string name="survey_dialog_option_satisfied">راضي</string>
@@ -1921,6 +1912,74 @@
   <string name="survey_dialog_option_very_unsatisfied">غير راض جدا</string>
   <string name="survey_dialog_cancel">إلغاء</string>
   <string name="survey_dialog_submit">إرسال</string>
+  <string name="survey_dialog_next">التالي</string>
+  <string name="survey_dialog_general_yes">نعم</string>
+  <string name="survey_dialog_general_no">لا</string>
+  <string name="survey_dialog_general_maybe">ربما</string>
   <string name="survey_dialog_input_hint">ملاحظات إضافية</string>
   <string name="survey_dialog_submitted_snackbar">تم إرسال التعليقات. شكرا لك!</string>
+  <string name="on_this_day_game_entry_dialog_title">مقدمة</string>
+  <string name="on_this_day_game_entry_dialog_subtitle">ألعاب ويكيبيديا</string>
+  <string name="on_this_day_game_entry_dialog_button">العب لعبة اليوم</string>
+  <string name="on_this_day_game_entry_dialog_snackbar_message">ألعاب ويكيبيديا موجوجة على موجز الاستكشاف.</string>
+  <string name="on_this_day_game_title">أيهما جاء أولا؟</string>
+  <string name="on_this_day_game_dialog_button">العب</string>
+  <string name="on_this_day_game_splash_message">خمّن أيّ حدث جاء أولاً في هذا اليوم في التاريخ</string>
+  <string name="on_this_day_game_progress">%1$d من %2$d</string>
+  <string name="on_this_day_game_score">النتيجة: %d</string>
+  <string name="on_this_day_game_correct">صحيح!</string>
+  <string name="on_this_day_game_incorrect">خطأ!</string>
+  <string name="on_this_day_game_point">+1 نقطة</string>
+  <string name="on_this_day_game_next">السؤال التالي</string>
+  <string name="on_this_day_game_finish">النتائج النهائية</string>
+  <string name="on_this_day_game_experiment_chip_text">تجريبي</string>
+  <string name="on_this_day_game_nav_title">ألعاب</string>
+  <string name="on_this_day_game_share">شارك مع الأصدقاء</string>
+  <string name="on_this_day_game_pause_title">إيقاف اللعبة مؤقتًا؟</string>
+  <string name="on_this_day_game_pause_body">سيتم حفظ تقدمك لهذا اليوم. يمكنك العثور على اللعبة في موجز Explore الخاص بك.</string>
+  <string name="on_this_day_game_pause_negative">استمر باللعب</string>
+  <string name="on_this_day_game_pause_positive">فهمتها</string>
+  <string name="on_this_day_game_feed_entry_card_heading">العاب ويكيبيديا</string>
+  <string name="on_this_day_game_feed_entry_card_title">أيهما جاء أولا؟</string>
+  <string name="on_this_day_game_feed_entry_card_subtitle">خمن ما هو الحدث الذي حدث أولاً في هذا اليوم في التاريخ؟</string>
+  <string name="on_this_day_game_result">لقد حصلت على %1$d/%2$d.</string>
+  <string name="on_this_day_game_next_in">المباراة القادمة في %s</string>
+  <string name="on_this_day_game_your_stats">إحصائياتك</string>
+  <plurals name="on_this_day_game_stats_games_played">
+    <item quantity="zero">لا لعبة</item>
+    <item quantity="one">لعبة لعبت</item>
+    <item quantity="two">لعبتان لعبتا</item>
+    <item quantity="few">ألعاب قليلة لعبت</item>
+    <item quantity="many">ألعاب كثيرة لعبت</item>
+    <item quantity="other">الألعاب التي لعبت</item>
+  </plurals>
+  <string name="on_this_day_game_stats_average_score">متوسط النتيجة</string>
+  <string name="on_this_day_game_stats_streak">السلسلة الحالية</string>
+  <string name="on_this_day_game_result_subtitle">المقالات المشار إليها في مباراة اليوم</string>
+  <string name="on_this_day_game_completed_message">شكرًا لك على اللعب. تتوفر لعبة جديدة بعنوان \"أيهما جاء أولاً؟\" يوميًا على موجز Explore.</string>
+  <string name="on_this_day_game_menu_notifications">إشعارات اللعبة</string>
+  <string name="on_this_day_game_menu_info">يتعلم أكثر</string>
+  <string name="on_this_day_game_menu_feedback">مشكلة مع الميزة</string>
+  <string name="on_this_day_game_share_text">ألعب لعبة \"ما الذي جاء أولاً؟\" وهي لعبة تفاهات يومية على تطبيق Wikipedia Android %s</string>
+  <string name="on_this_day_game_article_read_button">اقرأ المقال</string>
+  <string name="on_this_day_game_article_related_event_title">حدث مرتبط بهذه المقالة</string>
+  <string name="on_this_day_game_article_answer_correct_stats_message">لقد حصلت على هذا السؤال بشكل صحيح</string>
+  <string name="on_this_day_game_article_answer_incorrect_stats_message">لقد أخطأت في هذا السؤال</string>
+  <string name="on_this_day_game_turn_off_notification_dialog_title">إيقاف تشغيل إشعارات اللعبة؟</string>
+  <string name="on_this_day_game_turn_off_notification_dialog_subtitle">إذا قمت بإيقاف تشغيل إشعارات الدفع، فلن تتلقى بعد الآن تذكيرًا يوميًا عندما تتوفر لعبة جديدة للعب.</string>
+  <string name="on_this_day_game_turn_on_notification_dialog_title">تشغيل إشعارات اللعبة؟</string>
+  <string name="on_this_day_game_turn_on_notification_dialog_subtitle">تنبهك إشعارات اللعبة يوميًا عندما تتوفر لعبة جديدة للعب.</string>
+  <string name="on_this_day_game_turn_off_notification_dialog_positive_btn_label">لا، ابقهم على حالهم</string>
+  <string name="on_this_day_game_turn_off_notification_dialog_negative_btn_label">أطفئهم</string>
+  <string name="on_this_day_game_turn_on_notification_dialog_positive_btn_label">نعم، قم بتشغيلها</string>
+  <string name="on_this_day_game_turn_on_notification_dialog_negative_btn_label">ابق بعيدا عنهم</string>
+  <string name="on_this_day_game_notification_turned_off_snackbar_message">تم إيقاف إشعارات اللعبة.</string>
+  <string name="on_this_day_game_notification_turned_on_snackbar_message">إشعارات اللعبة مفعلة.</string>
+  <string name="on_this_day_game_notification_text">لعبة اليوم \"أيهما جاء أولاً؟\" جاهزة للعب.</string>
+  <string name="on_this_day_game_report_email_subject">تقرير المشكلة - ألعاب ويكيبيديا</string>
+  <string name="on_this_day_game_report_email_body">لقد واجهت مشكلة مع ميزة ألعاب ويكيبيديا:\n- [وصف المشكلة المحددة]\n\nالسلوك الذي أرغب في رؤيته هو:\n- [وصف الحل المقترح]</string>
+  <string name="on_this_day_game_notification_undo">رجوع</string>
+  <string name="on_this_day_game_share_link_message">ألعب لعبة \"أيهما جاء أولاً؟\" وهي لعبة تفاهات يومية على تطبيق Wikipedia Android %s</string>
+  <string name="on_this_day_game_survey_q1">ما مدى رضاك عن هذه اللعبة؟</string>
+  <string name="on_this_day_game_survey_q2">هل ترغب في لعب ألعاب ويكيبيديا المختلفة؟</string>
 </resources>
