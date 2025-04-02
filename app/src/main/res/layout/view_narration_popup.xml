@@ -57,6 +57,7 @@
             app:srcCompat="@drawable/remove_circle_24px"
             app:tint="?attr/secondary_color"
             android:background="?attr/selectableItemBackgroundBorderless"
+            app:actionProviderClass="androidx.mediarouter.app.MediaRouteActionProvider"
             android:contentDescription="@null"/>
 
         <ImageView

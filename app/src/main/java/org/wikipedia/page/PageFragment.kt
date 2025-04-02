@@ -30,6 +30,9 @@ import androidx.core.view.isVisible
 import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.mediarouter.app.MediaRouteActionProvider
+import androidx.mediarouter.media.MediaControlIntent
+import androidx.mediarouter.media.MediaRouteSelector
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -198,6 +201,8 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
     val leadImageEditLang get() = leadImagesHandler.callToActionEditLang
 
     val checkTtsServiceRunnable = TtsCheckRunnable()
+    private var mediaRouteSelector: MediaRouteSelector? = null
+    private lateinit var mediaRouteActionProvider: MediaRouteActionProvider
 
     inner class TtsCheckRunnable() : Runnable {
         override fun run() {
@@ -288,6 +293,20 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
 
         binding.speechButton.postDelayed(checkTtsServiceRunnable, 1000)
+
+
+
+
+
+        mediaRouteActionProvider = MediaRouteActionProvider(requireContext())
+
+        // Create a route selector for the type of routes your app supports.
+        mediaRouteSelector = MediaRouteSelector.Builder()
+            // These are the framework-supported intents
+            .addControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)
+            .build()
+
+
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1476,9 +1495,19 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         }
 
         override fun onExploreSelected() {
-            goToMainActivity(tab = NavTab.EXPLORE, tabExtra = Constants.INTENT_EXTRA_GO_TO_MAIN_TAB)
-            articleInteractionEvent?.logExploreClick()
-            metricsPlatformArticleEventToolbarInteraction.logExploreClick()
+            //goToMainActivity(tab = NavTab.EXPLORE, tabExtra = Constants.INTENT_EXTRA_GO_TO_MAIN_TAB)
+            //articleInteractionEvent?.logExploreClick()
+            //metricsPlatformArticleEventToolbarInteraction.logExploreClick()
+
+
+
+
+            // Attach the MediaRouteSelector that you built in onCreate()
+            mediaRouteSelector?.also(mediaRouteActionProvider::setRouteSelector)
+
+            mediaRouteActionProvider.onPerformDefaultAction()
+
+
         }
 
         override fun onCategoriesSelected() {

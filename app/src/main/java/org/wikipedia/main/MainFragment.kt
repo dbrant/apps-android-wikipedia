@@ -19,6 +19,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.MenuItemCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.descendants
 import androidx.core.view.isVisible
@@ -26,6 +27,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.mediarouter.app.MediaRouteActionProvider
+import androidx.mediarouter.media.MediaControlIntent
+import androidx.mediarouter.media.MediaRouteSelector
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
@@ -111,6 +115,15 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     // the image we're waiting for permission to download as a bit of state here. :(
     private var pendingDownloadImage: FeaturedImage? = null
 
+
+
+
+    private var mediaRouteSelector: MediaRouteSelector? = null
+
+
+
+
+
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
             pendingDownloadImage?.let { download(it) }
@@ -173,6 +186,22 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         if (savedInstanceState == null) {
             handleIntent(requireActivity().intent)
         }
+
+
+
+
+
+
+        // Create a route selector for the type of routes your app supports.
+        mediaRouteSelector = MediaRouteSelector.Builder()
+            // These are the framework-supported intents
+            .addControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)
+            .build()
+
+
+
+
+
         return binding.root
     }
 
@@ -241,6 +270,15 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
+
+        // Attach the MediaRouteSelector to the menu item
+        val mediaRouteMenuItem = menu.findItem(R.id.menu_notifications)
+        val mediaRouteActionProvider =
+            MenuItemCompat.getActionProvider(mediaRouteMenuItem) as MediaRouteActionProvider
+
+        // Attach the MediaRouteSelector that you built in onCreate()
+        mediaRouteSelector?.also(mediaRouteActionProvider::setRouteSelector)
+
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -289,7 +327,12 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
             FeedbackUtil.setButtonTooltip(tabCountsView!!)
             showTabCountsAnimation = false
         }
+
+
         val notificationMenuItem = menu.findItem(R.id.menu_notifications)
+        notificationMenuItem.isVisible = true
+
+        /*
         if (AccountUtil.isLoggedIn) {
             notificationMenuItem.isVisible = true
             notificationButtonView.setUnreadCount(Prefs.notificationUnreadCount)
@@ -306,6 +349,8 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
             notificationMenuItem.isVisible = false
         }
         updateNotificationDot(false)
+
+         */
     }
 
     fun handleIntent(intent: Intent) {
