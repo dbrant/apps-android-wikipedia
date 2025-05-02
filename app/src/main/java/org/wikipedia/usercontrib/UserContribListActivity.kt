@@ -19,8 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
-import androidx.paging.PagingData
-import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,6 +30,7 @@ import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.adapter.PagingDataAdapterPatched
 import org.wikipedia.databinding.ActivityUserContribBinding
 import org.wikipedia.databinding.ViewEditHistoryEmptyMessagesBinding
 import org.wikipedia.databinding.ViewEditHistorySearchBarBinding
@@ -45,7 +44,11 @@ import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.talk.UserTalkPopupHelper
-import org.wikipedia.util.*
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.util.UriUtil
 import org.wikipedia.views.SearchAndFilterActionProvider
 import org.wikipedia.views.WikiErrorView
 
@@ -59,7 +62,7 @@ class UserContribListActivity : BaseActivity() {
     private val userContribEmptyMessagesAdapter = EmptyMessagesAdapter()
     private val loadHeader = LoadingItemAdapter { userContribListAdapter.retry() }
     private val loadFooter = LoadingItemAdapter { userContribListAdapter.retry() }
-    private val viewModel: UserContribListViewModel by viewModels { UserContribListViewModel.Factory(intent.extras!!) }
+    private val viewModel: UserContribListViewModel by viewModels()
     private var actionMode: ActionMode? = null
     private val searchActionModeCallback = SearchCallback()
 
@@ -73,7 +76,7 @@ class UserContribListActivity : BaseActivity() {
             viewModel.loadStats()
             setupAdapters()
             viewModel.clearCache()
-            userContribListAdapter.reload()
+            userContribListAdapter.refresh()
             userContribSearchBarAdapter.notifyItemChanged(0)
         }
     }
@@ -92,7 +95,7 @@ class UserContribListActivity : BaseActivity() {
 
         binding.refreshContainer.setOnRefreshListener {
             viewModel.clearCache()
-            userContribListAdapter.reload()
+            userContribListAdapter.refresh()
         }
 
         binding.userContribRecycler.layoutManager = LinearLayoutManager(this)
@@ -129,7 +132,7 @@ class UserContribListActivity : BaseActivity() {
                 }
                 launch {
                     viewModel.userContribFlow.collectLatest {
-                        userContribListAdapter.submitData(it)
+                        userContribListAdapter.submitData(lifecycleScope, it)
                     }
                 }
             }
@@ -227,13 +230,7 @@ class UserContribListActivity : BaseActivity() {
     }
 
     private inner class UserContribListAdapter :
-            PagingDataAdapter<UserContribListViewModel.UserContribItemModel, RecyclerView.ViewHolder>(UserContribDiffCallback()) {
-
-        fun reload() {
-            submitData(lifecycle, PagingData.empty())
-            viewModel.userContribSource?.invalidate()
-        }
-
+            PagingDataAdapterPatched<UserContribListViewModel.UserContribItemModel, RecyclerView.ViewHolder>(UserContribDiffCallback()) {
         override fun getItemViewType(position: Int): Int {
             return if (getItem(position) is UserContribListViewModel.UserContribSeparator) {
                 VIEW_TYPE_SEPARATOR
@@ -260,7 +257,7 @@ class UserContribListActivity : BaseActivity() {
         }
     }
 
-    private inner class LoadingViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    private inner class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bindItem(loadState: LoadState, retry: () -> Unit) {
             val errorView = itemView.findViewById<WikiErrorView>(R.id.errorView)
             val progressBar = itemView.findViewById<View>(R.id.progressBar)
@@ -273,7 +270,7 @@ class UserContribListActivity : BaseActivity() {
         }
     }
 
-    private inner class StatsViewHolder constructor(private val view: UserContribStatsView) : RecyclerView.ViewHolder(view) {
+    private inner class StatsViewHolder(private val view: UserContribStatsView) : RecyclerView.ViewHolder(view) {
         fun bindItem() {
             val statsFlowValue = viewModel.userContribStatsData.value
             if (statsFlowValue is Resource.Success) {
@@ -282,14 +279,14 @@ class UserContribListActivity : BaseActivity() {
         }
     }
 
-    private inner class SeparatorViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    private inner class SeparatorViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bindItem(listItem: String) {
             val dateText = itemView.findViewById<TextView>(R.id.date_text)
             dateText.text = listItem
         }
     }
 
-    private inner class SearchBarViewHolder constructor(val binding: ViewEditHistorySearchBarBinding) : RecyclerView.ViewHolder(binding.root) {
+    private inner class SearchBarViewHolder(val binding: ViewEditHistorySearchBarBinding) : RecyclerView.ViewHolder(binding.root) {
 
         init {
             binding.root.isVisible = false
@@ -311,23 +308,18 @@ class UserContribListActivity : BaseActivity() {
                     launchFilterActivity.launch(UserContribFilterActivity.newIntent(this@UserContribListActivity))
                 }
 
-                FeedbackUtil.setButtonLongPressToast(binding.filterByButton)
+                FeedbackUtil.setButtonTooltip(binding.filterByButton)
                 binding.root.isVisible = true
             }
         }
 
         private fun updateFilterCount() {
-            val excludedFilters = viewModel.excludedFiltersCount()
-            if (excludedFilters == 0) {
-                binding.filterCount.visibility = View.GONE
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@UserContribListActivity, R.attr.primary_color))
-            } else {
-                binding.filterCount.visibility = View.VISIBLE
-                binding.filterCount.text = excludedFilters.toString()
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@UserContribListActivity, R.attr.progressive_color))
-            }
+            val showFilterCount = viewModel.excludedFiltersCount() != 0
+            val filterButtonColor = if (showFilterCount) R.attr.progressive_color else R.attr.primary_color
+            binding.filterCount.isVisible = showFilterCount
+            binding.filterCount.text = viewModel.excludedFiltersCount().toString()
+            ImageViewCompat.setImageTintList(binding.filterByButton,
+                ResourceUtil.getThemedColorStateList(this@UserContribListActivity, filterButtonColor))
         }
     }
 
@@ -354,7 +346,7 @@ class UserContribListActivity : BaseActivity() {
 
         override fun onClick() {
             startActivity(ArticleEditDetailsActivity.newIntent(this@UserContribListActivity,
-                    PageTitle(contrib.title, viewModel.wikiSite), contrib.pageid, contrib.revid))
+                    PageTitle(contrib.title, viewModel.wikiSite), contrib.pageid, revisionTo = contrib.revid))
         }
     }
 
@@ -363,13 +355,10 @@ class UserContribListActivity : BaseActivity() {
         var searchAndFilterActionProvider: SearchAndFilterActionProvider? = null
 
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            searchAndFilterActionProvider = SearchAndFilterActionProvider(this@UserContribListActivity, searchHintString,
+            searchAndFilterActionProvider = SearchAndFilterActionProvider(this@UserContribListActivity, getSearchHintString(),
                 object : SearchAndFilterActionProvider.Callback {
                     override fun onQueryTextChange(s: String) {
                         onQueryChange(s)
-                    }
-
-                    override fun onQueryTextFocusChange() {
                     }
 
                     override fun onFilterIconClick() {
@@ -385,7 +374,7 @@ class UserContribListActivity : BaseActivity() {
                     }
                 })
 
-            val menuItem = menu.add(searchHintString)
+            val menuItem = menu.add(getSearchHintString())
 
             MenuItemCompat.setActionProvider(menuItem, searchAndFilterActionProvider)
 
@@ -399,14 +388,14 @@ class UserContribListActivity : BaseActivity() {
         override fun onQueryChange(s: String) {
             viewModel.currentQuery = s
             setupAdapters()
-            userContribListAdapter.reload()
+            userContribListAdapter.refresh()
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
             super.onDestroyActionMode(mode)
             actionMode = null
             viewModel.currentQuery = ""
-            userContribListAdapter.reload()
+            userContribListAdapter.refresh()
             viewModel.actionModeActive = false
             setupAdapters()
         }
@@ -430,19 +419,7 @@ class UserContribListActivity : BaseActivity() {
             super.onUrlClick(url, title, linkText)
         }
 
-        override fun onMediaLinkClicked(title: PageTitle) {
-            // TODO
-        }
-
-        override fun onDiffLinkClicked(title: PageTitle, revisionId: Long) {
-            // TODO
-        }
-
         override lateinit var wikiSite: WikiSite
-
-        override fun onPageLinkClicked(anchor: String, linkText: String) {
-            // TODO
-        }
 
         override fun onInternalLinkClicked(title: PageTitle) {
             UserTalkPopupHelper.show(this@UserContribListActivity, title, false, lastX, lastY,

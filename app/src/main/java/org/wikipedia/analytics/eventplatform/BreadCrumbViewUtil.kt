@@ -5,11 +5,11 @@ import android.view.ContextThemeWrapper
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import androidx.core.view.ancestors
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.bumptech.glide.manager.SupportRequestManagerFragment
 import com.google.android.material.button.MaterialButton
 import org.wikipedia.R
 import org.wikipedia.activity.SingleFragmentActivity
@@ -27,22 +27,19 @@ object BreadCrumbViewUtil {
     private const val VIEW_UNNAMED = "unnamed"
 
     fun getReadableNameForView(view: View): String {
-        if (view.parent is RecyclerView) {
-            val position = (view.parent as RecyclerView).findContainingViewHolder(view)?.bindingAdapterPosition ?: 0
-            if (view is ListCardItemView) {
-                var currentParent = view.parent
-                while (currentParent !is ListCardView<*>) {
-                    if (currentParent.parent != null) {
-                        currentParent = currentParent.parent
-                    } else {
-                        // ListItemView is not in a CardView
-                        return getReadableNameForView(view.parent as RecyclerView) + "." + position
-                    }
-                }
-                return currentParent.javaClass.simpleName + "." + position
+        val parent = view.parent
+        if (parent is RecyclerView) {
+            val position = parent.findContainingViewHolder(view)?.bindingAdapterPosition ?: 0
+            val parentCardName = if (view is ListCardItemView) {
+                // If null, ListItemView is not in a CardView
+                view.ancestors.firstOrNull { it is ListCardView<*> }?.javaClass?.simpleName
+            } else {
+                null
             }
-            // Returning only recyclerview name and click position for non-cardView recyclerViews
-            return getReadableNameForView(view.parent as RecyclerView) + "." + position
+            // If no parent card is available, return only recyclerview name and click position for
+            // non-cardView recyclerViews
+            val parentName = parentCardName ?: getReadableNameForView(parent)
+            return "$parentName.$position"
         }
         return if (view.id == View.NO_ID) {
             if (view is TextView && view !is EditText) {
@@ -128,7 +125,6 @@ object BreadCrumbViewUtil {
                 return targetFrag
             }
             val frags = (context.baseContext as FragmentActivity).supportFragmentManager.fragments
-                .filter { it !is SupportRequestManagerFragment }
             frags.forEach {
                 targetFrag = it.childFragmentManager.findFragmentByTag(ExclusiveBottomSheetPresenter.BOTTOM_SHEET_FRAGMENT_TAG)
                 if (targetFrag != null) {

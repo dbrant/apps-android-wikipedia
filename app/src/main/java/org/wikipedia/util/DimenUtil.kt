@@ -5,8 +5,9 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.util.DisplayMetrics
 import android.util.TypedValue
-import android.view.Window
 import androidx.annotation.DimenRes
+import androidx.core.content.res.use
+import androidx.core.util.TypedValueCompat
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.util.log.L
@@ -40,10 +41,8 @@ object DimenUtil {
         return TypedValue.complexToFloat(getValue(id).data)
     }
 
-    fun getFontSizeFromSp(window: Window, fontSp: Float): Float {
-        val metrics = DisplayMetrics()
-        window.windowManager.defaultDisplay.getMetrics(metrics)
-        return fontSp / metrics.scaledDensity
+    fun getFontSizeFromSp(fontSp: Float): Float {
+        return TypedValueCompat.deriveDimension(TypedValue.COMPLEX_UNIT_SP, fontSp, displayMetrics)
     }
 
     // TODO: use getResources().getDimensionPixelSize()?  Define leadImageWidth with px, not dp?
@@ -100,12 +99,10 @@ object DimenUtil {
     }
 
     fun getToolbarHeightPx(context: Context): Int {
-        val styledAttributes = context.theme.obtainStyledAttributes(intArrayOf(
-                androidx.appcompat.R.attr.actionBarSize
-        ))
-        val size = styledAttributes.getDimensionPixelSize(0, 0)
-        styledAttributes.recycle()
-        return size
+        val attrs = intArrayOf(androidx.appcompat.R.attr.actionBarSize)
+        return context.theme.obtainStyledAttributes(attrs).use {
+            it.getDimensionPixelSize(0, 0)
+        }
     }
 
     @DimenRes

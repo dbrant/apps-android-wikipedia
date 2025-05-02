@@ -7,7 +7,6 @@ import org.wikipedia.R
 import org.wikipedia.feed.FeedFragment
 import org.wikipedia.history.HistoryFragment
 import org.wikipedia.model.EnumCode
-import org.wikipedia.model.EnumCodeMap
 import org.wikipedia.readinglist.ReadingListsFragment
 import org.wikipedia.suggestededits.SuggestedEditsTasksFragment
 
@@ -32,9 +31,16 @@ enum class NavTab constructor(
             return HistoryFragment.newInstance()
         }
     },
-    EDITS(R.string.nav_item_suggested_edits, R.id.nav_tab_edits, R.drawable.selector_nav_edits) {
+    EDITS(
+        R.string.nav_item_suggested_edits, R.id.nav_tab_edits, R.drawable.selector_nav_edits
+    ) {
         override fun newInstance(): Fragment {
             return SuggestedEditsTasksFragment.newInstance()
+        }
+    },
+    MORE(R.string.nav_item_more, R.id.nav_tab_more, R.drawable.ic_menu_white_24dp) {
+        override fun newInstance(): Fragment {
+            return Fragment()
         }
     };
 
@@ -47,15 +53,8 @@ enum class NavTab constructor(
     }
 
     companion object {
-
-        private val MAP = EnumCodeMap(NavTab::class.java)
-
         fun of(code: Int): NavTab {
-            return MAP[code]
-        }
-
-        fun size(): Int {
-            return MAP.size()
+            return entries[code]
         }
     }
 }

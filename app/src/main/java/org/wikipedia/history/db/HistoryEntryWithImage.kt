@@ -1,6 +1,6 @@
 package org.wikipedia.history.db
 
-import java.util.*
+import java.util.Date
 
 data class HistoryEntryWithImage(
     val authority: String,
@@ -11,5 +11,8 @@ data class HistoryEntryWithImage(
     val timestamp: Date,
     val source: Int,
     val timeSpentSec: Int,
-    val imageName: String?
+    val imageName: String?,
+    val description: String?,
+    val geoLat: Double?,
+    val geoLon: Double?
 )

@@ -2,6 +2,8 @@ package org.wikipedia.util
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.graphics.Rect
 import android.net.Uri
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -10,8 +12,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.app.ActivityCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.snackbar.Snackbar
 import com.skydoves.balloon.*
 import org.wikipedia.R
@@ -28,16 +34,14 @@ import org.wikipedia.random.RandomActivity
 import org.wikipedia.readinglist.ReadingListActivity
 import org.wikipedia.suggestededits.SuggestionsActivity
 import org.wikipedia.talk.TalkTopicsActivity
+import org.wikipedia.util.log.L
+import org.wikipedia.views.AllowSnackbarOverBottomSheet
 
 object FeedbackUtil {
     private const val LENGTH_SHORT = 3000
-    const val LENGTH_DEFAULT = 5000
+    private const val LENGTH_DEFAULT = 5000
     const val LENGTH_MEDIUM = 8000
     const val LENGTH_LONG = 15000
-    private val TOOLBAR_LONG_CLICK_LISTENER = View.OnLongClickListener { v ->
-        showToastOverView(v, v.contentDescription, LENGTH_DEFAULT)
-        true
-    }
     private val TOOLBAR_ON_CLICK_LISTENER = View.OnClickListener { v ->
         showToastOverView(v, v.contentDescription, LENGTH_SHORT)
     }
@@ -84,6 +88,10 @@ object FeedbackUtil {
         UriUtil.visitInExternalBrowser(context, Uri.parse(context.getString(R.string.privacy_policy_url)))
     }
 
+    fun showTermsOfUse(context: Context) {
+        UriUtil.visitInExternalBrowser(context, Uri.parse(context.getString(R.string.terms_of_use_url)))
+    }
+
     fun showOfflineReadingAndData(context: Context) {
         UriUtil.visitInExternalBrowser(context, Uri.parse(context.getString(R.string.offline_reading_and_data_url)))
     }
@@ -105,23 +113,38 @@ object FeedbackUtil {
         UriUtil.visitInExternalBrowser(context, Uri.parse(context.getString(urlStr)))
     }
 
-    fun setButtonLongPressToast(vararg views: View) {
-        views.forEach { it.setOnLongClickListener(TOOLBAR_LONG_CLICK_LISTENER) }
+    fun composeEmail(context: Context,
+                     emailAddress: String = context.getString(R.string.support_email),
+                     subject: String = "",
+                     body: String = "") {
+        val intent = Intent()
+            .setAction(Intent.ACTION_SENDTO)
+            .setData(Uri.parse("mailto:$emailAddress?subject=${Uri.encode(subject)}&body=${Uri.encode(body)}"))
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            L.e(e)
+        }
+    }
+
+    fun setButtonTooltip(vararg views: View) {
+        views.forEach { TooltipCompat.setTooltipText(it, it.contentDescription) }
     }
 
     fun setButtonOnClickToast(vararg views: View) {
         views.forEach { it.setOnClickListener(TOOLBAR_ON_CLICK_LISTENER) }
     }
 
-    fun makeSnackbar(activity: Activity, text: CharSequence, duration: Int = LENGTH_DEFAULT, wikiSite: WikiSite = WikipediaApp.instance.wikiSite): Snackbar {
-        val view = findBestView(activity)
-        val snackbar = Snackbar.make(view, StringUtil.fromHtml(text.toString()), duration)
+    fun makeSnackbar(view: View, text: CharSequence, duration: Int = LENGTH_DEFAULT, wikiSite: WikiSite = WikipediaApp.instance.wikiSite): Snackbar {
+        val snackbar = Snackbar.make(view, StringUtil.fromHtml(text.toString()).trim(), duration)
         val textView = snackbar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.setLinkTextColor(ResourceUtil.getThemedColor(view.context, R.attr.progressive_color))
         textView.movementMethod = LinkMovementMethodExt.getExternalLinkMovementMethod(wikiSite)
-        val actionView = snackbar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_action)
-        actionView.setTextColor(ResourceUtil.getThemedColor(view.context, R.attr.progressive_color))
         return snackbar
+    }
+
+    fun makeSnackbar(activity: Activity, text: CharSequence, duration: Int = LENGTH_DEFAULT, wikiSite: WikiSite = WikipediaApp.instance.wikiSite): Snackbar {
+        return makeSnackbar(findBestView(activity), text, duration, wikiSite)
     }
 
     fun showToastOverView(view: View, text: CharSequence?, duration: Int): Toast {
@@ -162,11 +185,25 @@ object FeedbackUtil {
     }
 
     fun getTooltip(context: Context, text: CharSequence, autoDismiss: Boolean, arrowAnchorPadding: Int = 0,
-                   topOrBottomMargin: Int = 0, aboveOrBelow: Boolean = false, showDismissButton: Boolean = false): Balloon {
+                   topOrBottomMargin: Int = 0, aboveOrBelow: Boolean = false, showDismissButton: Boolean = false,
+                   @StringRes dismissButtonText: Int = R.string.onboarding_got_it, countNum: Int = 0, countTotal: Int = 0): Balloon {
         val binding = ViewPlainTextTooltipBinding.inflate(LayoutInflater.from(context))
         binding.textView.text = text
-        if (showDismissButton) {
-            binding.buttonView.visibility = View.VISIBLE
+        binding.buttonView.isVisible = showDismissButton
+
+        // Explicitly measure the width of the button text and set the button width, with some padding.
+        // The Balloon library seems to present our custom layout in a way that causes the automatic
+        // sizing of the button to be incorrect.
+        val dismissText = context.getString(dismissButtonText)
+        val bounds = Rect()
+        binding.buttonView.paint.getTextBounds(dismissText, 0, dismissText.length, bounds)
+        binding.buttonView.layoutParams = binding.buttonView.layoutParams.apply {
+            width = bounds.width() + DimenUtil.roundedDpToPx(40f)
+        }
+
+        if (countTotal > 0) {
+            binding.countView.isVisible = true
+            binding.countView.text = context.getString(R.string.x_of_y, countNum, countTotal)
         }
 
         val balloon = createBalloon(context) {
@@ -214,6 +251,13 @@ object FeedbackUtil {
     }
 
     private fun findBestView(activity: Activity): View {
+        // If the activity is currently displaying a bottom sheet over which we allow a snackbar,
+        // use the bottom sheet's view as the anchor for the snackbar.
+        getTopmostBottomSheetFragment(activity)?.let {
+            return it.requireView()
+        }
+
+        // Otherwise, use the appropriate view for the activity.
         val viewId = when (activity) {
             is MainActivity -> R.id.fragment_main_coordinator
             is PageActivity -> R.id.fragment_page_coordinator
@@ -225,5 +269,26 @@ object FeedbackUtil {
             else -> android.R.id.content
         }
         return ActivityCompat.requireViewById(activity, viewId)
+    }
+
+    private fun getTopmostBottomSheetFragment(activity: Activity): BottomSheetDialogFragment? {
+        (activity as? FragmentActivity)?.supportFragmentManager?.fragments?.forEach {
+            getTopmostBottomSheetFragment(it)?.let { fragment ->
+                return fragment
+            }
+        }
+        return null
+    }
+
+    private fun getTopmostBottomSheetFragment(fragment: Fragment): BottomSheetDialogFragment? {
+        if (fragment is BottomSheetDialogFragment && fragment is AllowSnackbarOverBottomSheet && fragment.view != null) {
+            return fragment
+        }
+        fragment.childFragmentManager.fragments.forEach {
+            if (getTopmostBottomSheetFragment(it) != null) {
+                return it as BottomSheetDialogFragment
+            }
+        }
+        return null
     }
 }

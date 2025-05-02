@@ -14,10 +14,10 @@ import androidx.core.view.isVisible
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.databinding.ViewCardHeaderBinding
+import org.wikipedia.extensions.setLayoutDirectionByLang
 import org.wikipedia.feed.model.Card
-import org.wikipedia.util.L10nUtil
 
-class CardHeaderView constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
+class CardHeaderView(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
 
     interface Callback {
         fun onRequestDismissCard(card: Card): Boolean
@@ -70,14 +70,12 @@ class CardHeaderView constructor(context: Context, attrs: AttributeSet? = null) 
     fun setLangCode(langCode: String?): CardHeaderView {
         binding.viewListCardHeaderSecondaryIcon.isVisible = false
         if (langCode.isNullOrEmpty() || WikipediaApp.instance.languageState.appLanguageCodes.size < 2) {
-            binding.viewListCardHeaderLangBackground.isVisible = false
             binding.viewListCardHeaderLangCode.isVisible = false
-            L10nUtil.setConditionalLayoutDirection(this, WikipediaApp.instance.languageState.systemLanguageCode)
+            setLayoutDirectionByLang(WikipediaApp.instance.languageState.systemLanguageCode)
         } else {
-            binding.viewListCardHeaderLangBackground.isVisible = true
             binding.viewListCardHeaderLangCode.isVisible = true
-            binding.viewListCardHeaderLangCode.text = langCode
-            L10nUtil.setConditionalLayoutDirection(this, langCode)
+            binding.viewListCardHeaderLangCode.setLangCode(langCode)
+            setLayoutDirectionByLang(langCode)
         }
         return this
     }
@@ -85,7 +83,6 @@ class CardHeaderView constructor(context: Context, attrs: AttributeSet? = null) 
     fun setSecondaryIcon(@DrawableRes id: Int): CardHeaderView {
         binding.viewListCardHeaderSecondaryIcon.setImageResource(id)
         binding.viewListCardHeaderSecondaryIcon.isVisible = true
-        binding.viewListCardHeaderLangBackground.isVisible = false
         binding.viewListCardHeaderLangCode.isVisible = false
         return this
     }

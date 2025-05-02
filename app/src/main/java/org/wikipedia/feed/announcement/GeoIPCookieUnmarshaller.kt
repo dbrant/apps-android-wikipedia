@@ -15,14 +15,14 @@ object GeoIPCookieUnmarshaller {
     private const val COOKIE_NAME = "GeoIP"
 
     fun unmarshal(): GeoIPCookie {
-        return unmarshal(SharedPreferenceCookieManager.instance.getCookieByName(COOKIE_NAME))
+        return unmarshal(SharedPreferenceCookieManager.instance.getCookieValueByName(COOKIE_NAME))
     }
 
     @VisibleForTesting
     fun unmarshal(cookie: String?): GeoIPCookie {
         require(!cookie.isNullOrEmpty()) { "Cookie is empty." }
         val components = cookie.split(":".toRegex()).toTypedArray()
-        require(components.size >= Component.values().size) { "Cookie is malformed." }
+        require(components.size >= Component.entries.size) { "Cookie is malformed." }
         require(components[Component.VERSION.ordinal] == "v4") { "Incorrect cookie version." }
 
         var location: Location? = null

@@ -53,7 +53,7 @@
   <string name="page_edit_history_filter_by">द्वारा छनित</string>
   <string name="page_edit_history_filter_by_all">सब्भे संपादन (%s)</string>
   <string name="page_edit_history_filter_by_user">सदस्य द्वारा संपादन (%s)</string>
-  <string name="page_edit_history_filter_by_anon">गुमनाम संपादन (%s)</string>
+  <string name="page_edit_history_filter_by_anon" fuzzy="true">गुमनाम संपादन (%s)</string>
   <string name="page_edit_history_filter_by_bot">बॉट्स द्वारा संपादन (%s)</string>
   <string name="page_edit_history_metrics_content_description">%1$s सँ %2$s तलक मेट्रिक्स</string>
   <string name="menu_page_show_tabs">टैब देखाबौ</string>
@@ -96,8 +96,7 @@
   <string name="map_view_link_text">नक्शा प देखौ</string>
   <string name="other_languages_indication_text">दोसरौ भाषा मँ पढ़ौ</string>
   <string name="language_count_link_text">%d आरू भाषा सब मँ उपलब्ध</string>
-  <string name="content_license_cc_by_sa">CC BY-SA 3.0</string>
-  <string name="edit_save_action_license_anon">प्रकाशित करी क, आपनै &lt;a href=\"%1$s\"&gt;उपयोग केरौ शर्त सिनी&lt;/a&gt; सँ सहमत होय छियै, आरू &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0 के तहत आपनौ योगदान क अपरिवर्तनीय रूप सँ जारी करै छियै &lt;/a&gt; लाइसेंस। संपादन सिनी क आपनै के डिवाइस केरौ आईपी पता लेली जिम्मेदार ठहरैलौ जैतै। जों आपनै &lt;a href=\"https://#login\"&gt;लॉग इन&lt;/a&gt; करै छियै, त आपनै जिमा अधिक गोपनीयता होतै।</string>
+  <string name="edit_save_action_license_anon" fuzzy="true">प्रकाशित करी क, आपनै &lt;a href=\"%1$s\"&gt;उपयोग केरौ शर्त सिनी&lt;/a&gt; सँ सहमत होय छियै, आरू &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0 के तहत आपनौ योगदान क अपरिवर्तनीय रूप सँ जारी करै छियै &lt;/a&gt; लाइसेंस। संपादन सिनी क आपनै के डिवाइस केरौ आईपी पता लेली जिम्मेदार ठहरैलौ जैतै। जों आपनै &lt;a href=\"https://#login\"&gt;लॉग इन&lt;/a&gt; करै छियै, त आपनै जिमा अधिक गोपनीयता होतै।</string>
   <string name="preference_title_language">विकिपीडिया भाषा</string>
   <string name="langlinks_filter_hint">खोजौ</string>
   <string name="langlinks_empty">है पन्ना दोसरौ भाषा मँ उपलब्ध नै छै।</string>
@@ -120,7 +119,7 @@
   <string name="login_username_hint">सदस्यनाम</string>
   <string name="login_password_hint">कूटशब्द (पासवर्ड)</string>
   <string name="account_creation_password_hint">कूटशब्द (पासवर्ड)</string>
-  <string name="login_2fa_hint">दू-कारक प्रमाणीकरण कोड</string>
+  <string name="login_2fa_hint" fuzzy="true">दू-कारक प्रमाणीकरण कोड</string>
   <string name="onboarding_card_login">लॉग-इन करौ</string>
   <string name="page_editing_login">लॉग-इन करौ</string>
   <string name="reading_lists_sync_login">लॉग-इन करौ</string>
@@ -168,8 +167,6 @@
   <string name="preferences_heading_experimental">प्रयोगात्मक</string>
   <string name="preference_title_sync_reading_lists_from_account">पठन सूची सिंक होय रहलौ छौं</string>
   <string name="preference_title_download_reading_list_articles">पठन सूची केरौ लेख डाउनलोड करौ</string>
-  <string name="preferences_privacy_settings_heading">गोपनीयता</string>
-  <string name="preference_title_eventlogging_opt_in">उपयोग रिपोर्ट भेजौ</string>
   <string name="preference_title_auto_upload_crash_reports">क्रैश रिपोर्ट भेजौ</string>
   <string name="history_filter_list_hint">फ़िल्टर केरौ इतिहास</string>
   <string name="page_protected_autoconfirmed">हैय पृष्ठ अर्ध-सुरक्षित छै।</string>
@@ -185,10 +182,8 @@
   <string name="offline_reading_and_data_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Android_FAQ#Offline_reading_and_data</string>
   <string name="android_app_faq_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Android_FAQ</string>
   <string name="android_app_request_an_account_url">https://anp.wikipedia.org/wiki/विकिपीडिया:एगो_खाता_केरौ_अनुरोध</string>
-  <string name="cc_by_sa_3_url">https://creativecommons.org/licenses/by-sa/3.0/</string>
-  <string name="cc_0_url">https://creativecommons.org/publicdomain/zero/1.0/</string>
-  <string name="android_app_edit_help_url">https://m.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits</string>
-  <string name="suggested_edits_image_tags_help_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits#Image_tags</string>
+  <string name="android_app_edit_help_url" fuzzy="true">https://m.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits</string>
+  <string name="suggested_edits_image_tags_help_url" fuzzy="true">https://www.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits#Image_tags</string>
   <string name="about_libraries_heading">लाइब्रेरीज़ क प्रयोग होलै</string>
   <string name="about_contributors_heading">योगदानकर्ता सिनी</string>
   <string name="about_contributors">&lt;a href=\"https://www.mediawiki.org/wiki/Wikimedia_Apps/Team/Android\"&gt;टीम पेज&lt;/a&gt;</string>
@@ -393,8 +388,8 @@
   <string name="notifications_menu_uncheck_all">सब्भे आइटम्स प सँ चयन हटाबौ</string>
   <string name="notifications_wiki_filter_header">विकी चालनी</string>
   <string name="notifications_type_filter_header">प्रकार चालनी</string>
-  <string name="notifications_all_wikis_text">सब्भे \"विकी\"</string>
-  <string name="notifications_all_types_text">सब्भे \"प्रकार\"</string>
+  <string name="notifications_all_wikis_text" fuzzy="true">सब्भे \"विकी\"</string>
+  <string name="notifications_all_types_text" fuzzy="true">सब्भे \"प्रकार\"</string>
   <string name="notifications_menu_user_talk_page">%s क वार्ता पृष्ठ</string>
   <string name="view_random_card_title">रैंडमाइज़र</string>
   <string name="view_random_article_card_title">कोय्यो लेख</string>

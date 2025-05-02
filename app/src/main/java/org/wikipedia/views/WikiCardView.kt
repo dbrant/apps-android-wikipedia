@@ -4,40 +4,34 @@ import android.content.Context
 import android.os.Build
 import android.util.AttributeSet
 import androidx.core.content.ContextCompat
-import androidx.core.content.withStyledAttributes
+import androidx.core.content.res.use
 import com.google.android.material.card.MaterialCardView
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.ResourceUtil
 
-open class WikiCardView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
-        MaterialCardView(context, attrs, defStyleAttr) {
+open class WikiCardView(context: Context, attrs: AttributeSet? = null) : MaterialCardView(context, attrs) {
 
     init {
         if (!isInEditMode) {
-            var hasBorder = true
-            var cardRadius = context.resources.getDimension(R.dimen.wiki_card_radius)
-            var elevation =
-                DimenUtil.dpToPx(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) 8f else 2f)
-            if (attrs != null) {
-                context.withStyledAttributes(attrs, R.styleable.WikiCardView) {
-                    hasBorder = getBoolean(R.styleable.WikiCardView_hasBorder, true)
-                    cardRadius = getDimension(R.styleable.WikiCardView_radius, cardRadius)
-                    elevation = getDimension(R.styleable.WikiCardView_elevation, elevation)
+            context.obtainStyledAttributes(attrs, R.styleable.WikiCardView)
+                .use {
+                    setup(
+                        it.getDimension(
+                            R.styleable.WikiCardView_elevation,
+                            DimenUtil.dpToPx(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) 8f else 2f)
+                        ),
+                        it.getBoolean(R.styleable.WikiCardView_hasBorder, true)
+                    )
                 }
-            }
-
-            setup(cardRadius, elevation, hasBorder)
         }
     }
 
-    private fun setup(cardRadius: Float, elevation: Float, hasBorder: Boolean) {
-        radius = cardRadius
+    private fun setup(elevation: Float, hasBorder: Boolean) {
         if (hasBorder) {
             setDefaultBorder()
         }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             if (WikipediaApp.instance.currentTheme.isDark) {
                 cardElevation = 0f
@@ -49,8 +43,6 @@ open class WikiCardView @JvmOverloads constructor(context: Context, attrs: Attri
         } else {
             cardElevation = elevation
         }
-
-        setCardBackgroundColor(ResourceUtil.getThemedColor(context, R.attr.paper_color))
         rippleColor = ResourceUtil.getThemedColorStateList(context, R.attr.overlay_color)
     }
 

@@ -1,13 +1,13 @@
 package org.wikipedia.talk
 
-import android.os.Bundle
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.launch
+import org.wikipedia.Constants
 import org.wikipedia.WikipediaApp
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.database.AppDatabase
@@ -21,13 +21,12 @@ import org.wikipedia.util.Resource
 import org.wikipedia.util.SingleLiveData
 import org.wikipedia.util.UriUtil
 
-class TalkTopicViewModel(bundle: Bundle) : ViewModel() {
-
-    private val topicName = bundle.getString(TalkTopicActivity.EXTRA_TOPIC_NAME)!!
-    private val topicId = bundle.getString(TalkTopicActivity.EXTRA_TOPIC_ID)!!
-    val pageTitle = bundle.getParcelable<PageTitle>(TalkTopicActivity.EXTRA_PAGE_TITLE)!!
-    var currentSearchQuery = bundle.getString(TalkTopicActivity.EXTRA_SEARCH_QUERY)
-    var scrollTargetId = bundle.getString(TalkTopicActivity.EXTRA_REPLY_ID)
+class TalkTopicViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    private val topicName = savedStateHandle.get<String>(TalkTopicActivity.EXTRA_TOPIC_NAME)!!
+    private val topicId = savedStateHandle.get<String>(TalkTopicActivity.EXTRA_TOPIC_ID)!!
+    val pageTitle = savedStateHandle.get<PageTitle>(Constants.ARG_TITLE)!!
+    var currentSearchQuery = savedStateHandle.get<String>(TalkTopicActivity.EXTRA_SEARCH_QUERY)
+    var scrollTargetId = savedStateHandle.get<String>(TalkTopicActivity.EXTRA_REPLY_ID)
 
     private val threadItems = mutableListOf<ThreadItem>()
     var topic: ThreadItem? = null
@@ -48,7 +47,7 @@ class TalkTopicViewModel(bundle: Bundle) : ViewModel() {
     }
 
     val isFullyExpanded: Boolean get() {
-        return !currentSearchQuery.isNullOrEmpty() || flattenedThreadItems.size == topic?.allReplies?.size
+        return !currentSearchQuery.isNullOrEmpty() || flattenedThreadItems.size == topic?.allReplies?.count()
     }
 
     init {
@@ -61,7 +60,7 @@ class TalkTopicViewModel(bundle: Bundle) : ViewModel() {
         }) {
             val discussionToolsInfoResponse = ServiceFactory.get(pageTitle.wikiSite).getTalkPageTopics(pageTitle.prefixedText,
                     OfflineCacheInterceptor.SAVE_HEADER_SAVE, pageTitle.wikiSite.languageCode, UriUtil.encodeURL(pageTitle.prefixedText))
-            val oldItemsFlattened = topic?.allReplies.orEmpty()
+            val oldItemIdsFlattened = topic?.allReplies.orEmpty().map { it.id }.toSet()
 
             topic = discussionToolsInfoResponse.pageInfo?.threads.orEmpty().find { it.id == topicId }
 
@@ -73,9 +72,11 @@ class TalkTopicViewModel(bundle: Bundle) : ViewModel() {
                 AppDatabase.instance.talkPageSeenDao().insertTalkPageSeen(TalkPageSeen(it))
             }
 
-            val newItemsFlattened = topic?.allReplies.orEmpty().filter { it.id !in oldItemsFlattened.map { item -> item.id } }
+            val newItemsFlattened = topic?.allReplies.orEmpty()
+                .filter { it.id !in oldItemIdsFlattened }
+                .toList()
 
-            if (oldItemsFlattened.isNotEmpty() && newItemsFlattened.isNotEmpty()) {
+            if (oldItemIdsFlattened.isNotEmpty() && newItemsFlattened.isNotEmpty()) {
                 if (AccountUtil.isLoggedIn) {
                     scrollTargetId = newItemsFlattened.findLast { it.author == AccountUtil.userName }?.id
                 }
@@ -182,13 +183,6 @@ class TalkTopicViewModel(bundle: Bundle) : ViewModel() {
             if (it.isExpanded) {
                 flattenThreadLevel(it.replies, flatList)
             }
-        }
-    }
-
-    class Factory(val bundle: Bundle) : ViewModelProvider.Factory {
-        @Suppress("unchecked_cast")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return TalkTopicViewModel(bundle) as T
         }
     }
 }

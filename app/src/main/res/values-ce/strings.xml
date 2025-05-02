@@ -1,46 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Authors:
 * MuratTheTurkish
+* Абдуллах Саад
+* Исмаил Садуев
+* Саид Мисарбиев
 * Умар
 -->
 <resources>
   <string name="app_name_prod">Википеди</string>
+  <string name="app_name_beta">Википеди Бета</string>
   <string name="app_name_alpha">Википеди Альфа</string>
-  <string name="wikimedia">Викикимеди</string>
+  <string name="wikimedia">Викимедиа</string>
+  <string name="nav_item_back">ЙухагӀо</string>
+  <string name="page_tabs_back">ЙухагӀо</string>
+  <string name="nav_item_forward">Хьалха</string>
   <string name="search_hint">Википедин чухула лахар</string>
+  <string name="search_hint_voice_search">Озан лахар</string>
+  <string name="search_hint_search_languages">Мотт лаха</string>
+  <string name="nav_item_suggested_edits">Нисдарш</string>
   <string name="nav_item_more">Кхин а</string>
-  <string name="error_network_error" fuzzy="true">ЗӀе цакарий :(</string>
+  <string name="nav_item_search">Лахар</string>
+  <string name="error_network_error">Интернет тӏе ца тасало:(</string>
   <string name="page_error_retry">ЙухагӀорта</string>
+  <string name="card_offline_error_retry">Йухадан</string>
+  <string name="storage_access_error_retry">Йухадан</string>
+  <string name="article_load_error_retry">Йухадан</string>
+  <string name="offline_load_error_retry">Йухадан</string>
   <string name="page_error_back_to_main">Йуханехьа</string>
-  <string name="menu_clear_all_history">ДӀацӀане истори?</string>
-  <string name="dialog_title_clear_history" fuzzy="true">ДӀацӀане истори?</string>
-  <string name="menu_page_other_languages" fuzzy="true">Кхин меттанаш</string>
-  <string name="menu_page_font_and_theme">Кечяр а, шрифт а хийцар</string>
-  <string name="menu_page_share" fuzzy="true">Екха</string>
-  <string name="menu_long_press_open_page" fuzzy="true">Хьажорг схьаелла</string>
+  <string name="error_back">Йуханехьа</string>
+  <string name="error_next">Кхидӏа</string>
+  <string name="menu_clear_all_history">ДӀацӀанйе истори?</string>
+  <string name="history_list_title">Истори</string>
+  <string name="wikidata">Викидата</string>
+  <string name="dialog_title_clear_history">ДӀацӀанйе хьажарийн истори</string>
+  <string name="dialog_message_clear_history_yes">Хӏаъ</string>
+  <string name="dialog_message_clear_history_no">Хӏан-хӏа</string>
+  <string name="menu_page_other_languages">Хийца мотт</string>
+  <string name="menu_page_find_in_page">Йаззаман чохь лаха</string>
+  <string name="menu_page_add_to_watchlist">Тергаме могӀам йукъатоха</string>
+  <string name="menu_page_watch">Тидам бан</string>
+  <string name="menu_page_unwatch">Тергалдар дита</string>
+  <string name="menu_page_view_talk">Дийцарийн агӏоне хьажа</string>
+  <string name="menu_page_talk_page">Дийцарийн агӀо</string>
+  <string name="menu_page_view_edit_history">Хийцамийн историга хьажа</string>
+  <string name="menu_page_edit_history">Нисдаран истори</string>
+  <string name="menu_page_remove_from_watchlist">ДӀайаккха тергаме могӀанна йуккъера</string>
+  <string name="menu_page_watched">Тергам беш йу</string>
+  <string name="edit_section_find_in_page">АгӀонна тӀехь лаха</string>
+  <string name="menu_page_font_and_theme">Кечйаран шрифт а, тема а</string>
+  <string name="menu_page_add_to_default_list">Йитаа</string>
+  <string name="feed_card_add_to_default_list">Ӏалашйе</string>
+  <string name="menu_page_share">Йекъа хьажорг</string>
+  <string name="menu_article_share">Бекъа йаззам</string>
+  <string name="menu_page_article_share">Йекъа</string>
+  <string name="menu_page_new_tab">Керла йукъадиллар</string>
+  <string name="menu_page_archive">Архив</string>
+  <string name="menu_long_press_open_page">Схьайелла</string>
   <string name="menu_text_select_define">Къастам</string>
+  <string name="on_this_day_page_share">Йекъа</string>
+  <string name="reading_list_page_share">Йекъа</string>
+  <string name="menu_text_select_edit_here">Кхузахь нисйан</string>
+  <string name="menu_edit_article">Нисбе йаззам</string>
   <string name="last_updated_text">ТӀаьххьара карлайаккхар: %s</string>
-  <string name="preference_title_language" fuzzy="true">Мотт</string>
+  <string name="talk_page_link_text">Дийцарийн агӀоне хьажа</string>
+  <string name="edit_history_link_text">Хийцамийн истори хьажар</string>
+  <string name="map_view_link_text">Картин тӀехь хьажа</string>
+  <string name="other_languages_indication_text">Йеша кхечу маттахь</string>
+  <string name="preference_title_language">Википедин меттанаш</string>
   <string name="langlinks_filter_hint">Лахар</string>
-  <string name="langlinks_no_match" fuzzy="true">Хьан дехарца меттанаш цакарий</string>
+  <string name="langlinks_empty">ХӀара агӀо кхечу меттанашкахь тӀекхочуш йац.</string>
+  <string name="langlinks_no_match">Меттанаш цакарий</string>
   <string name="langlinks_activity_title">Кхин меттанаш</string>
-  <string name="menu_save_changes" fuzzy="true">Ӏалашбе хийцамаш</string>
-  <string name="edit_saved_successfully" fuzzy="true">Нисдар Ӏалашдина!</string>
+  <string name="langlinks_your_wikipedia_languages">Википедин хьан меттанаш</string>
+  <string name="menu_save_changes">Хийцамаш дӀаӀалашбан</string>
+  <string name="edit_saved_successfully">Нисдар Ӏалашдина!</string>
   <string name="dialog_message_edit_failed">ГӀалат тадина!</string>
   <string name="dialog_message_edit_failed_retry">ЙухагӀорта</string>
-  <string name="dialog_message_edit_failed_cancel">Цаоьшу</string>
+  <string name="dialog_message_edit_failed_cancel">ДӀадаккхар</string>
+  <string name="dialog_message_leaving_edit_leave">ДӀадаха</string>
+  <string name="dialog_message_leaving_edit_stay">Диса</string>
   <string name="menu_show_toc">Чулацам</string>
+  <string name="search_no_results_found">ХӀумма а ца карийна</string>
   <string name="title_captcha">Йазйе капча</string>
-  <string name="nav_item_login" fuzzy="true">ЧугӀо</string>
+  <string name="nav_item_login">Википедин чугӀо</string>
   <string name="login_username_hint">Декъашхочун цӀе</string>
   <string name="login_password_hint">Пароль</string>
-  <string name="menu_login">ЧугӀо</string>
-  <string name="login_activity_title">ЧугӀо</string>
+  <string name="account_creation_password_hint">Пароль</string>
+  <string name="login_2fa_hint" fuzzy="true">Шина-факторан аутентификацин код</string>
+  <string name="onboarding_card_login">Чувала</string>
+  <string name="page_editing_login">ЧугӀо</string>
+  <string name="reading_lists_sync_login">ЧугӀо</string>
+  <string name="create_account_login">ЧугӀо</string>
+  <string name="menu_login">Чувала</string>
+  <string name="login_activity_title">Чувала</string>
   <string name="login_in_progress_dialog_message">Системин чудахар…</string>
-  <string name="login_success_toast" fuzzy="true">Хьан пароль кхиамца тӀеэца!</string>
+  <string name="login_success_toast">Чудовлар кхиамца кхочушдина!</string>
+  <string name="reset_password_title">ДӀахӀоттайе пароль</string>
+  <string name="reset_password_hint">Керла пароль</string>
+  <string name="reset_password_button">Ӏалашйина чугӀо</string>
   <string name="preference_title_logout">Болх дӀаберзор</string>
-  <string name="history_empty_title" fuzzy="true">Кеста хьаьжжина агӀонаш яц.</string>
-  <string name="history_empty_message">Кхузахь хьой бешна болу яззамашка хьажа.</string>
+  <string name="toast_logout_complete">Аккаунтан чуьра хьо ара ваьлла(йаьлла)</string>
+  <string name="logout_dialog_cancel_button_text">Дӏайаккхар</string>
+  <string name="logged_out_in_background_title">Аккаунтан чуьра хьо ара ваьлла(йаьлла)</string>
+  <string name="logged_out_in_background_dialog">Википедин аккаунтан чуьра хьо ара ваьлла(йаьлла). Лаьий хьуна йуха чувала(йалла)</string>
+  <string name="logged_out_in_background_login">ЧугӀо</string>
+  <string name="logged_out_in_background_cancel">Йухайаккха</string>
+  <string name="history_empty_title">Кеста хьаьжжина агӀонаш йац.</string>
+  <string name="history_empty_message">Кхузахь хьой бешна болу йаззамашка хьажа.</string>
   <string name="wp_stylized">&lt;big&gt;В&lt;/big&gt;ИКИПЕД&lt;big&gt;И&lt;/big&gt;</string>
   <string name="create_account_username_hint">Декъашхочун цӀе</string>
   <string name="create_account_activity_title">Кхолла аккаунт</string>
@@ -53,7 +119,9 @@
   <string name="create_account_next">Кхин дӀа</string>
   <string name="create_account_ip_block_details">Мадарра</string>
   <string name="preferences_general_heading">Йукъара</string>
+  <string name="preferences_account_heading">Аккаунт</string>
   <string name="send_feedback">Йуханехьа зӀе</string>
+  <string name="create_account_account_created_toast">Аккаунт кхоьллина!</string>
   <string name="settings_activity_title" fuzzy="true">Параметраш</string>
   <string name="privacy_policy_description">Къайлаха политика</string>
   <string name="terms_of_use_description">Лелоран биллам</string>
@@ -62,33 +130,50 @@
   <string name="terms_of_use_url" fuzzy="true">https://foundation.m.wikimedia.org/wiki/Terms_of_Use</string>
   <string name="about_translators_heading">гочдархой</string>
   <string name="about_translators_translatewiki">ХӀара тӀетохар гочйина &lt;a href=\"https://translatewiki.net\"&gt;translatewiki.net&lt;/a&gt; чуьра шен лаамернигаш.</string>
+  <string name="about_app_license" fuzzy="true">ДӀайолалун код тӀекхочуш йу &lt;a href=\"https://gerrit.wikimedia.org/r/#/admin/projects/apps/android/wikipedia\"&gt;Gerrit&lt;/a&gt; а, &lt;a href=\"https://github.com/wikimedia/apps-android-wikipedia\"&gt;Github&lt;/a&gt; а тӀехь &lt;a href=\"https://phabricator.wikimedia.org/diffusion/APAW/browse/master/COPYING?view=raw\"&gt;Apache 2.0&lt;/a&gt; лицензица. Кхинаг билгалйина йацахь, чулацам тӀекхочу &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License\"&gt;Creative Commons Attribution-ShareAlike&lt;/a&gt; лицензица.</string>
   <string name="edit_next">Кхин дӀа</string>
   <string name="edit_done" fuzzy="true">Ӏалашдан</string>
   <string name="edit_preview">Хьалххе хьажар</string>
-  <string name="edit_summary_tag_grammar">Нийсайаздар</string>
+  <string name="edit_summary_tag_typo">Гӏалат нисдина</string>
+  <string name="edit_summary_tag_grammar">Нийса йаздар</string>
+  <string name="edit_summary_tag_links">Хьажоргаш тӏетоьхна</string>
   <string name="edit_summary_tag_other">Кхийерг</string>
   <string name="page_similar_titles">Тера агӀонаш</string>
   <string name="table_close">ДӀачӀагӀа</string>
   <string name="wiktionary_no_definitions_found">Цхьаа къастам цакарий.</string>
-  <string name="alpha_update_notification_text">ТӀетаӀае схьаэцархьама</string>
+  <string name="alpha_update_notification_text">ТӀетаӀайe схьаэцархьама</string>
   <string name="dialog_close_description">ДӀачӀагӀа</string>
   <string name="dialog_title_download_only_over_wifi_allow">Магаде</string>
+  <string name="read_more_section">Йозуш йолу агlонаш</string>
+  <string name="about_article_section">ХӀокху агӀонах лаьцна</string>
   <string name="menu_gallery_visit_image_page">Файлан агӀонг гӀо</string>
   <string name="gallery_error_draw_failed">Сурт гучудаккха цаделира</string>
-  <string name="license_title" fuzzy="true">Лицензин йоза %s библиотекина</string>
+  <string name="license_title">Лицензин текст %s библиотекина</string>
   <string name="gallery_error_video_failed">Видео йолайалита цайелира.</string>
+  <string name="close_all_tabs_confirm_yes">ХӀаъ</string>
+  <string name="close_all_tabs_confirm_no">ХӀан-хӀа</string>
+  <string name="format_error_server_message">Хаам: «%s»</string>
+  <string name="button_continue_to_article">Йаззам беша</string>
+  <string name="button_continue_to_talk_page">Дийцарийн агӀо схьайелла</string>
+  <string name="button_continue_to_disambiguation">Цхьатерра агӀонашка хьажар</string>
+  <string name="enable_location_service">Йукъадаладе</string>
   <string name="error_blocked_start">Блокан йуьхь:%s</string>
   <string name="error_blocked_id">Блокан ID: %s</string>
   <string name="crash_report_relaunch">Йуха доладан</string>
   <string name="crash_report_quit">АрагӀо</string>
-  <string name="color_theme_select">Кечяр</string>
+  <string name="article_menu_bar_language_button">Мотт</string>
+  <string name="article_menu_bar_theme_button">Кечйаран тема</string>
+  <string name="article_menu_bar_contents_button">Чулацам</string>
+  <string name="color_theme_select">Кечйар</string>
   <string name="color_theme_light">Сирла</string>
   <string name="color_theme_dark">Бодане</string>
+  <string name="preference_title_notification_user_talk">Дийцарийн агӀонашкахь</string>
+  <string name="notifications_menu_user_talk_page">%s дийцарийн агӀо</string>
   <string name="view_main_page_card_title">Тахана Википедехь</string>
   <string name="view_featured_image_card_download">Чуйаккха</string>
   <string name="menu_feed_card_dismiss">ХӀара карточка къайлайаккха</string>
   <string name="menu_feed_card_dismissed">Карточка къайлайаьккхина.</string>
-  <string name="menu_feed_overflow_label">Дукха таронаш</string>
+  <string name="menu_feed_overflow_label">Кхин сов таронаш</string>
   <string name="feed_featured_image_share_subject">Викиларман дика суьрташ</string>
   <string name="feed">Талла</string>
   <string name="view_static_card_icon_content_description">Карточкан хьаьрк</string>
@@ -102,6 +187,7 @@
   <string name="suggested_edits_edit_description_button">Нисбе хаам</string>
   <string name="suggested_edits_task_multilingual_positive">ТӀетоха меттанаш</string>
   <string name="suggested_edits_feed_card_title">Кховдийна нисдарш</string>
+  <string name="suggested_edits_image_preview_dialog_more_info">Ма-дарра</string>
   <string name="suggested_edits_label">Кховдийна нисдарш</string>
   <string name="suggested_edits_learn_more">Цул совнаха хаа</string>
   <string name="suggested_edits_ip_blocked_title">IP заблоктоьхна ду</string>
@@ -109,10 +195,21 @@
   <string name="suggested_edits_contribution_image_label">Сурт</string>
   <string name="app_shortcuts_search">Лахар</string>
   <string name="on_this_day_dialog_next_month">РогӀера бутт</string>
+  <plurals name="diff_years">
+    <item quantity="one">шо хьалкха</item>
+    <item quantity="other">%d шо хьалкха</item>
+  </plurals>
   <string name="add_wikipedia_languages_text">ТӀетоха меттанаш Википедехь</string>
-  <string name="dialog_of_remove_chinese_variants_from_app_lang_title">ДӀабаккха цийн мотт могӀаман йукъара?</string>
-  <string name="dialog_of_remove_chinese_variants_from_app_lang_edit">Хийца меттанаш</string>
+  <string name="templates_description_incomplete">Кепаш кхуллуш йу декъашхоша, цундела уьш хила мега чулацам кхачаме боцуш</string>
   <string name="main_tooltip_watchlist_title">Тергаме могӀам</string>
+  <string name="talk_title">Дийцар</string>
+  <string name="talk_user_title">Дийцар: %s</string>
+  <string name="talk_new_topic">Керла тема</string>
+  <string name="talk_new_topic_submitted">Тема дӀайазйина</string>
+  <string name="talk_subject_empty">Тема йаьсса хуьлийла дац.</string>
+  <string name="talk_search_topics_hint">Лаха теманашкахь</string>
+  <string name="talk_overflow_sort_date_updated">Карлайаккхаран терахь</string>
+  <string name="menu_option_find_in_talk_page_topic">Лаха тема дийцарийн агӀонгахь</string>
   <string name="thank_label">Баркалла</string>
   <string name="thank_dialog_negative_button_text">Йухайаккхар</string>
   <string name="thank_success_message">Хьан \"Баркалла\" дӀадахийтина %s декъашхочуьнга 👍</string>

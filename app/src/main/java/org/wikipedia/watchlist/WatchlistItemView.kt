@@ -5,7 +5,6 @@ import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.DrawableRes
@@ -14,12 +13,12 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.databinding.ItemWatchlistBinding
 import org.wikipedia.dataclient.mwapi.MwQueryResult
+import org.wikipedia.extensions.setLayoutDirectionByLang
 import org.wikipedia.util.DateUtil
-import org.wikipedia.util.L10nUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.StringUtil
 
-class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
+class WatchlistItemView(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
     val binding = ItemWatchlistBinding.inflate(LayoutInflater.from(context), this, true)
     var callback: Callback? = null
     private var item: MwQueryResult.WatchlistItem? = null
@@ -39,20 +38,17 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
             }
         }
         if (WikipediaApp.instance.languageState.appLanguageCodes.size == 1) {
-            binding.langCodeBackground.visibility = GONE
             binding.langCodeText.visibility = GONE
         } else {
-            binding.langCodeBackground.visibility = VISIBLE
             binding.langCodeText.visibility = VISIBLE
         }
     }
 
-    fun setItem(item: MwQueryResult.WatchlistItem) {
+    fun setItem(item: MwQueryResult.WatchlistItem, currentQuery: String?) {
         this.item = item
         var isSummaryEmpty = false
-        binding.titleText.text = item.title
-        binding.langCodeText.text = item.wiki!!.languageCode
-        binding.summaryText.text = StringUtil.fromHtml(item.parsedComment).ifEmpty {
+        binding.langCodeText.setLangCode(item.wiki!!.languageCode)
+        var summary = StringUtil.fromHtml(item.parsedComment).ifEmpty {
             isSummaryEmpty = true
             context.getString(R.string.page_edit_history_comment_placeholder)
         }
@@ -60,7 +56,6 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
         binding.summaryText.setTextColor(ResourceUtil.getThemedColor(context,
             if (isSummaryEmpty) R.attr.secondary_color else R.attr.primary_color))
         binding.timeText.text = DateUtil.getTimeString(context, item.date)
-        binding.userNameText.text = item.user
         binding.userNameText.contentDescription = context.getString(R.string.talk_user_title, item.user)
 
         binding.userNameText.setIconResource(if (item.isAnon) R.drawable.ic_anonymous_ooui else R.drawable.ic_user_avatar)
@@ -78,7 +73,7 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
                 }
                 else -> {
                     binding.diffText.isVisible = false
-                    binding.summaryText.text = StringUtil.fromHtml(item.logdisplay)
+                    summary = StringUtil.fromHtml(item.logdisplay)
                 }
             }
             binding.containerView.alpha = 0.5f
@@ -96,7 +91,10 @@ class WatchlistItemView constructor(context: Context, attrs: AttributeSet? = nul
             binding.containerView.alpha = 1.0f
             binding.containerView.isClickable = true
         }
-        L10nUtil.setConditionalLayoutDirection(this, item.wiki!!.languageCode)
+        setLayoutDirectionByLang(item.wiki!!.languageCode)
+        StringUtil.setHighlightedAndBoldenedText(binding.titleText, item.title, currentQuery)
+        StringUtil.setHighlightedAndBoldenedText(binding.userNameText, item.user, currentQuery)
+        StringUtil.setHighlightedAndBoldenedText(binding.summaryText, summary, currentQuery)
     }
 
     private fun setButtonTextAndIconColor(text: String, @DrawableRes iconResourceDrawable: Int = 0) {

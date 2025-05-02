@@ -2,7 +2,12 @@ package org.wikipedia.watchlist
 
 import android.content.Context
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -36,10 +41,17 @@ import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.UserAliasData
 import org.wikipedia.talk.UserTalkPopupHelper
-import org.wikipedia.util.*
+import org.wikipedia.util.DateUtil
+import org.wikipedia.util.DeviceUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.views.NotificationButtonView
 import org.wikipedia.views.SearchAndFilterActionProvider
-import java.util.*
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.Date
 
 class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
     private var _binding: FragmentWatchlistBinding? = null
@@ -68,7 +80,6 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
-        binding.watchlistRefreshView.setColorSchemeResources(ResourceUtil.getThemedAttributeId(requireContext(), R.attr.progressive_color))
         binding.watchlistRefreshView.setOnRefreshListener { viewModel.fetchWatchlist(actionMode == null) }
         binding.watchlistErrorView.retryClickListener = View.OnClickListener { viewModel.fetchWatchlist(actionMode == null) }
 
@@ -81,9 +92,9 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
                 viewModel.uiState.collect {
                     when (it) {
-                        is WatchlistViewModel.UiState.Loading -> onLoading()
-                        is WatchlistViewModel.UiState.Success -> onSuccess()
-                        is WatchlistViewModel.UiState.Error -> onError(it.throwable)
+                        is Resource.Loading -> onLoading()
+                        is Resource.Success -> onSuccess()
+                        is Resource.Error -> onError(it.throwable)
                     }
                 }
             }
@@ -94,7 +105,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
         super.onResume()
         actionMode?.let {
             viewModel.updateList(false)
-            if (SearchActionModeCallback.`is`(it)) {
+            if (SearchActionModeCallback.matches(it)) {
                 searchActionModeCallback.refreshProvider()
             }
         }
@@ -126,7 +137,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
             notificationButtonView.contentDescription = getString(R.string.notifications_activity_title)
             notificationMenuItem.actionView = notificationButtonView
             notificationMenuItem.expandActionView()
-            FeedbackUtil.setButtonLongPressToast(notificationButtonView)
+            FeedbackUtil.setButtonTooltip(notificationButtonView)
         } else {
             notificationMenuItem.isVisible = false
         }
@@ -193,7 +204,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
     internal inner class WatchlistItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bindItem(item: MwQueryResult.WatchlistItem) {
             val view = itemView as WatchlistItemView
-            view.setItem(item)
+            view.setItem(item, viewModel.currentSearchQuery)
             view.callback = this@WatchlistFragment
         }
     }
@@ -201,7 +212,8 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
     internal inner class WatchlistDateViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bindItem(date: Date) {
             val textView = itemView.findViewById<TextView>(R.id.dateText)
-            textView.text = DateUtil.getShortDateString(date)
+            val localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault()).toLocalDate()
+            textView.text = DateUtil.getShortDateString(localDateTime)
         }
     }
 
@@ -220,19 +232,16 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
                 resultLauncher.launch(WatchlistFilterActivity.newIntent(it.context))
             }
 
-            FeedbackUtil.setButtonLongPressToast(itemBinding.filterButton)
+            FeedbackUtil.setButtonTooltip(itemBinding.filterButton)
         }
 
         fun updateFilterIconAndCount() {
-            val filterCount = viewModel.filtersCount()
-            if (filterCount == 0) {
-                itemBinding.filterCount.visibility = View.GONE
-                ImageViewCompat.setImageTintList(itemBinding.filterButton, ResourceUtil.getThemedColorStateList(requireContext(), R.attr.primary_color))
-            } else {
-                itemBinding.filterCount.visibility = View.VISIBLE
-                itemBinding.filterCount.text = filterCount.toString()
-                ImageViewCompat.setImageTintList(itemBinding.filterButton, ResourceUtil.getThemedColorStateList(requireContext(), R.attr.progressive_color))
-            }
+            val showFilterCount = viewModel.filtersCount() != 0
+            val filterButtonColor = if (showFilterCount) R.attr.progressive_color else R.attr.primary_color
+            itemBinding.filterCount.isVisible = showFilterCount
+            itemBinding.filterCount.text = viewModel.filtersCount().toString()
+            ImageViewCompat.setImageTintList(itemBinding.filterButton,
+                ResourceUtil.getThemedColorStateList(requireContext(), filterButtonColor))
         }
     }
 
@@ -285,13 +294,10 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
 
         var searchAndFilterActionProvider: SearchAndFilterActionProvider? = null
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            searchAndFilterActionProvider = SearchAndFilterActionProvider(requireContext(), searchHintString,
+            searchAndFilterActionProvider = SearchAndFilterActionProvider(requireContext(), getSearchHintString(),
                 object : SearchAndFilterActionProvider.Callback {
                     override fun onQueryTextChange(s: String) {
                         onQueryChange(s)
-                    }
-
-                    override fun onQueryTextFocusChange() {
                     }
 
                     override fun onFilterIconClick() {
@@ -308,7 +314,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
                     }
                 })
 
-            val menuItem = menu.add(searchHintString)
+            val menuItem = menu.add(getSearchHintString())
 
             MenuItemCompat.setActionProvider(menuItem, searchAndFilterActionProvider)
 
@@ -346,7 +352,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
             return
         }
         startActivity(ArticleEditDetailsActivity.newIntent(requireContext(),
-                PageTitle(item.title, item.wiki!!), item.pageId, item.revid))
+                PageTitle(item.title, item.wiki!!), item.pageId, revisionTo = item.revid, source = Constants.InvokeSource.WATCHLIST_ACTIVITY))
     }
 
     override fun onUserClick(item: MwQueryResult.WatchlistItem, view: View) {

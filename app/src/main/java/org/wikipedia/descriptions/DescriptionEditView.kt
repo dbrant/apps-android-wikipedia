@@ -10,24 +10,33 @@ import android.view.LayoutInflater
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.BlendModeColorFilterCompat
+import androidx.core.graphics.BlendModeCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.addTextChangedListener
-import de.mrapp.android.view.drawable.CircularProgressDrawable
+import androidx.swiperefreshlayout.widget.CircularProgressDrawable
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.analytics.eventplatform.MachineGeneratedArticleDescriptionsAnalyticsHelper
+import org.wikipedia.databinding.GroupCaptchaBinding
 import org.wikipedia.databinding.ViewDescriptionEditBinding
+import org.wikipedia.extensions.setLayoutDirectionByLang
 import org.wikipedia.language.LanguageUtil
 import org.wikipedia.mlkit.MlKitLanguageDetector
 import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.suggestededits.PageSummaryForEdit
-import org.wikipedia.util.*
+import org.wikipedia.util.DeviceUtil
+import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.util.UriUtil
 import org.wikipedia.views.SuggestedArticleDescriptionsDialog
-import java.util.*
+import java.util.Locale
 
-class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
+class DescriptionEditView(context: Context, attrs: AttributeSet?) : LinearLayout(context, attrs), MlKitLanguageDetector.Callback {
     interface Callback {
         fun onSaveClick()
         fun onCancelClick()
@@ -35,10 +44,6 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         fun onVoiceInputClick()
         fun getAnalyticsHelper(): MachineGeneratedArticleDescriptionsAnalyticsHelper
     }
-
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
-    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     private lateinit var pageTitle: PageTitle
     private lateinit var pageSummaryForEdit: PageSummaryForEdit
@@ -64,7 +69,7 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         }
 
     init {
-        FeedbackUtil.setButtonLongPressToast(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
+        FeedbackUtil.setButtonTooltip(binding.viewDescriptionEditSaveButton, binding.viewDescriptionEditCancelButton)
         orientation = VERTICAL
         mlKitLanguageDetector.callback = this
 
@@ -127,6 +132,7 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         setHintText()
         description = originalDescription
         setReviewHeaderText(false)
+        binding.viewDescriptionEditTextLayout.counterMaxLength = resources.getInteger(if (pageTitle.wikiSite.languageCode == "en") R.integer.description_max_chars_en else R.integer.description_max_chars)
     }
 
     private fun setVoiceInput() {
@@ -224,12 +230,12 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         pageSummaryForEdit = if (isTranslationEdit) targetSummary!! else sourceSummary
         binding.viewDescriptionEditPageSummaryContainer.visibility = VISIBLE
         binding.viewDescriptionEditPageSummaryLabel.text = getLabelText(sourceSummary.lang)
-        binding.viewDescriptionEditPageSummary.text = StringUtil.strip(StringUtil.removeHTMLTags(if (isTranslationEdit || action == DescriptionEditActivity.Action.ADD_CAPTION) sourceSummary.description else sourceSummary.extractHtml))
+        binding.viewDescriptionEditPageSummary.text = StringUtil.removeHTMLTags(if (isTranslationEdit || action == DescriptionEditActivity.Action.ADD_CAPTION) sourceSummary.description else sourceSummary.extractHtml).trim()
         if (binding.viewDescriptionEditPageSummary.text.toString().isEmpty() || action == DescriptionEditActivity.Action.ADD_CAPTION &&
             !sourceSummary.pageTitle.description.isNullOrEmpty()) {
             binding.viewDescriptionEditPageSummaryContainer.visibility = GONE
         }
-        L10nUtil.setConditionalLayoutDirection(this, if (isTranslationEdit) sourceSummary.lang else pageTitle.wikiSite.languageCode)
+        setLayoutDirectionByLang(if (isTranslationEdit) sourceSummary.lang else pageTitle.wikiSite.languageCode)
 
         binding.viewDescriptionEditReadArticleBarContainer.setSummary(pageSummaryForEdit)
         binding.viewDescriptionEditReadArticleBarContainer.setOnClickListener { performReadArticleClick() }
@@ -328,6 +334,8 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
             (listOf(".", ",", "!", "?").filter { text.endsWith(it) }).isNotEmpty()) {
             isTextValid = false
             setError(context.getString(R.string.description_ends_with_punctuation))
+        } else if (pageTitle.wikiSite.languageCode == "en" && text.length > resources.getInteger(R.integer.description_max_chars_en)) {
+            setWarning(context.getString(R.string.description_too_long))
         } else if ((action == DescriptionEditActivity.Action.ADD_DESCRIPTION || action == DescriptionEditActivity.Action.TRANSLATE_DESCRIPTION) &&
             LanguageUtil.startsWithArticle(text, pageTitle.wikiSite.languageCode)) {
             setWarning(context.getString(R.string.description_starts_with_article))
@@ -402,6 +410,10 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
         }
     }
 
+    fun getDescriptionEditTextView(): LinearLayout {
+        return binding.viewDescriptionEditTextLayout
+    }
+
     fun updateInfoText() {
         binding.learnMoreButton.text =
             if (action == DescriptionEditActivity.Action.ADD_DESCRIPTION ||
@@ -412,7 +424,11 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
     fun showSuggestedDescriptionsLoadingProgress() {
         binding.suggestedDescButton.isVisible = true
         binding.suggestedDescButton.isEnabled = false
-        binding.suggestedDescButton.chipIcon = CircularProgressDrawable(ResourceUtil.getThemedColor(context, R.attr.primary_color), 1).also { it.start() }
+        val drawable = CircularProgressDrawable(context)
+        drawable.strokeWidth = DimenUtil.dpToPx(1.5f)
+        drawable.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(ResourceUtil.getThemedColor(context, R.attr.primary_color), BlendModeCompat.SRC_IN)
+        binding.suggestedDescButton.chipIcon = drawable
+        drawable.start()
     }
 
      fun updateSuggestedDescriptionsButtonVisibility() {
@@ -426,7 +442,7 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
             SuggestedArticleDescriptionsDialog(context as Activity, firstSuggestion, secondSuggestion, pageTitle, callback!!.getAnalyticsHelper()) { suggestion ->
                 binding.viewDescriptionEditText.setText(suggestion)
                 binding.viewDescriptionEditText.setSelection(binding.viewDescriptionEditText.text?.length ?: 0)
-                callback?.getAnalyticsHelper()?.logSuggestionChosen(context, suggestion, pageTitle)
+                callback?.getAnalyticsHelper()?.logSuggestionChosen(context, pageTitle)
                 wasSuggestionChosen = true
                 wasSuggestionModified = false
             }.show()
@@ -453,6 +469,10 @@ class DescriptionEditView : LinearLayout, MlKitLanguageDetector.Callback {
                 Prefs.suggestedEditsMachineGeneratedDescriptionTooltipShown = true
             }, 500)
         }
+    }
+
+    fun getCaptchaContainer(): GroupCaptchaBinding {
+        return binding.captchaContainer
     }
 
     companion object {

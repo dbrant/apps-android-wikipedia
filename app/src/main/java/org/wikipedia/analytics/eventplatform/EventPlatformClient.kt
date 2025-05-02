@@ -1,9 +1,12 @@
 package org.wikipedia.analytics.eventplatform
 
-import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.core.os.postDelayed
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import org.wikipedia.BuildConfig
 import org.wikipedia.WikipediaApp
 import org.wikipedia.dataclient.ServiceFactory
@@ -13,13 +16,20 @@ import org.wikipedia.settings.Prefs
 import org.wikipedia.util.ReleaseUtil
 import org.wikipedia.util.log.L
 import java.net.HttpURLConnection
-import java.util.*
+import java.util.Random
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 object EventPlatformClient {
     /**
      * Stream configs to be fetched on startup and stored for the duration of the app lifecycle.
      */
-    private val STREAM_CONFIGS = mutableMapOf<String, StreamConfig>()
+    private val STREAM_CONFIGS = ConcurrentHashMap<String, StreamConfig>()
+
+    /**
+     * List of events that will be queued before the first time that stream configs are fetched.
+     */
+    private val INITIAL_QUEUE = mutableListOf<Event>()
 
     /*
      * When ENABLED is false, items can be enqueued but not dequeued.
@@ -30,6 +40,8 @@ object EventPlatformClient {
      * Taken out of iOS client, but flag can be set on the request object to wait until connected to send
      */
     private var ENABLED = WikipediaApp.instance.isOnline
+
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     fun setStreamConfig(streamConfig: StreamConfig) {
         STREAM_CONFIGS[streamConfig.streamName] = streamConfig
@@ -43,7 +55,6 @@ object EventPlatformClient {
      * Set whether the client is enabled. This can react to device online/offline state as well
      * as other considerations.
      */
-    @Synchronized
     fun setEnabled(enabled: Boolean) {
         ENABLED = enabled
         if (ENABLED) {
@@ -60,8 +71,22 @@ object EventPlatformClient {
      *
      * @param event event
      */
-    @Synchronized
     fun submit(event: Event) {
+        if (STREAM_CONFIGS.isEmpty()) {
+            // We haven't gotten stream configs yet, so queue up the event in our initial queue.
+            synchronized(INITIAL_QUEUE) {
+                // We want the queue to work as a circular buffer, so if it's full, remove the oldest item.
+                if (INITIAL_QUEUE.size >= Prefs.analyticsQueueSize) {
+                    INITIAL_QUEUE.removeAt(0)
+                }
+                INITIAL_QUEUE.add(event)
+            }
+            return
+        }
+        doSubmit(event)
+    }
+
+    private fun doSubmit(event: Event) {
         if (!SamplingController.isInSample(event)) {
             return
         }
@@ -69,28 +94,39 @@ object EventPlatformClient {
     }
 
     fun flushCachedEvents() {
+        if (STREAM_CONFIGS.isNotEmpty()) {
+            // If we have events left over in our initial queue, submit them now, so they'll be send in this pass.
+            synchronized(INITIAL_QUEUE) {
+                if (INITIAL_QUEUE.isNotEmpty()) {
+                    INITIAL_QUEUE.forEach {
+                        doSubmit(it)
+                    }
+                    INITIAL_QUEUE.clear()
+                }
+            }
+        }
         OutputBuffer.sendAllScheduled()
     }
 
-    @SuppressLint("CheckResult")
-    fun refreshStreamConfigs() {
-        ServiceFactory.get(WikiSite(BuildConfig.META_WIKI_BASE_URI)).streamConfigs
-                .subscribeOn(Schedulers.io())
-                .subscribe({ updateStreamConfigs(it.streamConfigs) }) { L.e(it) }
+    suspend fun refreshStreamConfigs() {
+        val response = ServiceFactory.get(WikiSite(BuildConfig.META_WIKI_BASE_URI)).getStreamConfigs()
+        updateStreamConfigs(response.streamConfigs)
     }
 
-    @Synchronized
     private fun updateStreamConfigs(streamConfigs: Map<String, StreamConfig>) {
         STREAM_CONFIGS.clear()
         STREAM_CONFIGS.putAll(streamConfigs)
         Prefs.streamConfigs = STREAM_CONFIGS
     }
 
-    @Synchronized
     fun setUpStreamConfigs() {
         STREAM_CONFIGS.clear()
         STREAM_CONFIGS.putAll(Prefs.streamConfigs)
-        refreshStreamConfigs()
+        MainScope().launch(CoroutineExceptionHandler { _, t ->
+            L.e(t)
+        }) {
+            refreshStreamConfigs()
+        }
     }
 
     /**
@@ -113,12 +149,15 @@ object EventPlatformClient {
         private const val TOKEN = "sendScheduled"
         private val MAX_QUEUE_SIZE get() = Prefs.analyticsQueueSize
 
-        @Synchronized
         fun sendAllScheduled() {
             WikipediaApp.instance.mainThreadHandler.removeCallbacksAndMessages(TOKEN)
             if (ENABLED) {
-                send()
-                QUEUE.clear()
+                val eventsByStream: Map<String, List<Event>>
+                synchronized(QUEUE) {
+                    eventsByStream = QUEUE.groupBy { it.stream }
+                    QUEUE.clear()
+                }
+                send(eventsByStream)
             }
         }
 
@@ -127,10 +166,11 @@ object EventPlatformClient {
          *
          * @param event event data
          */
-        @Synchronized
         fun schedule(event: Event) {
             if (ENABLED || QUEUE.size <= MAX_QUEUE_SIZE) {
-                QUEUE.add(event)
+                synchronized(QUEUE) {
+                    QUEUE.add(event)
+                }
             }
             if (ENABLED) {
                 if (QUEUE.size >= MAX_QUEUE_SIZE) {
@@ -150,48 +190,43 @@ object EventPlatformClient {
          * Also batch the events ordered by their streams, as the QUEUE
          * can contain events of different streams
          */
-        private fun send() {
-            if (!Prefs.isEventLoggingEnabled) {
-                return
-            }
-            QUEUE.groupBy { it.stream }.forEach { (stream, events) ->
-                sendEventsForStream(STREAM_CONFIGS[stream]!!, events)
+        private fun send(eventsByStream: Map<String, List<Event>>) {
+            eventsByStream.forEach { (stream, events) ->
+                getStreamConfig(stream)?.let {
+                    sendEventsForStream(it, events)
+                }
             }
         }
 
-        @SuppressLint("CheckResult")
-        fun sendEventsForStream(streamConfig: StreamConfig, events: List<Event>) {
-            (if (ReleaseUtil.isDevRelease)
-                ServiceFactory.getAnalyticsRest(streamConfig).postEvents(events)
-            else
-                ServiceFactory.getAnalyticsRest(streamConfig).postEventsHasty(events))
-                    .subscribeOn(Schedulers.io())
-                    .subscribe({
-                        when (it.code()) {
-                            HttpURLConnection.HTTP_CREATED,
-                            HttpURLConnection.HTTP_ACCEPTED -> {}
-                            else -> {
-                                // Received successful response, but unexpected HTTP code.
-                                // TODO: queue up to retry?
-                            }
-                        }
-                    }) {
-                        L.e(it)
-                        if (it is HttpStatusException) {
-                            if (it.code >= HttpURLConnection.HTTP_INTERNAL_ERROR) {
-                                // TODO: For errors >= 500, queue up to retry?
-                            } else {
-                                // Something unexpected happened.
-                                if (ReleaseUtil.isDevRelease) {
-                                    // If it's a pre-beta release, show a loud toast to signal that
-                                    // a potential issue should be investigated.
-                                    WikipediaApp.instance.mainThreadHandler.post {
-                                        Toast.makeText(WikipediaApp.instance, it.message, Toast.LENGTH_LONG).show()
-                                    }
-                                }
+        private fun sendEventsForStream(streamConfig: StreamConfig, events: List<Event>) {
+            coroutineScope.launch(CoroutineExceptionHandler { _, caught ->
+                L.e(caught)
+                if (caught is HttpStatusException) {
+                    if (caught.code >= HttpURLConnection.HTTP_INTERNAL_ERROR) {
+                        // TODO: For errors >= 500, queue up to retry?
+                    } else {
+                        // Something unexpected happened.
+                        if (ReleaseUtil.isDevRelease) {
+                            // If it's a pre-beta release, show a loud toast to signal that
+                            // a potential issue should be investigated.
+                            WikipediaApp.instance.mainThreadHandler.post {
+                                Toast.makeText(WikipediaApp.instance, caught.message, Toast.LENGTH_LONG).show()
                             }
                         }
                     }
+                }
+            }) {
+                val eventService = if (ReleaseUtil.isDevRelease) ServiceFactory.getAnalyticsRest(streamConfig).postEvents(events) else
+                    ServiceFactory.getAnalyticsRest(streamConfig).postEventsHasty(events)
+                when (eventService.code()) {
+                    HttpURLConnection.HTTP_CREATED,
+                    HttpURLConnection.HTTP_ACCEPTED -> {}
+                    else -> {
+                        // Received successful response, but unexpected HTTP code.
+                        // TODO: queue up to retry?
+                    }
+                }
+            }
         }
     }
 
@@ -292,7 +327,7 @@ object EventPlatformClient {
             if (SAMPLING_CACHE.containsKey(stream)) {
                 return SAMPLING_CACHE[stream]!!
             }
-            val streamConfig = STREAM_CONFIGS[stream] ?: return false
+            val streamConfig = getStreamConfig(stream) ?: return false
             val samplingConfig = streamConfig.samplingConfig
             if (samplingConfig == null || samplingConfig.rate == 1.0) {
                 return true

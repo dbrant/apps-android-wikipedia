@@ -4,6 +4,7 @@
 * Akbarali
 * Jameela P.
 * Jinoytommanjaly
+* Naveen Sankar
 * Path slopu
 * Praveenp
 * Ranjithsiji
@@ -58,7 +59,7 @@
   <string name="page_edit_history_filter_by">ഇതനുസരിച്ച് ഫിൽട്ടർ ചെയ്യുക</string>
   <string name="page_edit_history_filter_by_all">എല്ലാ എഡിറ്റുകളും ( %s )</string>
   <string name="page_edit_history_filter_by_user">ഉപയോക്തൃ എഡിറ്റുകൾ ( %s )</string>
-  <string name="page_edit_history_filter_by_anon">അനോൺ എഡിറ്റുകൾ ( %s )</string>
+  <string name="page_edit_history_filter_by_anon" fuzzy="true">അനോൺ എഡിറ്റുകൾ ( %s )</string>
   <string name="page_edit_history_filter_by_bot">ബോട്ട് എഡിറ്റുകൾ ( %s )</string>
   <string name="page_edit_history_metrics_content_description">%1$s മുതൽ %2$s s വരെയുള്ള മെട്രിക്കുകൾ</string>
   <string name="menu_page_show_tabs">ടാബുകൾ പ്രദർശിപ്പിക്കുക</string>
@@ -91,9 +92,9 @@
   <string name="map_view_link_text">ഭൂപടത്തിൽ കാണുക</string>
   <string name="other_languages_indication_text">മറ്റൊരു ഭാഷയിൽ വായിക്കുക</string>
   <string name="language_count_link_text">%d മറ്റ് ഭാഷകളിൽ ലഭ്യമാണ്</string>
-  <string name="content_license_cc_by_sa">സി.സി. ബൈ-എസ്.എ. 3.0</string>
-  <string name="edit_save_action_license_logged_in">പ്രസിദ്ധീകരിക്കുമ്പോൾ, \n&lt;a href=\"%1$s\"&gt;ഉപയോഗ നിബന്ധനകൾ&lt;/a&gt; പാലിക്കുമെന്നും, താങ്കൾ താങ്കളുടെ സംഭാവനകൾ &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; പ്രകാരമാണ് പ്രസിദ്ധീകരിക്കുന്നതെന്നും സമ്മതിക്കുന്നുണ്ട്.</string>
-  <string name="edit_save_action_license_anon">പ്രസിദ്ധീകരിക്കുമ്പോൾ, &lt;a href=\"%1$s\"&gt;ഉപയോഗനിബന്ധനകളും&lt;/a&gt;, താങ്കളുടെ സംഭാവനകൾ പിന്നീട് മാറ്റം വരുത്താൻ പറ്റാത്ത വിധം &lt;a href=\"%2$s/\"&gt;CC BY-SA 3.0&lt;/a&gt; അനുമതിയിലാണ് ഉള്ളതെന്നും താങ്കൾ അംഗീകരിക്കുന്നുണ്ട്. തിരുത്തുകൾ താങ്കളുടെ ഉപകരണത്തിന്റെ ഐ.പി. വിലാസത്തിലേക്ക് ചേർക്കുന്നതാണ്. താങ്കൾ &lt;a href=\"https://#login\"&gt;പ്രവേശിക്കുകയാണെങ്കിൽ&lt;/a&gt;, താങ്കൾക്ക് കൂടുതൽ സ്വകാര്യത ലഭിക്കുന്നതാണ്.</string>
+  <string name="content_license_cc_by_sa">സി.സി. ബൈ-എസ്.എ. 4.0</string>
+  <string name="edit_save_action_license_logged_in" fuzzy="true">പ്രസിദ്ധീകരിക്കുമ്പോൾ, \n&lt;a href=\"%1$s\"&gt;ഉപയോഗ നിബന്ധനകൾ&lt;/a&gt; പാലിക്കുമെന്നും, താങ്കൾ താങ്കളുടെ സംഭാവനകൾ &lt;a href=\"%2$s\"&gt;CC BY-SA 3.0&lt;/a&gt; പ്രകാരമാണ് പ്രസിദ്ധീകരിക്കുന്നതെന്നും സമ്മതിക്കുന്നുണ്ട്.</string>
+  <string name="edit_save_action_license_anon" fuzzy="true">പ്രസിദ്ധീകരിക്കുമ്പോൾ, &lt;a href=\"%1$s\"&gt;ഉപയോഗനിബന്ധനകളും&lt;/a&gt;, താങ്കളുടെ സംഭാവനകൾ പിന്നീട് മാറ്റം വരുത്താൻ പറ്റാത്ത വിധം &lt;a href=\"%2$s/\"&gt;CC BY-SA 3.0&lt;/a&gt; അനുമതിയിലാണ് ഉള്ളതെന്നും താങ്കൾ അംഗീകരിക്കുന്നുണ്ട്. തിരുത്തുകൾ താങ്കളുടെ ഉപകരണത്തിന്റെ ഐ.പി. വിലാസത്തിലേക്ക് ചേർക്കുന്നതാണ്. താങ്കൾ &lt;a href=\"https://#login\"&gt;പ്രവേശിക്കുകയാണെങ്കിൽ&lt;/a&gt;, താങ്കൾക്ക് കൂടുതൽ സ്വകാര്യത ലഭിക്കുന്നതാണ്.</string>
   <string name="preference_title_language">വിക്കിപീഡിയ ഭാഷകൾ</string>
   <string name="langlinks_filter_hint">തിരയുക</string>
   <string name="langlinks_empty">ഈ താൾ മറ്റ് ഭാഷകളിൽ ലഭ്യമല്ല</string>
@@ -122,8 +123,8 @@
   <string name="login_username_hint">ഉപയോക്തൃനാമം</string>
   <string name="login_password_hint">രഹസ്യവാക്ക്</string>
   <string name="account_creation_password_hint">രഹസ്യവാക്ക്</string>
-  <string name="login_2fa_hint">ദ്വി-ഘടക സാധൂകരണ കോഡ്</string>
-  <string name="login_2fa_other_workflow_error_msg">രണ്ട്-ഘടക പ്രാമാണീകരണം ആവശ്യമാണ്! ദയവായി പ്രധാന പ്രവർത്തനത്തിലേക്ക് മടങ്ങി നിങ്ങളുടെ 2FA ടോക്കൺ ഉപയോഗിച്ച് ലോഗിൻ ചെയ്യുക, തുടർന്ന് വീണ്ടും ശ്രമിക്കുക.</string>
+  <string name="login_2fa_hint" fuzzy="true">ദ്വി-ഘടക സാധൂകരണ കോഡ്</string>
+  <string name="login_2fa_other_workflow_error_msg" fuzzy="true">രണ്ട്-ഘടക പ്രാമാണീകരണം ആവശ്യമാണ്! ദയവായി പ്രധാന പ്രവർത്തനത്തിലേക്ക് മടങ്ങി നിങ്ങളുടെ 2FA ടോക്കൺ ഉപയോഗിച്ച് ലോഗിൻ ചെയ്യുക, തുടർന്ന് വീണ്ടും ശ്രമിക്കുക.</string>
   <string name="onboarding_card_login">പ്രവേശിക്കുക</string>
   <string name="page_editing_login">പ്രവേശിക്കുക</string>
   <string name="reading_lists_sync_login">പ്രവേശിക്കുക</string>
@@ -182,9 +183,6 @@
   <string name="preferences_heading_experimental">പരീക്ഷണാടിസ്ഥാനം</string>
   <string name="preference_title_sync_reading_lists_from_account">വായനാപട്ടിക ഏകതാനമാക്കുന്നു</string>
   <string name="preference_title_download_reading_list_articles">വായനാപട്ടികയിലെ ലേഖനങ്ങൾ ഡൗൺലോഡ് ചെയ്യുക</string>
-  <string name="preferences_privacy_settings_heading">സ്വകാര്യത</string>
-  <string name="preference_title_eventlogging_opt_in">ഉപയോഗ വിവരങ്ങൾ അയയ്ക്കുക</string>
-  <string name="preference_summary_eventlogging_opt_in">താങ്കൾ എങ്ങനെയാണ് ആപ് ഉപയോഗിച്ചതെന്ന വിവരങ്ങൾ ശേഖരിച്ച് ആപ് കൂടുതൽ മെച്ചപ്പെട്ടതാക്കാൻ വിക്കിമീഡിയയെ അനുവദിക്കുക</string>
   <string name="preference_title_auto_upload_crash_reports">നാശത്തിന്റെ റിപ്പോർട്ടുകൾ അയക്കുക</string>
   <string name="editing_error_spamblacklist">തടയപ്പെട്ട ഡൊമൈനുകളിലോട്ടുള്ള കണ്ണികൾ (%s) കണ്ടെത്താനായി. ദയവായി അവ ഒഴിവാക്കി വീണ്ടും ശ്രമിക്കുക.</string>
   <string name="error_can_not_process_link">ഈ കണ്ണി പ്രദർശിപ്പിക്കാനാവില്ല</string>
@@ -495,8 +493,6 @@
   <string name="wikipedia_languages_remove_warning_dialog_content">വായിക്കുവാനും തിരയുവാനും ഒരു വിക്കിപീഡിയ ഭാഷയെങ്കിലും നിലനിർത്തുക.</string>
   <string name="more_language_options">കൂടുതൽ</string>
   <string name="add_wikipedia_languages_text">വിക്കിപീഡിയ ഭാഷകൾ ചേർക്കുക</string>
-  <string name="dialog_of_remove_chinese_variants_from_app_lang_edit">ഭാഷകൾ തിരുത്തുക</string>
-  <string name="dialog_of_remove_chinese_variants_from_app_lang_no">വേണ്ട, നന്ദി</string>
   <string name="remove_language_dialog_cancel_button_text">റദ്ദാക്കുക</string>
   <string name="remove_language_dialog_ok_button_text">ശരി</string>
   <string name="remove_all_language_warning_dialog_ok_button_text">ശരി</string>
@@ -516,4 +512,24 @@
   <string name="text_input_dialog_ok_button_text">ശരി</string>
   <string name="text_input_dialog_cancel_button_text">റദ്ദാക്കുക</string>
   <string name="custom_date_picker_dialog_cancel_button_text">റദ്ദാക്കുക</string>
+  <string name="on_this_day_game_entry_dialog_title">പരിചയപ്പെടുത്തുന്നു</string>
+  <string name="on_this_day_game_entry_dialog_subtitle">വിക്കിപീഡിയാ കളികൾ</string>
+  <string name="on_this_day_game_entry_dialog_button">ഇന്നത്തെ കളി കളിക്കുക</string>
+  <string name="on_this_day_game_entry_dialog_snackbar_message">Explore feed-ൽ വിക്കിപീഡിയാ കളികൾ ലഭ്യമാണ്.</string>
+  <string name="on_this_day_game_title">എന്താണ് ആദ്യം വന്നത് ?</string>
+  <string name="on_this_day_game_dialog_button">കളിക്കുക</string>
+  <string name="on_this_day_game_score">സ്കോർ: %d</string>
+  <string name="on_this_day_game_correct">ശരി !</string>
+  <string name="on_this_day_game_incorrect">തെറ്റ് !</string>
+  <string name="on_this_day_game_point">+1 പോയിൻ്റ്</string>
+  <string name="on_this_day_game_next">അടുത്ത ചോദ്യം</string>
+  <string name="on_this_day_game_finish">അന്തിമ ഫലങ്ങൾ</string>
+  <string name="on_this_day_game_feed_entry_card_heading">വിക്കിപീഡിയാ കളികൾ</string>
+  <string name="on_this_day_game_feed_entry_card_title" fuzzy="true">എന്താണ് ആദ്യം വന്നത് ?</string>
+  <string name="on_this_day_game_result">നിങ്ങൾ %1$d/%2$d സ്കോർ ചെയ്തു.</string>
+  <string name="on_this_day_game_next_in">%s-ൽ അടുത്ത കളി</string>
+  <string name="on_this_day_game_your_stats">നിങ്ങളുടെ സ്ഥിതിവിവരക്കണക്കുകൾ</string>
+  <string name="on_this_day_game_stats_average_score">ശരാശരി സ്കോർ</string>
+  <string name="on_this_day_game_stats_streak">നിലവിലെ സ്ട്രീക്ക്</string>
+  <string name="on_this_day_game_result_subtitle">ഇന്നത്തെ കളിയിൽ പരാമർശിച്ച ലേഖനങ്ങൾ</string>
 </resources>

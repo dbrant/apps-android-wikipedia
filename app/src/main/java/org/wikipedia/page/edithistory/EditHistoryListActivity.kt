@@ -19,8 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
-import androidx.paging.PagingData
-import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,12 +30,11 @@ import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
-import org.wikipedia.analytics.eventplatform.EditHistoryInteractionEvent
+import org.wikipedia.adapter.PagingDataAdapterPatched
 import org.wikipedia.databinding.ActivityEditHistoryBinding
 import org.wikipedia.databinding.ViewEditHistoryEmptyMessagesBinding
 import org.wikipedia.databinding.ViewEditHistorySearchBarBinding
 import org.wikipedia.dataclient.mwapi.MwQueryPage
-import org.wikipedia.dataclient.restbase.EditCount
 import org.wikipedia.diff.ArticleEditDetailsActivity
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.history.SearchActionModeCallback
@@ -46,7 +43,11 @@ import org.wikipedia.page.PageTitle
 import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.UserAliasData
 import org.wikipedia.talk.UserTalkPopupHelper
-import org.wikipedia.util.*
+import org.wikipedia.util.DateUtil
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.views.EditHistoryFilterOverflowView
 import org.wikipedia.views.EditHistoryStatsView
 import org.wikipedia.views.SearchAndFilterActionProvider
@@ -61,10 +62,9 @@ class EditHistoryListActivity : BaseActivity() {
     private val editHistoryEmptyMessagesAdapter = EmptyMessagesAdapter()
     private val loadHeader = LoadingItemAdapter { editHistoryListAdapter.retry() }
     private val loadFooter = LoadingItemAdapter { editHistoryListAdapter.retry() }
-    private val viewModel: EditHistoryListViewModel by viewModels { EditHistoryListViewModel.Factory(intent.extras!!) }
+    private val viewModel: EditHistoryListViewModel by viewModels()
     private var actionMode: ActionMode? = null
     private val searchActionModeCallback = SearchCallback()
-    private var editHistoryInteractionEvent: EditHistoryInteractionEvent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +85,6 @@ class EditHistoryListActivity : BaseActivity() {
         binding.compareButton.setOnClickListener {
             viewModel.toggleCompareState()
             updateCompareState()
-            editHistoryInteractionEvent?.logCompare1()
         }
 
         binding.compareConfirmButton.setOnClickListener {
@@ -94,12 +93,11 @@ class EditHistoryListActivity : BaseActivity() {
                         viewModel.pageTitle, viewModel.pageId, viewModel.selectedRevisionFrom!!.revId,
                         viewModel.selectedRevisionTo!!.revId))
             }
-            editHistoryInteractionEvent?.logCompare2()
         }
 
         binding.editHistoryRefreshContainer.setOnRefreshListener {
             viewModel.clearCache()
-            editHistoryListAdapter.reload()
+            editHistoryListAdapter.refresh()
         }
 
         binding.editHistoryRecycler.layoutManager = LinearLayoutManager(this)
@@ -137,19 +135,13 @@ class EditHistoryListActivity : BaseActivity() {
                 }
                 launch {
                     viewModel.editHistoryFlow.collectLatest {
-                        editHistoryListAdapter.submitData(it)
+                        editHistoryListAdapter.submitData(lifecycleScope, it)
                     }
                 }
             }
         }
 
         viewModel.editHistoryStatsData.observe(this) {
-            if (it is Resource.Success) {
-                if (editHistoryInteractionEvent == null) {
-                    editHistoryInteractionEvent = EditHistoryInteractionEvent(viewModel.pageTitle.wikiSite.dbName(), viewModel.pageId)
-                    editHistoryInteractionEvent?.logShowHistory()
-                }
-            }
             editHistoryStatsAdapter.notifyItemChanged(0)
             editHistorySearchBarAdapter.notifyItemChanged(0)
         }
@@ -212,20 +204,17 @@ class EditHistoryListActivity : BaseActivity() {
 
     private fun startSearchActionMode() {
         actionMode = startSupportActionMode(searchActionModeCallback)
-        editHistoryInteractionEvent?.logSearchClick()
     }
 
     fun showFilterOverflowMenu() {
-        editHistoryInteractionEvent?.logFilterClick()
         val editCountsValue = viewModel.editHistoryStatsData.value
         if (editCountsValue is Resource.Success) {
             val anchorView = if (actionMode != null && searchActionModeCallback.searchAndFilterActionProvider != null)
                 searchActionModeCallback.searchBarFilterIcon!! else if (editHistorySearchBarAdapter.viewHolder != null)
                     editHistorySearchBarAdapter.viewHolder!!.binding.filterByButton else binding.root
             EditHistoryFilterOverflowView(this@EditHistoryListActivity).show(anchorView, editCountsValue.data) {
-                editHistoryInteractionEvent?.logFilterSelection(Prefs.editHistoryFilterType.ifEmpty { EditCount.EDIT_TYPE_ALL })
                 setupAdapters()
-                editHistoryListAdapter.reload()
+                editHistoryListAdapter.refresh()
                 editHistorySearchBarAdapter.notifyItemChanged(0)
                 actionMode?.let {
                     searchActionModeCallback.updateFilterIconAndText()
@@ -298,13 +287,7 @@ class EditHistoryListActivity : BaseActivity() {
     }
 
     private inner class EditHistoryListAdapter :
-            PagingDataAdapter<EditHistoryListViewModel.EditHistoryItemModel, RecyclerView.ViewHolder>(EditHistoryDiffCallback()) {
-
-        fun reload() {
-            submitData(lifecycle, PagingData.empty())
-            viewModel.editHistorySource?.invalidate()
-        }
-
+            PagingDataAdapterPatched<EditHistoryListViewModel.EditHistoryItemModel, RecyclerView.ViewHolder>(EditHistoryDiffCallback()) {
         override fun getItemViewType(position: Int): Int {
             return if (getItem(position) is EditHistoryListViewModel.EditHistorySeparator) {
                 VIEW_TYPE_SEPARATOR
@@ -385,21 +368,17 @@ class EditHistoryListActivity : BaseActivity() {
                 showFilterOverflowMenu()
             }
 
-            FeedbackUtil.setButtonLongPressToast(binding.filterByButton)
+            FeedbackUtil.setButtonTooltip(binding.filterByButton)
             binding.root.isVisible = true
         }
 
         private fun updateFilterCount() {
-            if (Prefs.editHistoryFilterType.isEmpty()) {
-                binding.filterCount.visibility = View.GONE
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@EditHistoryListActivity, R.attr.primary_color))
-            } else {
-                binding.filterCount.visibility = View.VISIBLE
-                binding.filterCount.text = (if (Prefs.editHistoryFilterType.isNotEmpty()) 1 else 0).toString()
-                ImageViewCompat.setImageTintList(binding.filterByButton,
-                    ResourceUtil.getThemedColorStateList(this@EditHistoryListActivity, R.attr.progressive_color))
-            }
+            val showFilterCount = Prefs.editHistoryFilterType.isNotEmpty()
+            val filterButtonColor = if (showFilterCount) R.attr.progressive_color else R.attr.primary_color
+            binding.filterCount.isVisible = showFilterCount
+            binding.filterCount.text = if (showFilterCount) "1" else "0"
+            ImageViewCompat.setImageTintList(binding.filterByButton,
+                ResourceUtil.getThemedColorStateList(this@EditHistoryListActivity, filterButtonColor))
         }
     }
 
@@ -432,7 +411,7 @@ class EditHistoryListActivity : BaseActivity() {
                 toggleSelectState()
             } else {
                 startActivity(ArticleEditDetailsActivity.newIntent(this@EditHistoryListActivity,
-                        viewModel.pageTitle, viewModel.pageId, revision.revId))
+                        viewModel.pageTitle, viewModel.pageId, revisionTo = revision.revId))
             }
         }
 
@@ -440,7 +419,6 @@ class EditHistoryListActivity : BaseActivity() {
             if (!viewModel.comparing) {
                 viewModel.toggleCompareState()
                 updateCompareState()
-                editHistoryInteractionEvent?.logCompare1()
             }
             toggleSelectState()
         }
@@ -481,13 +459,10 @@ class EditHistoryListActivity : BaseActivity() {
         val searchBarFilterIcon get() = searchAndFilterActionProvider?.filterIcon
 
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            searchAndFilterActionProvider = SearchAndFilterActionProvider(this@EditHistoryListActivity, searchHintString,
+            searchAndFilterActionProvider = SearchAndFilterActionProvider(this@EditHistoryListActivity, getSearchHintString(),
                 object : SearchAndFilterActionProvider.Callback {
                     override fun onQueryTextChange(s: String) {
                         onQueryChange(s)
-                    }
-
-                    override fun onQueryTextFocusChange() {
                     }
 
                     override fun onFilterIconClick() {
@@ -503,7 +478,7 @@ class EditHistoryListActivity : BaseActivity() {
                     }
                 })
 
-            val menuItem = menu.add(searchHintString)
+            val menuItem = menu.add(getSearchHintString())
 
             MenuItemCompat.setActionProvider(menuItem, searchAndFilterActionProvider)
 
@@ -517,14 +492,14 @@ class EditHistoryListActivity : BaseActivity() {
         override fun onQueryChange(s: String) {
             viewModel.currentQuery = s
             setupAdapters()
-            editHistoryListAdapter.reload()
+            editHistoryListAdapter.refresh()
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
             super.onDestroyActionMode(mode)
             actionMode = null
             viewModel.currentQuery = ""
-            editHistoryListAdapter.reload()
+            editHistoryListAdapter.refresh()
             viewModel.actionModeActive = false
             setupAdapters()
         }
@@ -546,11 +521,10 @@ class EditHistoryListActivity : BaseActivity() {
 
         private const val VIEW_TYPE_SEPARATOR = 0
         private const val VIEW_TYPE_ITEM = 1
-        const val INTENT_EXTRA_PAGE_TITLE = "pageTitle"
 
         fun newIntent(context: Context, pageTitle: PageTitle): Intent {
             return Intent(context, EditHistoryListActivity::class.java)
-                .putExtra(INTENT_EXTRA_PAGE_TITLE, pageTitle)
+                .putExtra(Constants.ARG_TITLE, pageTitle)
         }
     }
 }

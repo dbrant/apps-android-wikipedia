@@ -1,18 +1,21 @@
 package org.wikipedia.gallery
 
+import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.contentValuesOf
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
+import org.wikipedia.Constants
 import org.wikipedia.R
-import org.wikipedia.WikipediaApp
 import org.wikipedia.feed.image.FeaturedImage
 import org.wikipedia.page.PageTitle
 import org.wikipedia.util.FileUtil
@@ -23,7 +26,22 @@ class MediaDownloadReceiver : BroadcastReceiver() {
         fun onSuccess()
     }
 
-    var callback: Callback? = null
+    private var callback: Callback? = null
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    fun register(context: Context, callback: Callback) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(this, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(this, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        }
+        this.callback = callback
+    }
+
+    fun unregister(context: Context) {
+        context.unregisterReceiver(this)
+        callback = null
+    }
 
     fun download(context: Context, featuredImage: FeaturedImage) {
         val filename = FileUtil.sanitizeFileName(featuredImage.title)
@@ -35,9 +53,10 @@ class MediaDownloadReceiver : BroadcastReceiver() {
         val saveFilename = FileUtil.sanitizeFileName(trimFileNamespace(imageTitle.displayText))
         var fileUrl = mediaInfo.originalUrl
         val targetDirectoryType: String
-        if (FileUtil.isVideo(mediaInfo.mime) && mediaInfo.bestDerivative != null) {
+        val derivative = mediaInfo.getBestDerivativeForSize(Constants.PREFERRED_GALLERY_IMAGE_SIZE)
+        if (FileUtil.isVideo(mediaInfo.mime) && derivative != null) {
             targetDirectoryType = Environment.DIRECTORY_MOVIES
-            fileUrl = mediaInfo.bestDerivative!!.src
+            fileUrl = derivative.src
         } else if (FileUtil.isAudio(mediaInfo.mime)) {
             targetDirectoryType = Environment.DIRECTORY_MUSIC
         } else if (FileUtil.isImage(mediaInfo.mime)) {
@@ -51,7 +70,7 @@ class MediaDownloadReceiver : BroadcastReceiver() {
     private fun performDownloadRequest(context: Context, uri: Uri, targetDirectoryType: String,
                                        targetFileName: String, mimeType: String?) {
         context.getSystemService<DownloadManager>()?.let { downloadManager ->
-            val targetSubfolderName = WikipediaApp.instance.getString(R.string.app_name)
+            val targetSubfolderName = context.getString(R.string.app_name)
             val categoryFolder = Environment.getExternalStoragePublicDirectory(targetDirectoryType)
             val targetFolder = File(categoryFolder, targetSubfolderName)
             val targetFile = File(targetFolder, targetFileName)
@@ -120,7 +139,7 @@ class MediaDownloadReceiver : BroadcastReceiver() {
         private const val FILE_NAMESPACE = "File:"
 
         private fun trimFileNamespace(filename: String): String {
-            return if (filename.startsWith(FILE_NAMESPACE)) filename.substring(FILE_NAMESPACE.length) else filename
+            return filename.substringAfter(FILE_NAMESPACE)
         }
     }
 }

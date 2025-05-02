@@ -14,22 +14,24 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
-import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.adapter.PagingDataAdapterPatched
 import org.wikipedia.databinding.ActivityArchivedTalkPagesBinding
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.page.PageActivity
 import org.wikipedia.page.PageTitle
 import org.wikipedia.readinglist.database.ReadingList
-import org.wikipedia.util.*
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.views.DrawableItemDecoration
 import org.wikipedia.views.PageItemView
 import org.wikipedia.views.ViewUtil
@@ -44,7 +46,7 @@ class ArchivedTalkPagesActivity : BaseActivity() {
     private val archivedTalkPagesConcatAdapter = archivedTalkPagesAdapter.withLoadStateHeaderAndFooter(archivedTalkPagesLoadHeader, archivedTalkPagesLoadFooter)
 
     private val itemCallback = ItemCallback()
-    private val viewModel: ArchivedTalkPagesViewModel by viewModels { ArchivedTalkPagesViewModel.Factory(intent.extras!!) }
+    private val viewModel: ArchivedTalkPagesViewModel by viewModels()
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +64,7 @@ class ArchivedTalkPagesActivity : BaseActivity() {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
                 launch {
                     viewModel.archivedTalkPagesFlow.collectLatest {
-                        archivedTalkPagesAdapter.submitData(it)
+                        archivedTalkPagesAdapter.submitData(lifecycleScope, it)
                     }
                 }
                 launch {
@@ -87,7 +89,7 @@ class ArchivedTalkPagesActivity : BaseActivity() {
                 val entry = HistoryEntry(TalkTopicsActivity.getNonTalkPageTitle(viewModel.pageTitle), HistoryEntry.SOURCE_ARCHIVED_TALK)
                 startActivity(PageActivity.newIntentForNewTab(this, entry, entry.title))
             }
-            FeedbackUtil.setButtonLongPressToast(it)
+            FeedbackUtil.setButtonTooltip(it)
         }
         supportActionBar?.title = title
     }
@@ -124,7 +126,7 @@ class ArchivedTalkPagesActivity : BaseActivity() {
         }
     }
 
-    private inner class ArchivedTalkPagesAdapter : PagingDataAdapter<PageTitle, RecyclerView.ViewHolder>(ArchivedTalkPagesDiffCallback()) {
+    private inner class ArchivedTalkPagesAdapter : PagingDataAdapterPatched<PageTitle, RecyclerView.ViewHolder>(ArchivedTalkPagesDiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, pos: Int): ArchivedTalkPageItemHolder {
             val view = PageItemView<PageTitle>(this@ArchivedTalkPagesActivity)
             view.callback = itemCallback
@@ -190,11 +192,9 @@ class ArchivedTalkPagesActivity : BaseActivity() {
     }
 
     companion object {
-        const val EXTRA_TITLE = "talkTopicTitle"
-
         fun newIntent(context: Context, talkTopicTitle: PageTitle): Intent {
             return Intent(context, ArchivedTalkPagesActivity::class.java)
-                    .putExtra(EXTRA_TITLE, talkTopicTitle)
+                    .putExtra(Constants.ARG_TITLE, talkTopicTitle)
         }
     }
 }

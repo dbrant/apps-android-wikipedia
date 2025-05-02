@@ -2,9 +2,14 @@ package org.wikipedia.dataclient.mwapi
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 import org.wikipedia.dataclient.growthtasks.GrowthImageSuggestion
 import org.wikipedia.dataclient.page.Protection
 import org.wikipedia.gallery.ImageInfo
+import org.wikipedia.json.JsonUtil
 import org.wikipedia.page.Namespace
 import org.wikipedia.util.DateUtil
 
@@ -20,11 +25,12 @@ class MwQueryPage {
     @SerialName("pageprops") val pageProps: PageProps? = null
     @SerialName("entityterms") val entityTerms: EntityTerms? = null
 
-    private val ns = 0
+    val ns = 0
     val coordinates: List<Coordinates>? = null
     private val thumbnail: Thumbnail? = null
-    private val varianttitles: Map<String, String>? = null
+    val varianttitles: Map<String, String>? = null
     private val actions: Map<String, List<MwServiceError>>? = null
+    private val editintro: JsonElement? = null
 
     val index = 0
     var title: String = ""
@@ -76,6 +82,10 @@ class MwQueryPage {
         return actions?.get(actionName) ?: emptyList()
     }
 
+    fun getEditNotices(): Map<String, String> {
+        return if (editintro != null && editintro is JsonObject) JsonUtil.json.decodeFromJsonElement(editintro) else emptyMap()
+    }
+
     @Serializable
     class Revision {
         private val slots: Map<String, RevisionSlot>? = null
@@ -83,11 +93,18 @@ class MwQueryPage {
         @SerialName("revid") val revId: Long = 0
         @SerialName("parentid") val parentRevId: Long = 0
         @SerialName("anon") val isAnon = false
+        @SerialName("temp") val isTemp = false
         @SerialName("timestamp") val timeStamp: String = ""
         val size = 0
         val user: String = ""
         val comment: String = ""
         val parsedcomment: String = ""
+
+        private val oresscores: JsonElement? = null
+        val ores: MwQueryResult.OresResult?
+            get() = if (oresscores != null && oresscores !is JsonArray) {
+                JsonUtil.json.decodeFromJsonElement<MwQueryResult.OresResult>(oresscores)
+            } else null
 
         val contentMain get() = getContentFromSlot("main")
 

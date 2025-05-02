@@ -16,30 +16,30 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
-import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.wikipedia.Constants.InvokeSource
+import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.activity.BaseActivity
+import org.wikipedia.adapter.PagingDataAdapterPatched
 import org.wikipedia.databinding.ActivityCategoryBinding
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.page.ExclusiveBottomSheetPresenter
 import org.wikipedia.page.Namespace
-import org.wikipedia.page.PageActivity
 import org.wikipedia.page.PageTitle
 import org.wikipedia.page.linkpreview.LinkPreviewDialog
 import org.wikipedia.readinglist.database.ReadingList
-import org.wikipedia.util.*
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.StringUtil
 import org.wikipedia.views.DrawableItemDecoration
 import org.wikipedia.views.PageItemView
 import org.wikipedia.views.WikiErrorView
 
-class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
+class CategoryActivity : BaseActivity() {
     private lateinit var binding: ActivityCategoryBinding
 
     private val categoryMembersAdapter = CategoryMembersAdapter()
@@ -52,7 +52,7 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
     private val subcategoriesConcatAdapter = subcategoriesAdapter.withLoadStateHeaderAndFooter(subcategoriesLoadHeader, subcategoriesLoadFooter)
 
     private val itemCallback = ItemCallback()
-    private val viewModel: CategoryActivityViewModel by viewModels { CategoryActivityViewModel.Factory(intent.extras!!) }
+    private val viewModel: CategoryActivityViewModel by viewModels()
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,8 +60,9 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
         setContentView(binding.root)
 
         setStatusBarColor(ResourceUtil.getThemedColor(this, android.R.attr.windowBackground))
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = viewModel.pageTitle.displayText
+        supportActionBar?.title = StringUtil.removeHTMLTags(viewModel.pageTitle.displayText)
 
         binding.categoryRecycler.layoutManager = LinearLayoutManager(this)
         binding.categoryRecycler.addItemDecoration(DrawableItemDecoration(this, R.attr.list_divider, drawStart = false, drawEnd = false))
@@ -71,12 +72,12 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
                 launch {
                     viewModel.categoryMembersFlow.collectLatest {
-                        categoryMembersAdapter.submitData(it)
+                        categoryMembersAdapter.submitData(lifecycleScope, it)
                     }
                 }
                 launch {
                     viewModel.subcategoriesFlow.collectLatest {
-                        subcategoriesAdapter.submitData(it)
+                        subcategoriesAdapter.submitData(lifecycleScope, it)
                     }
                 }
                 launch {
@@ -138,25 +139,8 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
             startActivity(newIntent(this, title))
         } else {
             val entry = HistoryEntry(title, HistoryEntry.SOURCE_CATEGORY)
-            ExclusiveBottomSheetPresenter.show(supportFragmentManager, LinkPreviewDialog.newInstance(entry, null))
+            ExclusiveBottomSheetPresenter.show(supportFragmentManager, LinkPreviewDialog.newInstance(entry))
         }
-    }
-
-    override fun onLinkPreviewLoadPage(title: PageTitle, entry: HistoryEntry, inNewTab: Boolean) {
-        startActivity(if (inNewTab) PageActivity.newIntentForNewTab(this, entry, entry.title) else PageActivity.newIntentForCurrentTab(this, entry, entry.title, false))
-    }
-
-    override fun onLinkPreviewCopyLink(title: PageTitle) {
-        ClipboardUtil.setPlainText(this, text = title.uri)
-        FeedbackUtil.showMessage(this, R.string.address_copied)
-    }
-
-    override fun onLinkPreviewAddToList(title: PageTitle) {
-        ExclusiveBottomSheetPresenter.showAddToListDialog(supportFragmentManager, title, InvokeSource.LINK_PREVIEW_MENU)
-    }
-
-    override fun onLinkPreviewShareLink(title: PageTitle) {
-        ShareUtil.shareText(this, title)
     }
 
     private inner class LoadingItemAdapter(private val retry: () -> Unit) : LoadStateAdapter<LoadingViewHolder>() {
@@ -191,7 +175,7 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
         }
     }
 
-    private inner class CategoryMembersAdapter : PagingDataAdapter<PageTitle, RecyclerView.ViewHolder>(CategoryMemberDiffCallback()) {
+    private inner class CategoryMembersAdapter : PagingDataAdapterPatched<PageTitle, RecyclerView.ViewHolder>(CategoryMemberDiffCallback()) {
         override fun onCreateViewHolder(parent: ViewGroup, pos: Int): CategoryItemHolder {
             val view = PageItemView<PageTitle>(this@CategoryActivity)
             view.callback = itemCallback
@@ -255,11 +239,9 @@ class CategoryActivity : BaseActivity(), LinkPreviewDialog.Callback {
     }
 
     companion object {
-        const val EXTRA_TITLE = "categoryTitle"
-
         fun newIntent(context: Context, categoryTitle: PageTitle): Intent {
             return Intent(context, CategoryActivity::class.java)
-                    .putExtra(EXTRA_TITLE, categoryTitle)
+                    .putExtra(Constants.ARG_TITLE, categoryTitle)
         }
     }
 }

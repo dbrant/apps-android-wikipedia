@@ -1,5 +1,6 @@
 package org.wikipedia.settings
 
+import android.location.Location
 import okhttp3.Cookie
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.logging.HttpLoggingInterceptor
@@ -10,16 +11,20 @@ import org.wikipedia.analytics.SessionData
 import org.wikipedia.analytics.eventplatform.AppSessionEvent
 import org.wikipedia.analytics.eventplatform.StreamConfig
 import org.wikipedia.dataclient.WikiSite
+import org.wikipedia.donate.DonationResult
+import org.wikipedia.games.onthisday.OnThisDayGameNotificationState
 import org.wikipedia.json.JsonUtil
+import org.wikipedia.page.PageTitle
 import org.wikipedia.page.action.PageActionItem
 import org.wikipedia.page.tabs.Tab
+import org.wikipedia.suggestededits.SuggestedEditsRecentEditsFilterTypes
 import org.wikipedia.theme.Theme.Companion.fallback
 import org.wikipedia.util.DateUtil.dbDateFormat
 import org.wikipedia.util.DateUtil.dbDateParse
 import org.wikipedia.util.ReleaseUtil.isDevRelease
 import org.wikipedia.util.StringUtil
 import org.wikipedia.watchlist.WatchlistFilterTypes
-import java.util.*
+import java.util.Date
 
 /** Shared preferences utility for convenient POJO access.  */
 object Prefs {
@@ -120,15 +125,21 @@ object Prefs {
         get() = PrefsIoUtil.getInt(R.string.preference_key_editing_text_size_multiplier, 0)
         set(multiplier) = PrefsIoUtil.setInt(R.string.preference_key_editing_text_size_multiplier, multiplier)
 
-    var isEventLoggingEnabled
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_eventlogging_opt_in, false)
-        set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_eventlogging_opt_in, enabled)
-
     val geoIPCountryOverride
         get() = PrefsIoUtil.getString(R.string.preference_key_announcement_country_override, null)
 
     val ignoreDateForAnnouncements
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_announcement_ignore_date, false)
+
+    var announcementPauseTime
+        get() = PrefsIoUtil.getLong(R.string.preference_key_announcement_pause_time, 0)
+        set(time) = PrefsIoUtil.setLong(R.string.preference_key_announcement_pause_time, time)
+
+    val announcementDebugUrl
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_announcement_debug_url, false)
+
+    val announcementCustomTabTestUrl
+        get() = PrefsIoUtil.getString(R.string.preference_key_announcement_custom_tab_test_url, null)
 
     val announcementsVersionCode
         get() = PrefsIoUtil.getInt(R.string.preference_key_announcement_version_code, 0)
@@ -209,6 +220,10 @@ object Prefs {
     fun setReadingListPageSortMode(sortMode: Int) {
         PrefsIoUtil.setInt(R.string.preference_key_reading_list_page_sort_mode, sortMode)
     }
+
+    var loginForceEmailAuth
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_login_force_email_auth, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_login_force_email_auth, value)
 
     val isMemoryLeakTestEnabled
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_memory_leak_test, false)
@@ -355,23 +370,6 @@ object Prefs {
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_lists_first_time_sync, true)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_reading_lists_first_time_sync, value)
 
-    var editingTextSizeExtra
-        get() = PrefsIoUtil.getInt(R.string.preference_key_editing_text_size_extra, 0)
-        set(extra) = PrefsIoUtil.setInt(R.string.preference_key_editing_text_size_extra, extra)
-
-    var isMultilingualSearchTooltipShown
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_multilingual_search_tooltip_shown, true)
-        set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_multilingual_search_tooltip_shown, enabled)
-
-    var shouldShowRemoveChineseVariantPrompt
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_remove_chinese_variant_prompt, true)
-        set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_show_remove_chinese_variant_prompt, enabled)
-
-    var locallyKnownNotifications
-        get() = JsonUtil.decodeFromString<List<Long>>(PrefsIoUtil.getString(R.string.preference_key_locally_known_notifications, null))
-            ?: emptyList()
-        set(list) = PrefsIoUtil.setString(R.string.preference_key_locally_known_notifications, JsonUtil.encodeToString(list))
-
     var remoteNotificationsSeenTime
         get() = PrefsIoUtil.getString(R.string.preference_key_remote_notifications_seen_time, "").orEmpty()
         set(seenTime) = PrefsIoUtil.setString(R.string.preference_key_remote_notifications_seen_time, seenTime)
@@ -387,18 +385,6 @@ object Prefs {
     var showDescriptionEditSuccessPrompt
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_description_edit_success_prompt, true)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_show_description_edit_success_prompt, value)
-
-    var suggestedEditsCountForSurvey
-        get() = PrefsIoUtil.getInt(R.string.preference_key_suggested_edits_count_for_survey, 0)
-        set(count) = PrefsIoUtil.setInt(R.string.preference_key_suggested_edits_count_for_survey, count)
-
-    var suggestedEditsSurveyClicked
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_suggested_edits_survey_clicked, false)
-        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_suggested_edits_survey_clicked, value)
-
-    var showSuggestedEditsSurvey
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_suggested_edits_survey, false)
-        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_show_suggested_edits_survey, value)
 
     var showSuggestedEditsTooltip
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_suggested_edits_tooltip, true)
@@ -442,6 +428,10 @@ object Prefs {
 
     val overrideSuggestedEditCount
         get() = PrefsIoUtil.getInt(R.string.preference_key_suggested_edits_override_edits, 0)
+
+    var overrideSuggestedEditContribution
+        get() = PrefsIoUtil.getInt(R.string.preference_key_suggested_edits_override_contribution, 0)
+        set(value) = PrefsIoUtil.setInt(R.string.preference_key_suggested_edits_override_contribution, value)
 
     val overrideSuggestedRevertCount
         get() = PrefsIoUtil.getInt(R.string.preference_key_suggested_edits_override_reverts, 0)
@@ -496,10 +486,6 @@ object Prefs {
     val exploreFeedVisitCount
         get() = PrefsIoUtil.getInt(R.string.preference_key_explore_feed_visit_count, 0)
 
-    var loggedInPageActivityVisitCount
-        get() = PrefsIoUtil.getInt(R.string.preference_key_logged_in_page_activity_visit_count, 0)
-        set(value) = PrefsIoUtil.setInt(R.string.preference_key_logged_in_page_activity_visit_count, value)
-
     var selectedLanguagePositionInSearch
         get() = PrefsIoUtil.getInt(R.string.preference_key_selected_language_position_in_search, 0)
         set(position) = PrefsIoUtil.setInt(R.string.preference_key_selected_language_position_in_search, position)
@@ -535,14 +521,6 @@ object Prefs {
         get() = PrefsIoUtil.getString(R.string.preference_key_crash_report_local_class_name, "")
         set(className) = PrefsIoUtil.setString(R.string.preference_key_crash_report_local_class_name, className)
 
-    var isWatchlistPageOnboardingTooltipShown
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_watchlist_page_onboarding_tooltip_shown, false)
-        set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_watchlist_page_onboarding_tooltip_shown, enabled)
-
-    var isWatchlistMainOnboardingTooltipShown
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_watchlist_main_onboarding_tooltip_shown, false)
-        set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_watchlist_main_onboarding_tooltip_shown, enabled)
-
     var autoShowEditNotices
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_auto_show_edit_notices, true)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_auto_show_edit_notices, value)
@@ -556,14 +534,13 @@ object Prefs {
 
     var customizeToolbarOrder
         get() = JsonUtil.decodeFromString<List<Int>>(PrefsIoUtil.getString(R.string.preference_key_customize_toolbar_order, null))
-            ?: listOf(0, 1, 2, 3, 4)
+            ?: PageActionItem.DEFAULT_TOOLBAR_LIST
         set(orderList) = PrefsIoUtil.setString(R.string.preference_key_customize_toolbar_order, JsonUtil.encodeToString(orderList))
 
     var customizeToolbarMenuOrder: List<Int>
         get() {
-            val notInToolbarList = PageActionItem.values().map { it.code() }.subtract(customizeToolbarOrder)
-            val currentList = JsonUtil.decodeFromString<List<Int>>(PrefsIoUtil.getString(R.string.preference_key_customize_toolbar_menu_order, null))
-                    ?: notInToolbarList
+            val notInToolbarList = PageActionItem.entries.map { it.code() }.subtract(customizeToolbarOrder.toSet())
+            val currentList = JsonUtil.decodeFromString<List<Int>>(PrefsIoUtil.getString(R.string.preference_key_customize_toolbar_menu_order, null)) ?: PageActionItem.DEFAULT_OVERFLOW_MENU_LIST
             return currentList.union(notInToolbarList).toList()
         }
         set(orderList) = PrefsIoUtil.setString(R.string.preference_key_customize_toolbar_menu_order, JsonUtil.encodeToString(orderList))
@@ -602,6 +579,10 @@ object Prefs {
         get() = PrefsIoUtil.getString(R.string.preference_key_user_contrib_filter_lang_code, WikipediaApp.instance.appOrSystemLanguageCode)!!
         set(value) = PrefsIoUtil.setString(R.string.preference_key_user_contrib_filter_lang_code, value)
 
+    var donationBannerOptIn
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_donation_banner_opt_in, true)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_donation_banner_opt_in, value)
+
     var importReadingListsNewInstallDialogShown
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_import_reading_lists_new_install_dialog_shown, true)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_import_reading_lists_new_install_dialog_shown, value)
@@ -633,37 +614,33 @@ object Prefs {
     val useUrlShortenerForSharing
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_lists_share_url_shorten, false)
 
-    var readingListShareSurveyDialogShown
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_lists_share_survey_dialog_shown, false)
-        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_reading_lists_share_survey_dialog_shown, value)
+    var tempAccountWelcomeShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_temp_account_welcome_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_temp_account_welcome_shown, value)
 
-    var readingListShareSurveyMode
-        get() = PrefsIoUtil.getInt(R.string.preference_key_reading_lists_share_survey_mode, 0)
-        set(value) = PrefsIoUtil.setInt(R.string.preference_key_reading_lists_share_survey_mode, value)
+    var tempAccountDialogShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_temp_account_dialog_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_temp_account_dialog_shown, value)
+
+    var tempAccountCreateDay
+        get() = PrefsIoUtil.getLong(R.string.preference_key_temp_account_create_day, 0)
+        set(value) = PrefsIoUtil.setLong(R.string.preference_key_temp_account_create_day, value)
 
     var readingListShareTooltipShown
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_lists_share_tooltip_shown, false)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_reading_lists_share_tooltip_shown, value)
 
-    var readingListReceiveSurveyDialogShown
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_lists_receive_survey_dialog_shown, false)
-        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_reading_lists_receive_survey_dialog_shown, value)
-
-    var readingListReceiveSurveyMode
-        get() = PrefsIoUtil.getInt(R.string.preference_key_reading_lists_receive_survey_mode, 0)
-        set(value) = PrefsIoUtil.setInt(R.string.preference_key_reading_lists_receive_survey_mode, value)
-
     var readingListRecentReceivedId
         get() = PrefsIoUtil.getLong(R.string.preference_key_reading_lists_recent_receive_id, -1)
         set(value) = PrefsIoUtil.setLong(R.string.preference_key_reading_lists_recent_receive_id, value)
 
+    var suggestedEditsImageRecsOnboardingShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_se_image_recs_onboarding_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_se_image_recs_onboarding_shown, value)
+
     var suggestedEditsMachineGeneratedDescriptionTooltipShown
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_se_machine_generated_descriptions_tooltip_shown, false)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_se_machine_generated_descriptions_tooltip_shown, value)
-
-    var suggestedEditsMachineGeneratedDescriptionsIsExperienced
-        get() = PrefsIoUtil.getBoolean(R.string.preference_key_se_machine_generated_descriptions_is_experienced, false)
-        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_se_machine_generated_descriptions_is_experienced, value)
 
     var watchlistExcludedWikiCodes
         get() = JsonUtil.decodeFromString<Set<String>>(PrefsIoUtil.getString(R.string.preference_key_excluded_wiki_codes_watchlist, null))
@@ -678,4 +655,122 @@ object Prefs {
     var analyticsQueueSize
         get() = PrefsIoUtil.getInt(R.string.preference_key_event_platform_queue_size, 128)
         set(value) = PrefsIoUtil.setInt(R.string.preference_key_event_platform_queue_size, value)
+
+    var recentEditsWikiCode
+        get() = PrefsIoUtil.getString(R.string.preference_key_recent_edits_wiki_code, WikipediaApp.instance.appOrSystemLanguageCode).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_recent_edits_wiki_code, value)
+
+    var recentEditsIncludedTypeCodes
+        get() = JsonUtil.decodeFromString<Set<String>>(PrefsIoUtil.getString(R.string.preference_key_recent_edits_included_type_codes, null))
+            ?: SuggestedEditsRecentEditsFilterTypes.DEFAULT_FILTER_TYPE_SET.map { it.id }
+        set(types) = PrefsIoUtil.setString(R.string.preference_key_recent_edits_included_type_codes, JsonUtil.encodeToString(types))
+
+    var recentEditsOnboardingShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_recent_edits_onboarding_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_recent_edits_onboarding_shown, value)
+
+    var showOneTimeSequentialRecentEditsDiffTooltip
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_sequential_recent_edits_diff_tooltip, true)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_show_sequential_recent_edits_diff_tooltip, value)
+
+    var showOneTimeRecentEditsFeedbackForm
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_recent_edits_feedback_form, true)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_show_recent_edits_feedback_form, value)
+
+    var placesWikiCode
+        get() = PrefsIoUtil.getString(R.string.preference_key_places_wiki_code, WikipediaApp.instance.appOrSystemLanguageCode).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_places_wiki_code, value)
+
+    var placesDefaultLocationLatLng
+        get(): String? {
+            val lanLng = PrefsIoUtil.getString(R.string.preference_key_default_places_location_latlng, null)
+            return if (lanLng.isNullOrEmpty()) null else lanLng
+        }
+        set(set) = PrefsIoUtil.setString(R.string.preference_key_default_places_location_latlng, set)
+
+    var placesLastLocationAndZoomLevel: Pair<Location, Double>?
+        get() {
+            // latitude|longitude|zoomLevel
+            val infoList = PrefsIoUtil.getString(R.string.preference_key_places_last_location_and_zoom_level, null)?.split("|")?.map { it.toDouble() }
+            return infoList?.let {
+                val location = Location("").apply {
+                    latitude = infoList[0]
+                    longitude = infoList[1]
+                }
+                val zoomLevel = infoList[2]
+                Pair(location, zoomLevel)
+            }
+        }
+        set(pair) {
+            var locationAndZoomLevelString: String? = null
+            pair?.let {
+                locationAndZoomLevelString = "${pair.first.latitude}|${pair.first.longitude}|${pair.second}"
+            }
+            PrefsIoUtil.setString(R.string.preference_key_places_last_location_and_zoom_level, locationAndZoomLevelString)
+        }
+
+    var recentUsedTemplates
+        get() = JsonUtil.decodeFromString<Set<PageTitle>>(PrefsIoUtil.getString(R.string.preference_key_recent_used_templates, null)) ?: emptySet()
+        set(set) = PrefsIoUtil.setString(R.string.preference_key_recent_used_templates, JsonUtil.encodeToString(set))
+
+    fun addRecentUsedTemplates(set: Set<PageTitle>) {
+        val maxStoredIds = 100
+        val currentSet = recentUsedTemplates.toMutableSet()
+        currentSet.addAll(set)
+        recentUsedTemplates = if (currentSet.size < maxStoredIds) currentSet else set
+    }
+
+    var paymentMethodsLastQueryTime
+        get() = PrefsIoUtil.getLong(R.string.preference_key_payment_methods_last_query_time, 0)
+        set(value) = PrefsIoUtil.setLong(R.string.preference_key_payment_methods_last_query_time, value)
+
+    var paymentMethodsMerchantId
+        get() = PrefsIoUtil.getString(R.string.preference_key_payment_methods_merchant_id, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_payment_methods_merchant_id, value)
+
+    var paymentMethodsGatewayId
+        get() = PrefsIoUtil.getString(R.string.preference_key_payment_methods_gateway_id, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_payment_methods_gateway_id, value)
+
+    var isDonationTestEnvironment
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_donation_test_env, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_donation_test_env, value)
+
+    var donationResults
+        get() = JsonUtil.decodeFromString<List<DonationResult>>(PrefsIoUtil.getString(R.string.preference_key_donation_results, null)).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_donation_results, JsonUtil.encodeToString(value))
+
+    var lastOtdGameVisitDate
+        get() = PrefsIoUtil.getString(R.string.preference_key_otd_game_last_visit_date, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_otd_game_last_visit_date, value)
+
+    var lastOtdGameDateOverride
+        get() = PrefsIoUtil.getString(R.string.preference_key_otd_game_date_override, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_otd_game_date_override, value)
+
+    var otdGameState
+        get() = PrefsIoUtil.getString(R.string.preference_key_otd_game_state, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_otd_game_state, value)
+
+    var otdGameHistory
+        get() = PrefsIoUtil.getString(R.string.preference_key_otd_game_history, null).orEmpty()
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_otd_game_history, value)
+
+    var otdGameQuestionsPerDay
+        get() = PrefsIoUtil.getInt(R.string.preference_key_otd_game_num_questions, 5)
+        set(value) = PrefsIoUtil.setInt(R.string.preference_key_otd_game_num_questions, value)
+
+    var otdEntryDialogShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_otd_entry_dialog_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_otd_entry_dialog_shown, value)
+
+    var otdGameSurveyShown
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_otd_game_survey_shown, false)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_otd_game_survey_shown, value)
+
+    var otdNotificationState: OnThisDayGameNotificationState
+        get() = PrefsIoUtil.getString(R.string.preference_key_otd_notification_state, null)?.let {
+            OnThisDayGameNotificationState.valueOf(it)
+        } ?: OnThisDayGameNotificationState.NO_INTERACTED
+        set(value) = PrefsIoUtil.setString(R.string.preference_key_otd_notification_state, value.name)
 }

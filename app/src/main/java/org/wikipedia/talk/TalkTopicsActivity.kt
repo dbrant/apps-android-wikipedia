@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource.TALK_TOPICS_ACTIVITY
@@ -33,10 +34,17 @@ import org.wikipedia.databinding.ViewTalkTopicsHeaderBinding
 import org.wikipedia.dataclient.WikiSite
 import org.wikipedia.dataclient.discussiontools.ThreadItem
 import org.wikipedia.dataclient.okhttp.HttpStatusException
+import org.wikipedia.edit.EditHandler
+import org.wikipedia.edit.EditSectionActivity
+import org.wikipedia.extensions.parcelableExtra
+import org.wikipedia.extensions.setLayoutDirectionByLang
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.history.SearchActionModeCallback
 import org.wikipedia.notifications.NotificationActivity
-import org.wikipedia.page.*
+import org.wikipedia.page.LinkMovementMethodExt
+import org.wikipedia.page.Namespace
+import org.wikipedia.page.PageActivity
+import org.wikipedia.page.PageTitle
 import org.wikipedia.page.action.PageActionItem
 import org.wikipedia.page.edithistory.EditHistoryListActivity
 import org.wikipedia.settings.Prefs
@@ -45,16 +53,26 @@ import org.wikipedia.settings.languages.WikipediaLanguagesFragment
 import org.wikipedia.staticdata.TalkAliasData
 import org.wikipedia.staticdata.UserAliasData
 import org.wikipedia.staticdata.UserTalkAliasData
-import org.wikipedia.util.*
-import org.wikipedia.views.*
+import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.ImageUrlUtil
+import org.wikipedia.util.ResourceUtil
+import org.wikipedia.util.ShareUtil
+import org.wikipedia.util.StringUtil
+import org.wikipedia.views.DrawableItemDecoration
+import org.wikipedia.views.NotificationButtonView
+import org.wikipedia.views.SearchActionProvider
+import org.wikipedia.views.SwipeableItemTouchHelperCallback
+import org.wikipedia.views.TalkTopicsSortOverflowView
+import org.wikipedia.views.ViewUtil
 import org.wikipedia.watchlist.WatchlistExpiry
 import org.wikipedia.watchlist.WatchlistExpiryDialog
+import org.wikipedia.watchlist.WatchlistViewModel
 
 class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     private lateinit var binding: ActivityTalkTopicsBinding
     private lateinit var invokeSource: Constants.InvokeSource
     private lateinit var notificationButtonView: NotificationButtonView
-    private val viewModel: TalkTopicsViewModel by viewModels { TalkTopicsViewModel.Factory(intent.getParcelableExtra(EXTRA_PAGE_TITLE)!!) }
+    private val viewModel: TalkTopicsViewModel by viewModels { TalkTopicsViewModel.Factory(intent.parcelableExtra(Constants.ARG_TITLE)!!) }
     private val concatAdapter = ConcatAdapter()
     private val headerAdapter = HeaderItemAdapter()
     private val talkTopicItemAdapter = TalkTopicItemAdapter()
@@ -105,9 +123,25 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
                         binding.talkConditionContainer.isVisible = true
                         viewModel.undoSave(newRevisionId, undoneSubject, undoneText)
                     }
+                    .addCallback(object : Snackbar.Callback() {
+                        override fun onDismissed(transientBottomBar: Snackbar, @DismissEvent event: Int) {
+                            if (!isDestroyed) {
+                                AccountUtil.maybeShowTempAccountWelcome(this@TalkTopicsActivity)
+                            }
+                        }
+                    })
                     .show()
                 viewModel.loadTopics()
             }
+        } else {
+            // Make sure to reload the list in the case of exiting from the undo process.
+            viewModel.loadTopics()
+        }
+    }
+
+    private val requestEditSource = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == EditHandler.RESULT_REFRESH_PAGE) {
+            viewModel.loadTopics()
         }
     }
 
@@ -152,7 +186,6 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
             resetViews()
             viewModel.loadTopics()
         }
-        binding.talkRefreshView.setColorSchemeResources(ResourceUtil.getThemedAttributeId(this, R.attr.progressive_color))
 
         invokeSource = intent.getSerializableExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE) as Constants.InvokeSource
 
@@ -163,14 +196,23 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
-                viewModel.uiState.collect {
-                    when (it) {
-                        is TalkTopicsViewModel.UiState.UpdateNamespace -> setToolbarTitle(it.pageTitle)
-                        is TalkTopicsViewModel.UiState.LoadTopic -> updateOnSuccess(it.pageTitle, it.threadItems)
-                        is TalkTopicsViewModel.UiState.UndoEdit -> updateOnUndoSave(it.undoneSubject, it.undoneBody)
-                        is TalkTopicsViewModel.UiState.DoWatch -> updateOnWatch()
-                        is TalkTopicsViewModel.UiState.LoadError -> updateOnError(it.throwable)
-                        is TalkTopicsViewModel.UiState.ActionError -> FeedbackUtil.showError(this@TalkTopicsActivity, it.throwable)
+                launch {
+                    viewModel.uiState.collect {
+                        when (it) {
+                            is TalkTopicsViewModel.UiState.UpdateNamespace -> setToolbarTitle(it.pageTitle)
+                            is TalkTopicsViewModel.UiState.LoadTopic -> updateOnSuccess(it.pageTitle, it.threadItems)
+                            is TalkTopicsViewModel.UiState.LoadError -> updateOnError(it.throwable)
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.actionState.collect {
+                        when (it) {
+                            is TalkTopicsViewModel.ActionState.UndoEdit -> updateOnUndoSave(it.undoneSubject, it.undoneBody)
+                            is TalkTopicsViewModel.ActionState.DoWatch -> updateOnWatch(it.message)
+                            is TalkTopicsViewModel.ActionState.OnError -> FeedbackUtil.showError(this@TalkTopicsActivity, it.throwable)
+                        }
                     }
                 }
             }
@@ -196,6 +238,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
             menu.findItem(R.id.menu_read_article).isVisible = viewModel.pageTitle.namespace() != Namespace.USER_TALK && invokeSource != Constants.InvokeSource.ARCHIVED_TALK_ACTIVITY
             menu.findItem(R.id.menu_view_user_page).isVisible = viewModel.pageTitle.namespace() == Namespace.USER_TALK
             menu.findItem(R.id.menu_view_user_page).title = getString(R.string.menu_option_user_page, StringUtil.removeHTMLTags(StringUtil.removeNamespace(viewModel.pageTitle.displayText)))
+            menu.findItem(R.id.menu_edit_source)?.isVisible = AccountUtil.isLoggedIn
 
             val notificationMenuItem = menu.findItem(R.id.menu_notifications)
             val watchMenuItem = menu.findItem(R.id.menu_watch)
@@ -212,7 +255,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
                     getString(R.string.notifications_activity_title)
                 notificationMenuItem.actionView = notificationButtonView
                 notificationMenuItem.expandActionView()
-                FeedbackUtil.setButtonLongPressToast(notificationButtonView)
+                FeedbackUtil.setButtonTooltip(notificationButtonView)
 
                 // Watchlist
                 watchMenuItem.isVisible = true
@@ -228,34 +271,40 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
+        return when (item.itemId) {
             R.id.menu_change_language -> {
                 requestLanguageChange.launch(WikipediaLanguagesActivity.newIntent(this, Constants.InvokeSource.TALK_TOPICS_ACTIVITY))
-                return true
+                true
             }
             R.id.menu_read_article, R.id.menu_view_user_page -> {
                 goToPage()
-                return true
+                true
             }
             R.id.menu_view_edit_history -> {
                 startActivity(EditHistoryListActivity.newIntent(this, viewModel.pageTitle))
-                return true
+                true
             }
             R.id.menu_talk_topic_share -> {
                 ShareUtil.shareText(this, getString(R.string.talk_share_talk_page), viewModel.pageTitle.uri)
-                return true
+                true
             }
             R.id.menu_watch -> {
                 if (AccountUtil.isLoggedIn) {
                     viewModel.watchOrUnwatch(WatchlistExpiry.NEVER, viewModel.isWatched)
                 }
-                return true
+                true
+            }
+            R.id.menu_edit_source -> {
+                requestEditSource.launch(
+                    EditSectionActivity.newIntent(this, -1, null,
+                        viewModel.pageTitle, Constants.InvokeSource.TALK_TOPICS_ACTIVITY))
+                true
             }
             R.id.menu_archive -> {
                 startActivity(ArchivedTalkPagesActivity.newIntent(this, viewModel.pageTitle))
-                return true
+                true
             }
-            else -> return super.onOptionsItemSelected(item)
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -263,14 +312,14 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
         updateNotificationDot(true)
     }
 
-    override fun onExpirySelect(expiry: WatchlistExpiry) {
-        viewModel.watchOrUnwatch(expiry, false)
-        ExclusiveBottomSheetPresenter.dismiss(supportFragmentManager)
+    override fun onExpiryChanged(expiry: WatchlistExpiry) {
+        viewModel.hasWatchlistExpiry = expiry !== WatchlistExpiry.NEVER
+        invalidateOptionsMenu()
     }
 
     private fun resetViews() {
         invalidateOptionsMenu()
-        L10nUtil.setConditionalLayoutDirection(binding.talkContentsView, viewModel.pageTitle.wikiSite.languageCode)
+        binding.talkContentsView.setLayoutDirectionByLang(viewModel.pageTitle.wikiSite.languageCode)
         binding.talkProgressBar.isVisible = true
         binding.talkErrorView.isVisible = false
         binding.talkEmptyContainer.isVisible = false
@@ -278,8 +327,6 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     }
 
     private fun updateOnSuccess(pageTitle: PageTitle, threadItems: List<ThreadItem>) {
-        setToolbarTitle(pageTitle)
-
         if (binding.talkRecyclerView.adapter == null) {
             binding.talkRecyclerView.adapter = concatAdapter.apply {
                 addAdapter(0, headerAdapter)
@@ -307,7 +354,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
                 }
             }
             if (threadTopic != null) {
-                requestGoToTopic.launch(TalkTopicActivity.newIntent(this@TalkTopicsActivity, pageTitle, threadTopic!!.name, threadTopic!!.id, threadItem?.id, viewModel.currentSearchQuery, invokeSource))
+                requestGoToTopic.launch(TalkTopicActivity.newIntent(this@TalkTopicsActivity, pageTitle, threadTopic.name, threadTopic.id, threadItem?.id, viewModel.currentSearchQuery, invokeSource))
                 overridePendingTransition(0, 0)
                 return
             }
@@ -329,9 +376,11 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
         }
         binding.talkProgressBar.isVisible = false
         invalidateOptionsMenu()
+        setToolbarTitle(pageTitle)
     }
 
     private fun updateOnError(t: Throwable) {
+        binding.talkProgressBar.isVisible = false
         binding.talkRecyclerView.adapter?.notifyDataSetChanged()
 
         // In the case of 404, it just means that the talk page hasn't been created yet.
@@ -347,6 +396,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     }
 
     private fun updateOnEmpty() {
+        binding.talkProgressBar.isVisible = false
         binding.talkRefreshView.isRefreshing = false
         binding.talkEmptyContainer.isVisible = true
         binding.talkConditionContainer.isVisible = true
@@ -358,13 +408,13 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
         requestNewTopic.launch(TalkReplyActivity.newIntent(this@TalkTopicsActivity, viewModel.pageTitle, null, null, TALK_TOPICS_ACTIVITY, undoneSubject, undoneBody))
     }
 
-    private fun updateOnWatch() {
-        showWatchlistSnackbar()
+    private fun updateOnWatch(message: String) {
+        WatchlistViewModel.showWatchlistSnackbar(this, supportFragmentManager, viewModel.pageTitle, viewModel.isWatched, message)
         invalidateOptionsMenu()
     }
 
     private fun setToolbarTitle(pageTitle: PageTitle) {
-        val title = StringUtil.fromHtml(pageTitle.namespace.ifEmpty { TalkAliasData.valueFor(pageTitle.wikiSite.languageCode) } + ": " + "<a href='#'>${StringUtil.removeNamespace(pageTitle.displayText)}</a>")
+        val title = StringUtil.fromHtml(pageTitle.namespace.ifEmpty { TalkAliasData.valueFor(pageTitle.wikiSite.languageCode) } + ": " + "<a href='#'>${StringUtil.removeNamespace(StringUtil.removeHTMLTags(pageTitle.displayText))}</a>")
         ViewUtil.getTitleViewFromToolbar(binding.toolbar)?.let {
             it.contentDescription = title
             it.isVisible = !goToTopic
@@ -373,7 +423,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
                     goToPage()
                 }
             }
-            FeedbackUtil.setButtonLongPressToast(it)
+            FeedbackUtil.setButtonTooltip(it)
         }
         supportActionBar?.title = title
     }
@@ -392,24 +442,6 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     private fun goToPage() {
         val entry = HistoryEntry(getNonTalkPageTitle(viewModel.pageTitle), HistoryEntry.SOURCE_TALK_TOPIC)
         startActivity(PageActivity.newIntentForNewTab(this, entry, entry.title))
-    }
-
-    private fun showWatchlistSnackbar() {
-        if (!viewModel.isWatched) {
-            FeedbackUtil.showMessage(this, getString(R.string.watchlist_page_removed_from_watchlist_snackbar, viewModel.pageTitle.displayText))
-        } else if (viewModel.isWatched) {
-            val snackbar = FeedbackUtil.makeSnackbar(this,
-                getString(R.string.watchlist_page_add_to_watchlist_snackbar,
-                    viewModel.pageTitle.displayText,
-                    getString(viewModel.lastWatchExpiry.stringId)))
-            if (!viewModel.watchlistExpiryChanged) {
-                snackbar.setAction(R.string.watchlist_page_add_to_watchlist_snackbar_action) {
-                    viewModel.watchlistExpiryChanged = true
-                    ExclusiveBottomSheetPresenter.show(supportFragmentManager, WatchlistExpiryDialog.newInstance(viewModel.lastWatchExpiry))
-                }
-            }
-            snackbar.show()
-        }
     }
 
     private fun updateConcatAdapter() {
@@ -453,7 +485,7 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
                 }
             }
 
-            FeedbackUtil.setButtonLongPressToast(binding.talkSortButton)
+            FeedbackUtil.setButtonTooltip(binding.talkSortButton)
         }
 
         fun bindItem() {
@@ -487,17 +519,9 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     private inner class SearchCallback : SearchActionModeCallback() {
         var searchActionProvider: SearchActionProvider? = null
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            searchActionProvider = SearchActionProvider(this@TalkTopicsActivity, searchHintString,
-                object : SearchActionProvider.Callback {
-                    override fun onQueryTextChange(s: String) {
-                        onQueryChange(s)
-                    }
+            searchActionProvider = SearchActionProvider(this@TalkTopicsActivity, getSearchHintString()) { onQueryChange(it) }
 
-                    override fun onQueryTextFocusChange() {
-                    }
-                })
-
-            val menuItem = menu.add(searchHintString)
+            val menuItem = menu.add(getSearchHintString())
 
             MenuItemCompat.setActionProvider(menuItem, searchActionProvider)
 
@@ -535,12 +559,11 @@ class TalkTopicsActivity : BaseActivity(), WatchlistExpiryDialog.Callback {
     }
 
     companion object {
-        private const val EXTRA_PAGE_TITLE = "pageTitle"
         private const val EXTRA_GO_TO_TOPIC = "goToTopic"
 
         fun newIntent(context: Context, pageTitle: PageTitle, invokeSource: Constants.InvokeSource): Intent {
             return Intent(context, TalkTopicsActivity::class.java)
-                .putExtra(EXTRA_PAGE_TITLE, pageTitle)
+                .putExtra(Constants.ARG_TITLE, pageTitle)
                 .putExtra(EXTRA_GO_TO_TOPIC, !pageTitle.fragment.isNullOrEmpty())
                 .putExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE, invokeSource)
         }

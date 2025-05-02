@@ -10,7 +10,11 @@ import android.graphics.drawable.Drawable
 import android.text.Editable
 import android.text.Html.ImageGetter
 import android.text.Html.TagHandler
+import android.text.Spannable
 import android.text.Spanned
+import android.text.style.LeadingMarginSpan
+import android.text.style.ParagraphStyle
+import android.text.style.TypefaceSpan
 import android.text.style.URLSpan
 import android.widget.TextView
 import androidx.core.graphics.applyCanvas
@@ -18,12 +22,9 @@ import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.core.text.parseAsHtml
 import androidx.core.text.toSpanned
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
-import org.wikipedia.R
 import org.wikipedia.dataclient.Service
 import org.wikipedia.dataclient.WikiSite
+import org.wikipedia.gallery.ImagePipelineBitmapGetter
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.WhiteBackgroundTransformation
@@ -32,8 +33,9 @@ import org.xml.sax.Attributes
 import org.xml.sax.ContentHandler
 import org.xml.sax.Locator
 import org.xml.sax.XMLReader
+import java.util.Stack
 
-class CustomHtmlParser constructor(private val handler: TagHandler) : TagHandler, ContentHandler {
+class CustomHtmlParser(private val handler: TagHandler) : TagHandler, ContentHandler {
     interface TagHandler {
         fun handleTag(opening: Boolean, tag: String?, output: Editable?, attributes: Attributes?): Boolean
     }
@@ -107,6 +109,8 @@ class CustomHtmlParser constructor(private val handler: TagHandler) : TagHandler
 
     class CustomTagHandler(private val view: TextView?) : TagHandler {
         private var lastAClass = ""
+        private var listItemCounts = Stack<Int>()
+        private val listParents = mutableListOf<String>()
 
         override fun handleTag(opening: Boolean, tag: String?, output: Editable?, attributes: Attributes?): Boolean {
             if (tag == "img" && view == null) {
@@ -142,27 +146,21 @@ class CustomHtmlParser constructor(private val handler: TagHandler) : TagHandler
                             uri = Service.COMMONS_URL + uri.replace("./", "")
                         }
 
-                        Glide.with(view)
-                            .asBitmap()
-                            .load(uri)
-                            .into(object : CustomTarget<Bitmap>() {
-                                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                                    if (!drawable.bitmap.isRecycled) {
-                                        drawable.bitmap.applyCanvas {
-                                            drawBitmap(resource, Rect(0, 0, resource.width, resource.height), drawable.bounds, null)
-                                        }
-                                        WhiteBackgroundTransformation.maybeDimImage(drawable.bitmap)
-                                        view.postInvalidate()
-                                    }
+                        ImagePipelineBitmapGetter(view.context, uri) { bitmap ->
+                            if (!drawable.bitmap.isRecycled) {
+                                drawable.bitmap.applyCanvas {
+                                    drawBitmap(bitmap, Rect(0, 0, bitmap.width, bitmap.height), drawable.bounds, null)
                                 }
-                                override fun onLoadCleared(placeholder: Drawable?) { }
-                            })
+                                WhiteBackgroundTransformation.maybeDimImage(drawable.bitmap)
+                                view.postInvalidate()
+                            }
+                        }
                     }
                 }
             } else if (tag == "a") {
                 if (opening) {
                     lastAClass = getValue(attributes, "class").orEmpty()
-                } else if (output != null && output.isNotEmpty()) {
+                } else if (!output.isNullOrEmpty()) {
                     val spans = output.getSpans<URLSpan>(output.length - 1)
                     if (spans.isNotEmpty()) {
                         val span = spans.last()
@@ -173,8 +171,55 @@ class CustomHtmlParser constructor(private val handler: TagHandler) : TagHandler
                         output.setSpan(URLSpanNoUnderline(span.url, color), start, end, 0)
                     }
                 }
+            } else if (tag == "code" && output != null) {
+                if (opening) {
+                    output.setSpan(TypefaceSpan("monospace"), output.length, output.length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
+                } else {
+                    val spans = output.getSpans<TypefaceSpan>(output.length)
+                    if (spans.isNotEmpty()) {
+                        val span = spans.last()
+                        val start = output.getSpanStart(span)
+                        output.removeSpan(span)
+                        output.setSpan(TypefaceSpan("monospace"), start, output.length, 0)
+                    }
+                }
+            } else if (tag == "ol") {
+                if (opening) {
+                    listParents.add(tag)
+                    listItemCounts.push(0)
+                } else {
+                    listParents.remove(tag)
+                    listItemCounts.pop()
+                }
+            } else if (tag == "li" && listParents.isNotEmpty() && !opening && output != null) {
+                handleListTag(output)
             }
             return false
+        }
+
+        private fun handleListTag(output: Editable) {
+            if (listParents.last() == "ol") {
+                val count = (if (listItemCounts.size > 0) listItemCounts.pop() else 0) + 1
+                listItemCounts.push(count)
+                // TODO: improve this logic to no longer require explicitly inserting the count
+                // into the output text. This requires manual and fragile manipulation of any
+                // existing spans that may be present in the output text.
+                val paragraphSpans = output.getSpans<ParagraphStyle>(output.length)
+                var lastLeadingSpan: LeadingMarginSpan? = null
+                paragraphSpans.forEach {
+                    if (it !is LeadingMarginSpan) {
+                        output.removeSpan(it)
+                    } else {
+                        lastLeadingSpan = it
+                    }
+                }
+                lastLeadingSpan?.let { span ->
+                    val spanStart = output.getSpanStart(span)
+                    output.removeSpan(span)
+                    output.insert(spanStart, "$count. ")
+                    output.setSpan(LeadingMarginSpan.Standard(DimenUtil.roundedDpToPx(16f)), spanStart, output.length, 0)
+                }
+            }
         }
     }
 
@@ -219,6 +264,10 @@ class CustomHtmlParser constructor(private val handler: TagHandler) : TagHandler
             sourceStr = sourceStr.replace("&#8206;", "\u200E")
                 .replace("&#8207;", "\u200F")
                 .replace("&amp;", "&")
+
+            // Add <small> tag in the <sub> or <sup> tags to make the text 3 times smaller
+            sourceStr = sourceStr.replace("<sub>", "<sub><small><small><small>").replace("</sub>", "</small></small></small></sub>")
+                .replace("<sup>", "<sup><small><small><small>").replace("</sup>", "</small></small></small></sup>")
 
             // TODO: Investigate if it's necessary to inject a dummy tag at the beginning of the
             // text, since there are reports that XmlReader ignores the first tag by default?

@@ -34,7 +34,7 @@ import kotlin.math.min
  * case we need to copy over any useful compatibility logic.
  */
 @SuppressLint("AppCompatCustomView")
-class SyntaxHighlightableEditText : EditText {
+open class SyntaxHighlightableEditText : EditText {
 
     private var prevLineCount = -1
     private val lineNumberPaint = TextPaint()
@@ -46,7 +46,7 @@ class SyntaxHighlightableEditText : EditText {
     private val gutterRect = Rect()
     private var allowScrollToCursor = true
 
-    lateinit var scrollView: View
+    var scrollView: View? = null
     private lateinit var actualLineFromRenderedLine: IntArray
 
     var inputConnection: InputConnection? = null
@@ -87,11 +87,11 @@ class SyntaxHighlightableEditText : EditText {
                 (if (enabled) 0 else (EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS or EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD))
     }
 
-    override fun bringPointIntoView(offset: Int): Boolean {
+    override fun requestRectangleOnScreen(rectangle: Rect?): Boolean {
         if (!allowScrollToCursor) {
             return false
         }
-        return super.bringPointIntoView(offset)
+        return super.requestRectangleOnScreen(rectangle)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -103,7 +103,7 @@ class SyntaxHighlightableEditText : EditText {
         }
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         if (prevLineCount != lineCount) {
             prevLineCount = lineCount
             computeLineNumbers(prevLineCount, layout, text.toString())
@@ -112,8 +112,8 @@ class SyntaxHighlightableEditText : EditText {
         if (showLineNumbers && layout != null) {
             val wrapContent = true // TODO: make wrap content optional?
 
-            val firstLine = layout.getLineForVertical(scrollView.scrollY)
-            val lastLine = layout.getLineForVertical(scrollView.scrollY + scrollView.height)
+            val firstLine = if (scrollView != null) layout.getLineForVertical(scrollView!!.scrollY) else 0
+            val lastLine = if (scrollView != null) layout.getLineForVertical(scrollView!!.scrollY + scrollView!!.height) else layout.lineCount - 1
 
             // paint the gutter area with a slightly different color than text background.
             canvas?.drawRect(gutterRect, lineNumberBackgroundPaint)

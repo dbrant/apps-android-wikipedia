@@ -21,7 +21,7 @@ import org.wikipedia.R
 import org.wikipedia.WikipediaApp
 import org.wikipedia.databinding.FragmentWikipediaLanguagesBinding
 import org.wikipedia.json.JsonUtil
-import org.wikipedia.language.LanguagesListActivity
+import org.wikipedia.language.addlanguages.AddLanguagesListActivity
 import org.wikipedia.push.WikipediaFirebaseMessagingService
 import org.wikipedia.settings.Prefs
 import org.wikipedia.settings.SettingsActivity
@@ -46,6 +46,7 @@ class WikipediaLanguagesFragment : Fragment(), MenuProvider, WikipediaLanguagesI
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentWikipediaLanguagesBinding.inflate(inflater, container, false)
+        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
         invokeSource = requireActivity().intent.getSerializableExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE) as InvokeSource
         initialLanguageList = JsonUtil.encodeToString(app.languageState.appLanguageCodes).orEmpty()
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
@@ -58,7 +59,7 @@ class WikipediaLanguagesFragment : Fragment(), MenuProvider, WikipediaLanguagesI
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == Constants.ACTIVITY_REQUEST_ADD_A_LANGUAGE && resultCode == Activity.RESULT_OK) {
             interactionsCount += data!!.getIntExtra(ADD_LANGUAGE_INTERACTIONS, 0)
-            isLanguageSearched = isLanguageSearched || data.getBooleanExtra(LanguagesListActivity.LANGUAGE_SEARCHED, false)
+            isLanguageSearched = isLanguageSearched || data.getBooleanExtra(AddLanguagesListActivity.LANGUAGE_SEARCHED, false)
             prepareWikipediaLanguagesList()
             requireActivity().invalidateOptionsMenu()
             adapter.notifyDataSetChanged()
@@ -191,7 +192,7 @@ class WikipediaLanguagesFragment : Fragment(), MenuProvider, WikipediaLanguagesI
             } else if (holder is FooterViewHolder) {
                 holder.view.visibility = if (checkboxEnabled) View.GONE else View.VISIBLE
                 holder.view.setOnClickListener {
-                    Intent(requireActivity(), LanguagesListActivity::class.java).let {
+                    Intent(requireActivity(), AddLanguagesListActivity::class.java).let {
                         startActivityForResult(it, Constants.ACTIVITY_REQUEST_ADD_A_LANGUAGE)
                         actionMode?.finish()
                     }
@@ -217,7 +218,7 @@ class WikipediaLanguagesFragment : Fragment(), MenuProvider, WikipediaLanguagesI
         }
     }
 
-    private inner class RearrangeableItemTouchHelperCallback constructor(private val adapter: WikipediaLanguageItemAdapter) : ItemTouchHelper.Callback() {
+    private inner class RearrangeableItemTouchHelperCallback(private val adapter: WikipediaLanguageItemAdapter) : ItemTouchHelper.Callback() {
         override fun isLongPressDragEnabled(): Boolean {
             return false
         }
@@ -248,19 +249,19 @@ class WikipediaLanguagesFragment : Fragment(), MenuProvider, WikipediaLanguagesI
         }
     }
 
-    private inner class HeaderViewHolder constructor(itemView: View) : DefaultViewHolder<View>(itemView) {
+    private inner class HeaderViewHolder(itemView: View) : DefaultViewHolder<View>(itemView) {
         init {
             itemView.findViewById<TextView>(R.id.section_header_text).setText(R.string.wikipedia_languages_your_languages_text)
         }
     }
 
-    private inner class WikipediaLanguageItemHolder constructor(itemView: WikipediaLanguagesItemView) : DefaultViewHolder<WikipediaLanguagesItemView>(itemView) {
+    private inner class WikipediaLanguageItemHolder(itemView: WikipediaLanguagesItemView) : DefaultViewHolder<WikipediaLanguagesItemView>(itemView) {
         fun bindItem(languageCode: String, position: Int) {
             view.setContents(languageCode, app.languageState.getAppLanguageLocalizedName(languageCode), position)
         }
     }
 
-    private inner class FooterViewHolder constructor(itemView: View) : DefaultViewHolder<View>(itemView)
+    private inner class FooterViewHolder(itemView: View) : DefaultViewHolder<View>(itemView)
 
     private fun wantResultFromItemClick(): Boolean {
         val source = requireActivity().intent.getSerializableExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE) as InvokeSource?

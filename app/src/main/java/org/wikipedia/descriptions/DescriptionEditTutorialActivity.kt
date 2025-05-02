@@ -6,6 +6,8 @@ import org.wikipedia.activity.SingleFragmentActivity
 import org.wikipedia.onboarding.OnboardingFragment
 
 class DescriptionEditTutorialActivity : SingleFragmentActivity<DescriptionEditTutorialFragment>(), OnboardingFragment.Callback {
+    override fun onSkip() {}
+
     override fun onComplete() {
         setResult(RESULT_OK, intent)
         finish()
@@ -17,7 +19,7 @@ class DescriptionEditTutorialActivity : SingleFragmentActivity<DescriptionEditTu
 
     companion object {
         const val SHOULD_SHOW_AI_ON_BOARDING = "showAIOnBoarding"
-        fun newIntent(context: Context, showAIOnBoarding: Boolean): Intent {
+        fun newIntent(context: Context, showAIOnBoarding: Boolean = true): Intent {
             return Intent(context, DescriptionEditTutorialActivity::class.java)
                 .putExtra(SHOULD_SHOW_AI_ON_BOARDING, showAIOnBoarding)
         }

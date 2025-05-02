@@ -2,7 +2,6 @@ package org.wikipedia.page.edithistory
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
@@ -49,14 +48,15 @@ class EditHistoryItemView(context: Context) : FrameLayout(context) {
 
     fun setContents(itemRevision: MwQueryPage.Revision, currentQuery: String?) {
         val diffSize = itemRevision.diffSize
-        binding.diffText.text = StringUtil.getDiffBytesText(context, diffSize)
+        StringUtil.setHighlightedAndBoldenedText(binding.diffText,
+            StringUtil.getDiffBytesText(context, diffSize), currentQuery)
         if (diffSize >= 0) {
             val diffColor = if (diffSize > 0) R.attr.success_color else R.attr.secondary_color
             binding.diffText.setTextColor(ResourceUtil.getThemedColor(context, diffColor))
         } else {
             binding.diffText.setTextColor(ResourceUtil.getThemedColor(context, R.attr.destructive_color))
         }
-        val userIcon = if (itemRevision.isAnon) R.drawable.ic_anonymous_ooui else R.drawable.ic_user_avatar
+        val userIcon = if (itemRevision.isAnon) R.drawable.ic_anonymous_ooui else if (itemRevision.isTemp) R.drawable.ic_temp_account else R.drawable.ic_user_avatar
         binding.userNameText.setIconResource(userIcon)
 
         if (itemRevision.comment.isEmpty()) {
@@ -66,13 +66,11 @@ class EditHistoryItemView(context: Context) : FrameLayout(context) {
         } else {
             binding.editHistoryTitle.setTypeface(Typeface.SANS_SERIF, Typeface.NORMAL)
             binding.editHistoryTitle.setTextColor(ResourceUtil.getThemedColor(context, R.attr.primary_color))
-            binding.editHistoryTitle.text = if (itemRevision.minor) StringUtil.fromHtml(context.getString(R.string.page_edit_history_minor_edit, itemRevision.comment)) else itemRevision.comment
-            StringUtil.highlightAndBoldenText(binding.editHistoryTitle, currentQuery, true, Color.YELLOW)
+            val historyTitle = if (itemRevision.minor) StringUtil.fromHtml(context.getString(R.string.page_edit_history_minor_edit, itemRevision.comment)) else itemRevision.comment
+            StringUtil.setHighlightedAndBoldenedText(binding.editHistoryTitle, historyTitle, currentQuery)
         }
-        binding.userNameText.text = itemRevision.user
+        StringUtil.setHighlightedAndBoldenedText(binding.userNameText, itemRevision.user, currentQuery)
         binding.editHistoryTimeText.text = DateUtil.getTimeString(context, DateUtil.iso8601DateParse(itemRevision.timeStamp))
-        StringUtil.highlightAndBoldenText(binding.diffText, currentQuery, true, Color.YELLOW)
-        StringUtil.highlightAndBoldenText(binding.userNameText, currentQuery, true, Color.YELLOW)
     }
 
     fun setSelectedState(selectedState: Int) {

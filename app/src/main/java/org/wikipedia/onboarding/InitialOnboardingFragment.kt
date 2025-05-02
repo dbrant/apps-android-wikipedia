@@ -15,8 +15,6 @@ import org.wikipedia.R
 import org.wikipedia.activity.FragmentUtil
 import org.wikipedia.login.LoginActivity
 import org.wikipedia.model.EnumCode
-import org.wikipedia.model.EnumCodeMap
-import org.wikipedia.settings.Prefs
 import org.wikipedia.settings.languages.WikipediaLanguagesActivity
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.UriUtil
@@ -24,7 +22,7 @@ import org.wikipedia.util.UriUtil
 class InitialOnboardingFragment : OnboardingFragment(), OnboardingPageView.Callback {
     private var onboardingPageView: OnboardingPageView? = null
     override val doneButtonText = R.string.onboarding_get_started
-    override val showDoneButton = false
+    var languageChanged = false
 
     private val loginLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == LoginActivity.RESULT_LOGIN_SUCCESS) {
@@ -33,15 +31,12 @@ class InitialOnboardingFragment : OnboardingFragment(), OnboardingPageView.Callb
         }
     }
 
-    override fun getAdapter(): FragmentStateAdapter {
-        return OnboardingPagerAdapter(this)
+    private val languageChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        languageChanged = true
     }
 
-    override fun onAcceptOrReject(view: OnboardingPageView, accept: Boolean) {
-        if (OnboardingPage.of(view.tag as Int) == OnboardingPage.PAGE_USAGE_DATA) {
-            Prefs.isEventLoggingEnabled = accept
-            advancePage()
-        }
+    override fun getAdapter(): FragmentStateAdapter {
+        return OnboardingPagerAdapter(this)
     }
 
     override fun onLinkClick(view: OnboardingPageView, url: String) {
@@ -50,13 +45,14 @@ class InitialOnboardingFragment : OnboardingFragment(), OnboardingPageView.Callb
             "#privacy" -> FeedbackUtil.showPrivacyPolicy(requireContext())
             "#about" -> FeedbackUtil.showAboutWikipedia(requireContext())
             "#offline" -> FeedbackUtil.showOfflineReadingAndData(requireContext())
+            "#termsOfUse" -> FeedbackUtil.showTermsOfUse(requireContext())
             else -> UriUtil.handleExternalLink(requireActivity(), Uri.parse(url))
         }
     }
 
     override fun onListActionButtonClicked(view: OnboardingPageView) {
         onboardingPageView = view
-        requireContext().startActivity(WikipediaLanguagesActivity.newIntent(requireContext(), Constants.InvokeSource.ONBOARDING_DIALOG))
+        languageChooserLauncher.launch(WikipediaLanguagesActivity.newIntent(requireContext(), Constants.InvokeSource.ONBOARDING_DIALOG))
     }
 
     override fun onResume() {
@@ -64,13 +60,13 @@ class InitialOnboardingFragment : OnboardingFragment(), OnboardingPageView.Callb
         onboardingPageView?.refreshLanguageList()
     }
 
-    private class OnboardingPagerAdapter constructor(fragment: Fragment) : FragmentStateAdapter(fragment) {
+    private class OnboardingPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
         override fun createFragment(position: Int): Fragment {
             return ItemFragment.newInstance(position)
         }
 
         override fun getItemCount(): Int {
-            return OnboardingPage.size()
+            return OnboardingPage.entries.size
         }
     }
 
@@ -99,20 +95,15 @@ class InitialOnboardingFragment : OnboardingFragment(), OnboardingPageView.Callb
         PAGE_WELCOME(R.layout.inflate_initial_onboarding_page_zero),
         PAGE_EXPLORE(R.layout.inflate_initial_onboarding_page_one),
         PAGE_READING_LISTS(R.layout.inflate_initial_onboarding_page_two),
-        PAGE_USAGE_DATA(R.layout.inflate_initial_onboarding_page_three);
+        PAGE_DATA_PRIVACY(R.layout.inflate_initial_onboarding_page_three);
 
         override fun code(): Int {
             return ordinal
         }
 
         companion object {
-            private val MAP = EnumCodeMap(OnboardingPage::class.java)
             fun of(code: Int): OnboardingPage {
-                return MAP[code]
-            }
-
-            fun size(): Int {
-                return MAP.size()
+                return entries[code]
             }
         }
     }
