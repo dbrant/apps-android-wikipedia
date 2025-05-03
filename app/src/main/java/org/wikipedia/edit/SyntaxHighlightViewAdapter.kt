@@ -1,12 +1,14 @@
 package org.wikipedia.edit
 
 import android.content.Intent
-import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import org.wikipedia.Constants
+import org.wikipedia.analytics.eventplatform.PatrollerExperienceEvent
 import org.wikipedia.edit.insertmedia.InsertMediaActivity
 import org.wikipedia.edit.templates.TemplatesSearchActivity
 import org.wikipedia.extensions.parcelableExtra
@@ -15,19 +17,17 @@ import org.wikipedia.page.ExclusiveBottomSheetPresenter
 import org.wikipedia.page.PageTitle
 import org.wikipedia.page.linkpreview.LinkPreviewDialog
 import org.wikipedia.search.SearchActivity
-import org.wikipedia.util.DeviceUtil
-import org.wikipedia.util.DimenUtil
 
 class SyntaxHighlightViewAdapter(
     val activity: AppCompatActivity,
     val pageTitle: PageTitle,
-    private val rootView: View,
     val editText: SyntaxHighlightableEditText,
     private val wikiTextKeyboardView: WikiTextKeyboardView,
     private val wikiTextKeyboardFormattingView: WikiTextKeyboardFormattingView,
     private val wikiTextKeyboardHeadingsView: WikiTextKeyboardHeadingsView,
     private val invokeSource: Constants.InvokeSource,
     private val requestInsertMedia: ActivityResultLauncher<Intent>,
+    private val isFromDiff: Boolean = false,
     showUserMention: Boolean = false
 ) : WikiTextKeyboardView.Callback {
 
@@ -41,16 +41,15 @@ class SyntaxHighlightViewAdapter(
         wikiTextKeyboardView.userMentionVisible = showUserMention
         hideAllSyntaxModals()
 
-        activity.window.decorView.viewTreeObserver.addOnGlobalLayoutListener {
-            activity.window.decorView.post {
-                if (!activity.isDestroyed) {
-                    showOrHideSyntax(editText.hasFocus())
-                }
-            }
+        ViewCompat.setOnApplyWindowInsetsListener(activity.window.decorView) { _, insets ->
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            hideAllSyntaxModals()
+            wikiTextKeyboardView.isVisible = imeVisible && editText.isFocused
+            insets
         }
 
-        editText.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-            showOrHideSyntax(hasFocus)
+        editText.setOnFocusChangeListener { _, hasFocus ->
+            activity.window.decorView.requestApplyInsets()
         }
     }
 
@@ -72,17 +71,8 @@ class SyntaxHighlightViewAdapter(
     }
 
     override fun onPreviewLink(title: String) {
-        val dialog = LinkPreviewDialog.newInstance(HistoryEntry(PageTitle(title, pageTitle.wikiSite), HistoryEntry.SOURCE_INTERNAL_LINK))
-        ExclusiveBottomSheetPresenter.show(activity.supportFragmentManager, dialog)
-        editText.post {
-            dialog.dialog?.setOnDismissListener {
-                if (!activity.isDestroyed) {
-                    editText.postDelayed({
-                        DeviceUtil.showSoftKeyboard(editText)
-                    }, 200)
-                }
-            }
-        }
+        ExclusiveBottomSheetPresenter.show(activity.supportFragmentManager,
+            LinkPreviewDialog.newInstance(HistoryEntry(PageTitle(title, pageTitle.wikiSite), HistoryEntry.SOURCE_INTERNAL_LINK)))
     }
 
     override fun onRequestInsertMedia() {
@@ -92,7 +82,11 @@ class SyntaxHighlightViewAdapter(
     }
 
     override fun onRequestInsertTemplate() {
-        requestInsertTemplate.launch(TemplatesSearchActivity.newIntent(activity, pageTitle.wikiSite, invokeSource))
+        if (isFromDiff) {
+            val activeInterface = if (invokeSource == Constants.InvokeSource.TALK_REPLY_ACTIVITY) "pt_talk" else "pt_edit"
+            PatrollerExperienceEvent.logAction("template_init", activeInterface)
+        }
+        requestInsertTemplate.launch(TemplatesSearchActivity.newIntent(activity, pageTitle.wikiSite, isFromDiff, invokeSource))
     }
 
     override fun onRequestInsertLink() {
@@ -127,16 +121,5 @@ class SyntaxHighlightViewAdapter(
         wikiTextKeyboardHeadingsView.isVisible = false
         wikiTextKeyboardFormattingView.isVisible = false
         wikiTextKeyboardView.onAfterOverlaysHidden()
-    }
-
-    private fun showOrHideSyntax(hasFocus: Boolean) {
-        val hasMinHeight = DeviceUtil.isHardKeyboardAttached(activity.resources) ||
-                activity.window.decorView.height - rootView.height > DimenUtil.roundedDpToPx(150f)
-        if (hasFocus && hasMinHeight) {
-            wikiTextKeyboardView.isVisible = true
-        } else {
-            hideAllSyntaxModals()
-            wikiTextKeyboardView.isVisible = false
-        }
     }
 }

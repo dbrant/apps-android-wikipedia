@@ -44,10 +44,13 @@ import org.wikipedia.talk.UserTalkPopupHelper
 import org.wikipedia.util.DateUtil
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.StringUtil
 import org.wikipedia.views.NotificationButtonView
 import org.wikipedia.views.SearchAndFilterActionProvider
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Date
 
 class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
@@ -77,7 +80,6 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
-        binding.watchlistRefreshView.setColorSchemeResources(ResourceUtil.getThemedAttributeId(requireContext(), R.attr.progressive_color))
         binding.watchlistRefreshView.setOnRefreshListener { viewModel.fetchWatchlist(actionMode == null) }
         binding.watchlistErrorView.retryClickListener = View.OnClickListener { viewModel.fetchWatchlist(actionMode == null) }
 
@@ -90,9 +92,9 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
                 viewModel.uiState.collect {
                     when (it) {
-                        is WatchlistViewModel.UiState.Loading -> onLoading()
-                        is WatchlistViewModel.UiState.Success -> onSuccess()
-                        is WatchlistViewModel.UiState.Error -> onError(it.throwable)
+                        is Resource.Loading -> onLoading()
+                        is Resource.Success -> onSuccess()
+                        is Resource.Error -> onError(it.throwable)
                     }
                 }
             }
@@ -103,7 +105,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
         super.onResume()
         actionMode?.let {
             viewModel.updateList(false)
-            if (SearchActionModeCallback.`is`(it)) {
+            if (SearchActionModeCallback.matches(it)) {
                 searchActionModeCallback.refreshProvider()
             }
         }
@@ -210,7 +212,8 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
     internal inner class WatchlistDateViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bindItem(date: Date) {
             val textView = itemView.findViewById<TextView>(R.id.dateText)
-            textView.text = DateUtil.getShortDateString(date)
+            val localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault()).toLocalDate()
+            textView.text = DateUtil.getShortDateString(localDateTime)
         }
     }
 
@@ -291,13 +294,10 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
 
         var searchAndFilterActionProvider: SearchAndFilterActionProvider? = null
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            searchAndFilterActionProvider = SearchAndFilterActionProvider(requireContext(), searchHintString,
+            searchAndFilterActionProvider = SearchAndFilterActionProvider(requireContext(), getSearchHintString(),
                 object : SearchAndFilterActionProvider.Callback {
                     override fun onQueryTextChange(s: String) {
                         onQueryChange(s)
-                    }
-
-                    override fun onQueryTextFocusChange() {
                     }
 
                     override fun onFilterIconClick() {
@@ -314,7 +314,7 @@ class WatchlistFragment : Fragment(), WatchlistItemView.Callback, MenuProvider {
                     }
                 })
 
-            val menuItem = menu.add(searchHintString)
+            val menuItem = menu.add(getSearchHintString())
 
             MenuItemCompat.setActionProvider(menuItem, searchAndFilterActionProvider)
 

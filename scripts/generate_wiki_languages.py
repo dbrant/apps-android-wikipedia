@@ -52,7 +52,6 @@ lang_list_en_response = json.loads(requests.get(QUERY_LANGLIST + "en").text)
 for key, value in data[u"sitematrix"].items():
     if type(value) is not dict:
         continue
-    language_code = value[u"code"]
     site_list = value[u"site"]
     if type(site_list) is not list:
         continue
@@ -62,6 +61,12 @@ for key, value in data[u"sitematrix"].items():
             wikipedia_url = site[u"url"]
     if len(wikipedia_url) == 0:
         continue
+
+    # At this stage, the language code should be the subdomain of the Wikipedia URL,
+    # instead of the "code" field in the sitematrix response.
+    # language_code = value[u"code"]
+    language_code = wikipedia_url.replace('https://', '').replace('.wikipedia.org', '')
+
     # TODO: If we want to remove languages with too few active users:
     # allusers = json.loads(requests.get(wikipedia_url + QUERY_ALLUSERS).text)
     # if len(allusers[u"query"][u"allusers"]) < 10:
@@ -82,11 +87,16 @@ for key, value in data[u"sitematrix"].items():
         language_code = 'nb'
 
     lang_name = value[u"name"]
+    english_name = value[u"localname"]
     lang_bcp47 = language_code
     for name in lang_list_response[u"query"][u"languages"]:
         if name[u"code"] == language_code:
             lang_name = name[u"name"]
             lang_bcp47 = name[u"bcp47"]
+            break
+    for name in lang_list_en_response[u"query"][u"languages"]:
+        if name[u"code"] == language_code:
+            english_name = name[u"name"]
             break
 
     # add language variants into the list
@@ -124,7 +134,7 @@ for key, value in data[u"sitematrix"].items():
     if language_code == 'zh':
         continue
 
-    add_lang(language_code, lang_bcp47, lang_name.replace("'", "\\'"), value[u"localname"].replace("'", "\\'"), rank)
+    add_lang(language_code, lang_bcp47, lang_name.replace("'", "\\'"), english_name.replace("'", "\\'"), rank)
 
 
 add_lang(key='test', bcp47key='test', local_name='Test', eng_name='Test', rank=0)

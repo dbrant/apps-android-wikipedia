@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.TextWatcher
+import android.text.method.LinkMovementMethod
 import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +29,7 @@ import org.wikipedia.edit.insertmedia.InsertMediaActivity
 import org.wikipedia.edit.insertmedia.InsertMediaViewModel
 import org.wikipedia.edit.preview.EditPreviewFragment
 import org.wikipedia.extensions.parcelableExtra
+import org.wikipedia.extensions.setLayoutDirectionByLang
 import org.wikipedia.history.HistoryEntry
 import org.wikipedia.login.LoginActivity
 import org.wikipedia.notifications.AnonymousNotificationHelper
@@ -35,12 +37,13 @@ import org.wikipedia.page.LinkHandler
 import org.wikipedia.page.LinkMovementMethodExt
 import org.wikipedia.page.PageActivity
 import org.wikipedia.page.PageTitle
+import org.wikipedia.page.linkpreview.LinkPreviewDialog
+import org.wikipedia.settings.Prefs
 import org.wikipedia.staticdata.TalkAliasData
 import org.wikipedia.talk.db.TalkTemplate
 import org.wikipedia.talk.template.TalkTemplatesTextInputDialog
 import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
-import org.wikipedia.util.L10nUtil
 import org.wikipedia.util.Resource
 import org.wikipedia.util.ResourceUtil
 import org.wikipedia.util.StringUtil
@@ -48,14 +51,15 @@ import org.wikipedia.util.UriUtil
 import org.wikipedia.views.UserMentionInputView
 import org.wikipedia.views.ViewUtil
 
-class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPreviewFragment.Callback {
+class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPreviewFragment.Callback, LinkPreviewDialog.DismissCallback {
     private lateinit var binding: ActivityTalkReplyBinding
     private lateinit var linkHandler: TalkLinkHandler
     private lateinit var textWatcher: TextWatcher
     private lateinit var messagePreviewFragment: EditPreviewFragment
 
-    val viewModel: TalkReplyViewModel by viewModels { TalkReplyViewModel.Factory(intent.extras!!) }
+    val viewModel: TalkReplyViewModel by viewModels()
     private var userMentionScrolled = false
+    private var shouldWatchText = true
     private var subjectOrBodyModified = false
     private var savedSuccess = false
 
@@ -114,6 +118,9 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
         linkHandler.wikiSite = viewModel.pageTitle.wikiSite
 
         textWatcher = binding.replySubjectText.doOnTextChanged { text, _, _, _ ->
+            if (!shouldWatchText) {
+                return@doOnTextChanged
+            }
             subjectOrBodyModified = true
             binding.replySubjectLayout.error = null
             binding.replyInputView.textInputLayout.error = null
@@ -175,16 +182,34 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
             }
         }
 
-        viewModel.selectedTemplate?.let {
-            binding.root.post {
-                binding.replySubjectText.setText(it.subject)
-                binding.replyInputView.editText.setText(it.message)
+        viewModel.pageExistsData.observe(this) {
+            if (it is Resource.Success) {
+                if (!AccountUtil.isLoggedIn || AccountUtil.isTemporaryAccount) {
+                    binding.footerContainer.tempAccountInfoContainer.isVisible = true
+                    binding.footerContainer.tempAccountInfoIcon.setImageResource(if (AccountUtil.isTemporaryAccount) R.drawable.ic_temp_account else R.drawable.ic_anon_account)
+                    binding.footerContainer.tempAccountInfoText.movementMethod = LinkMovementMethod.getInstance()
+                    binding.footerContainer.tempAccountInfoText.text = StringUtil.fromHtml(if (AccountUtil.isTemporaryAccount) getString(R.string.temp_account_edit_status, AccountUtil.getUserNameFromCookie(), getString(R.string.temp_accounts_help_url))
+                    else getString(if (viewModel.tempAccountsEnabled) R.string.temp_account_anon_edit_status else R.string.temp_account_anon_ip_edit_status, getString(R.string.temp_accounts_help_url)))
+                } else {
+                    binding.footerContainer.tempAccountInfoContainer.isVisible = false
+                }
+                maybeShowTempAccountDialog()
             }
         }
 
-        SyntaxHighlightViewAdapter(this, viewModel.pageTitle, binding.root, binding.replyInputView.editText,
+        viewModel.selectedTemplate?.let {
+            binding.root.post {
+                shouldWatchText = false
+                binding.replySubjectText.setText(it.subject)
+                binding.replyInputView.editText.setText(it.message)
+                shouldWatchText = true
+                setSaveButtonEnabled(true)
+            }
+        }
+
+        SyntaxHighlightViewAdapter(this, viewModel.pageTitle, binding.replyInputView.editText,
             binding.editKeyboardOverlay, binding.editKeyboardOverlayFormatting, binding.editKeyboardOverlayHeadings,
-            Constants.InvokeSource.TALK_REPLY_ACTIVITY, requestInsertMedia, true)
+            Constants.InvokeSource.TALK_REPLY_ACTIVITY, requestInsertMedia, showUserMention = true, isFromDiff = viewModel.isFromDiff)
 
         messagePreviewFragment = supportFragmentManager.findFragmentById(R.id.message_preview_fragment) as EditPreviewFragment
 
@@ -207,8 +232,8 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
     }
 
     private fun onInitialLoad() {
-        setSaveButtonEnabled(false)
-        L10nUtil.setConditionalLayoutDirection(binding.talkScrollContainer, viewModel.pageTitle.wikiSite.languageCode)
+        binding.footerContainer.tempAccountInfoContainer.isVisible = false
+        binding.talkScrollContainer.setLayoutDirectionByLang(viewModel.pageTitle.wikiSite.languageCode)
         binding.learnMoreButton.isVisible = viewModel.isFromDiff
         if (viewModel.topic != null) {
             binding.replyInputView.userNameHints = setOf(viewModel.topic!!.author)
@@ -221,12 +246,16 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
         }
 
         binding.progressBar.isVisible = false
+        shouldWatchText = false
         binding.replySubjectText.setText(intent.getCharSequenceExtra(EXTRA_SUBJECT))
         if (intent.hasExtra(EXTRA_BODY) && binding.replyInputView.editText.text.isEmpty()) {
             binding.replyInputView.editText.setText(intent.getCharSequenceExtra(EXTRA_BODY))
             binding.replyInputView.editText.setSelection(binding.replyInputView.editText.text.toString().length)
         }
+        shouldWatchText = true
         EditAttemptStepEvent.logInit(viewModel.pageTitle)
+
+        setSaveButtonEnabled(binding.replyInputView.editText.text.isNotEmpty())
 
         if (viewModel.isNewTopic || viewModel.isFromDiff) {
             if (viewModel.isNewTopic) {
@@ -239,13 +268,15 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
             binding.replySubjectLayout.isVisible = false
             binding.replyInputView.textInputLayout.hint = getString(R.string.talk_reply_hint)
             binding.talkScrollContainer.fullScroll(View.FOCUS_DOWN)
-            binding.replyInputView.maybePrepopulateUserName(AccountUtil.userName.orEmpty(), viewModel.pageTitle)
+            binding.replyInputView.maybePrepopulateUserName(AccountUtil.userName, viewModel.pageTitle)
             binding.talkScrollContainer.post {
                 if (!isDestroyed) {
                     binding.replyInputView.editText.requestFocus()
                     DeviceUtil.showSoftKeyboard(binding.replyInputView.editText)
                     binding.talkScrollContainer.postDelayed({
-                        binding.talkScrollContainer.smoothScrollTo(0, binding.talkScrollContainer.height * 4)
+                        if (!isDestroyed) {
+                            binding.talkScrollContainer.smoothScrollTo(0, binding.talkScrollContainer.height * 4)
+                        }
                     }, 500)
                 }
             }
@@ -307,7 +338,8 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
 
     private fun showSaveDialog(subject: String, body: String) {
         TalkTemplatesTextInputDialog(this@TalkReplyActivity, R.string.talk_templates_new_message_dialog_save,
-            R.string.talk_warn_save_dialog_dont_save).let { textInputDialog ->
+            R.string.talk_warn_save_dialog_dont_save,
+            !viewModel.isExampleTemplate && viewModel.selectedTemplate != null).let { textInputDialog ->
             textInputDialog.callback = object : TalkTemplatesTextInputDialog.Callback {
 
                 override fun onSuccess(subjectText: String) {
@@ -346,10 +378,8 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                                 if (textInputDialog.isSaveExistingChecked) {
                                     return
                                 }
-                                dialog.getView().postDelayed({
-                                    dialog.setError(dialog.context.getString(R.string.talk_subject_duplicate))
-                                    dialog.setPositiveButtonEnabled(false)
-                                }, 250)
+                                dialog.setError(dialog.context.getString(R.string.talk_subject_duplicate))
+                                dialog.setPositiveButtonEnabled(false)
                             }
 
                             else -> {
@@ -382,7 +412,7 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
 
         if (messagePreviewFragment.isActive) {
             EditAttemptStepEvent.logSaveAttempt(viewModel.pageTitle)
-            PatrollerExperienceEvent.logAction("publish_message_click", "pt_warning_messages")
+            sendPatrollerExperienceEvent("publish_message_click", "pt_warning_messages")
             binding.progressBar.isVisible = true
             setSaveButtonEnabled(false)
             viewModel.postReply(subject, getWikitextBody())
@@ -445,17 +475,16 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
     }
 
     private fun getWikitextBody(): String {
-        var body = binding.replyInputView.editText.text.toString().trim()
-        body = body.replace(getString(R.string.username_wikitext), getString(R.string.wikiText_replace_url, viewModel.pageTitle.prefixedText, "@" + StringUtil.removeNamespace(viewModel.pageTitle.prefixedText)))
-        body = body.replace(getString(R.string.sender_username_wikitext), AccountUtil.userName.orEmpty())
-        body = body.replace(getString(R.string.diff_link_wikitext), viewModel.pageTitle.getWebApiUrl("diff=${viewModel.toRevisionId}&oldid=${viewModel.fromRevisionId}&variant=${viewModel.pageTitle.wikiSite.languageCode}"))
-        return body
+        return binding.replyInputView.editText.text.toString().trim()
+            .replace(getString(R.string.username_wikitext), getString(R.string.wikiText_replace_url, viewModel.pageTitle.prefixedText, "@" + StringUtil.removeNamespace(viewModel.pageTitle.prefixedText)))
+            .replace(getString(R.string.sender_username_wikitext), AccountUtil.userName)
+            .replace(getString(R.string.diff_link_wikitext), viewModel.pageTitle.getWebApiUrl("diff=${viewModel.toRevisionId}&oldid=${viewModel.fromRevisionId}&variant=${viewModel.pageTitle.wikiSite.languageCode}"))
     }
 
     private fun onSaveSuccess(newRevision: Long) {
         AnonymousNotificationHelper.onEditSubmitted()
 
-        PatrollerExperienceEvent.logAction("publish_message_success", "pt_warning_messages",
+        sendPatrollerExperienceEvent("publish_message_success", "pt_warning_messages",
             PatrollerExperienceEvent.getPublishMessageActionString(isModified = viewModel.selectedTemplate != null && subjectOrBodyModified,
                 isSaved = viewModel.talkTemplateSaved, isExample = viewModel.isExampleTemplate, exampleMessage = if (viewModel.isExampleTemplate) viewModel.selectedTemplate?.title else null))
 
@@ -496,11 +525,51 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
         }
     }
 
+    private fun maybeShowTempAccountDialog(force: Boolean = false): Boolean {
+        if (force || (!Prefs.tempAccountDialogShown && (!AccountUtil.isLoggedIn || AccountUtil.isTemporaryAccount))) {
+            val dialog = MaterialAlertDialogBuilder(this, R.style.AlertDialogTheme_Icon_NegativeInactive)
+                .setIcon(if (AccountUtil.isTemporaryAccount) R.drawable.ic_temp_account else R.drawable.ic_anon_account)
+                .setTitle(if (AccountUtil.isTemporaryAccount) R.string.temp_account_using_title else R.string.temp_account_not_logged_in)
+                .setMessage(StringUtil.fromHtml(if (AccountUtil.isTemporaryAccount) getString(R.string.temp_account_temp_dialog_body, AccountUtil.userName)
+                else getString(if (viewModel.tempAccountsEnabled) R.string.temp_account_anon_dialog_body else R.string.temp_account_anon_ip_dialog_body, getString(R.string.temp_accounts_help_url))))
+                .setPositiveButton(getString(R.string.temp_account_dialog_ok)) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setNegativeButton(getString(R.string.create_account_login)) { dialog, _ ->
+                    launchLogin()
+                    dialog.dismiss()
+                }
+                .show()
+            dialog.window?.let {
+                it.decorView.findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethodExt { link ->
+                    if (link.contains("#login") || link.contains("#createaccount")) {
+                        launchLogin(link.contains("#createaccount"))
+                    } else {
+                        UriUtil.handleExternalLink(this, Uri.parse(link))
+                    }
+                }
+            }
+            Prefs.tempAccountDialogShown = true
+            return true
+        }
+        return false
+    }
+
+    private fun launchLogin(createAccountFirst: Boolean = true) {
+        requestLogin.launch(LoginActivity.newIntent(this, LoginActivity.SOURCE_EDIT, createAccountFirst))
+    }
+
     override fun onBackPressed() {
         setResult(RESULT_BACK_FROM_TOPIC)
         sendPatrollerExperienceEvent("publish_back", "pt_warning_messages")
-        if (viewModel.isNewTopic && (!binding.replySubjectText.text.isNullOrEmpty() ||
-                    binding.replyInputView.editText.text.isNotEmpty())) {
+        if (messagePreviewFragment.isActive) {
+            showProgressBar(false)
+            binding.talkScrollContainer.isVisible = true
+            messagePreviewFragment.hide()
+            setSaveButtonEnabled(true)
+            binding.replyNextButton.text = getString(R.string.edit_next)
+            setToolbarTitle(viewModel.pageTitle)
+        } else if (subjectOrBodyModified) {
             MaterialAlertDialogBuilder(this)
                 .setCancelable(false)
                 .setTitle(R.string.talk_new_topic_exit_dialog_title)
@@ -513,14 +582,6 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                     sendPatrollerExperienceEvent("publish_exit_cancel", "pt_warning_messages")
                 }
                 .show()
-        } else if (viewModel.isFromDiff && messagePreviewFragment.isActive) {
-            showProgressBar(true)
-            binding.talkScrollContainer.isVisible = true
-            messagePreviewFragment.hide()
-            setSaveButtonEnabled(true)
-            binding.replyNextButton.text = getString(R.string.edit_next)
-            setToolbarTitle(viewModel.pageTitle)
-            binding.root.postDelayed({ showProgressBar(false) }, 250)
         } else {
             super.onBackPressed()
         }
@@ -552,6 +613,18 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
     override fun showProgressBar(visible: Boolean) {
         binding.progressBar.isVisible = visible
         invalidateOptionsMenu()
+    }
+
+    override fun isNewPage(): Boolean {
+        return !viewModel.doesPageExist
+    }
+
+    override fun onLinkPreviewDismiss() {
+        if (!isDestroyed) {
+            binding.replyInputView.editText.postDelayed({
+                DeviceUtil.showSoftKeyboard(binding.replyInputView.editText)
+            }, 200)
+        }
     }
 
     companion object {
@@ -600,7 +673,6 @@ class TalkReplyActivity : BaseActivity(), UserMentionInputView.Listener, EditPre
                     .putExtra(EXTRA_EXAMPLE_TEMPLATE, isExampleTemplate)
                     .putExtra(FROM_REVISION_ID, fromRevisionId)
                     .putExtra(TO_REVISION_ID, toRevisionId)
-                    .putExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE, invokeSource)
                     .putExtra(Constants.INTENT_EXTRA_INVOKE_SOURCE, invokeSource)
         }
     }

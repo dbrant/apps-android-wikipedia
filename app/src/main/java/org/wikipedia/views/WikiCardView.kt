@@ -15,28 +15,23 @@ open class WikiCardView(context: Context, attrs: AttributeSet? = null) : Materia
 
     init {
         if (!isInEditMode) {
-            val (hasBorder, cardRadius, elevation) = context
-                .obtainStyledAttributes(attrs, R.styleable.WikiCardView)
+            context.obtainStyledAttributes(attrs, R.styleable.WikiCardView)
                 .use {
-                    Triple(
-                        it.getBoolean(R.styleable.WikiCardView_hasBorder, true),
-                        it.getDimension(R.styleable.WikiCardView_radius,
-                            context.resources.getDimension(R.dimen.wiki_card_radius)),
-                        it.getDimension(R.styleable.WikiCardView_elevation,
-                            DimenUtil.dpToPx(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) 8f else 2f))
+                    setup(
+                        it.getDimension(
+                            R.styleable.WikiCardView_elevation,
+                            DimenUtil.dpToPx(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) 8f else 2f)
+                        ),
+                        it.getBoolean(R.styleable.WikiCardView_hasBorder, true)
                     )
                 }
-
-            setup(cardRadius, elevation, hasBorder)
         }
     }
 
-    private fun setup(cardRadius: Float, elevation: Float, hasBorder: Boolean) {
-        radius = cardRadius
+    private fun setup(elevation: Float, hasBorder: Boolean) {
         if (hasBorder) {
             setDefaultBorder()
         }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             if (WikipediaApp.instance.currentTheme.isDark) {
                 cardElevation = 0f
@@ -48,8 +43,6 @@ open class WikiCardView(context: Context, attrs: AttributeSet? = null) : Materia
         } else {
             cardElevation = elevation
         }
-
-        setCardBackgroundColor(ResourceUtil.getThemedColor(context, R.attr.paper_color))
         rippleColor = ResourceUtil.getThemedColorStateList(context, R.attr.overlay_color)
     }
 

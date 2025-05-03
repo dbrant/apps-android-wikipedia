@@ -54,7 +54,7 @@
   <string name="page_edit_history_filter_by">Filtriraj po</string>
   <string name="page_edit_history_filter_by_all">Sve izmjene (%s)</string>
   <string name="page_edit_history_filter_by_user">Korisničke izmjene (%s)</string>
-  <string name="page_edit_history_filter_by_anon">Anonimne izmjene (%s)</string>
+  <string name="page_edit_history_filter_by_anon" fuzzy="true">Anonimne izmjene (%s)</string>
   <string name="page_edit_history_filter_by_bot">Izmjene botova (%s)</string>
   <string name="page_edit_history_metrics_content_description">Metrika od %1$s do %2$s</string>
   <plurals name="page_edit_history_article_edits_since_year">
@@ -133,8 +133,8 @@
   <string name="login_username_hint">Korisničko ime</string>
   <string name="login_password_hint">Lozinka</string>
   <string name="account_creation_password_hint">Lozinka</string>
-  <string name="login_2fa_hint">Kôd za potvrdu u 2 koraka</string>
-  <string name="login_2fa_other_workflow_error_msg">Zahtijeva se potvrda u 2 koraka! Vratite se na glavnu radnju i prijavite se sa žetonom za potvrdu u 2 koraka te pokušajte ponovo.</string>
+  <string name="login_2fa_hint" fuzzy="true">Kôd za potvrdu u 2 koraka</string>
+  <string name="login_2fa_other_workflow_error_msg" fuzzy="true">Zahtijeva se potvrda u 2 koraka! Vratite se na glavnu radnju i prijavite se sa žetonom za potvrdu u 2 koraka te pokušajte ponovo.</string>
   <string name="onboarding_card_login">Prijavi me</string>
   <string name="page_editing_login">Prijavi me</string>
   <string name="reading_lists_sync_login">Prijavi me</string>
@@ -226,8 +226,8 @@
   <string name="android_app_faq_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Android_FAQ/bs</string>
   <string name="terms_of_use_url">https://foundation.wikimedia.org/wiki/Terms_of_Use</string>
   <string name="android_app_request_an_account_url">https://en.wikipedia.org/wiki/Wikipedia:Request_an_account</string>
-  <string name="android_app_edit_help_url">https://m.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits</string>
-  <string name="suggested_edits_image_tags_help_url">https://www.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits#Image_tags</string>
+  <string name="android_app_edit_help_url" fuzzy="true">https://m.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits</string>
+  <string name="suggested_edits_image_tags_help_url" fuzzy="true">https://www.mediawiki.org/wiki/Wikimedia_Apps/Suggested_edits#Image_tags</string>
   <string name="about_libraries_heading">Korištene biblioteke</string>
   <string name="about_contributors_heading">Saradnici</string>
   <string name="about_contributors">&lt;a href=\"https://www.mediawiki.org/wiki/Wikimedia_Apps/Team/Android\"&gt;Stranice ekipe&lt;/a&gt;</string>
@@ -725,11 +725,9 @@
   <string name="thank_dialog_text">Zahvale su lagan način da nekom uredniku kažete da cijenite njegov rad na Wikipediji. Ne možete ih poništiti i javno su vidljive</string>
   <string name="thank_dialog_negative_button_text">Otkaži</string>
   <string name="thank_success_message">Zahvalili ste se korisniku/-ci %s 👍</string>
-  <string name="watchlist_page_add_to_watchlist_snackbar">%1$s i njena stranica za razgovor dodani su na Vaš spisak praćenja. Period praćenja: %2$s.</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_action">Promijeni</string>
   <string name="watchlist_page_add_to_watchlist_snackbar_period_permanently">trajno</string>
-  <string name="watchlist_page_add_to_watchlist_snackbar_period_for_one_week">1 sedmica</string>
-  <string name="watchlist_page_removed_from_watchlist_snackbar">%s i njena stranica za razgovor uklonjeni su s Vašeg spiska praćenja.</string>
+  <string name="watchlist_page_add_to_watchlist_snackbar_period_for_one_week" fuzzy="true">1 sedmica</string>
   <string name="watchlist_expiry_dialog_permanent">Trajno</string>
   <string name="watchlist_expiry_dialog_one_week">1 sedmica</string>
   <string name="watchlist_filter_all">Sve</string>

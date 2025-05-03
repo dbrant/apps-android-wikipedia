@@ -2,6 +2,7 @@ package org.wikipedia.talk.template
 
 import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -40,6 +41,7 @@ import org.wikipedia.talk.TalkReplyActivity.Companion.RESULT_BACK_FROM_TOPIC
 import org.wikipedia.talk.TalkTopicsActivity
 import org.wikipedia.talk.db.TalkTemplate
 import org.wikipedia.util.FeedbackUtil
+import org.wikipedia.util.Resource
 import org.wikipedia.util.StringUtil
 import org.wikipedia.views.DrawableItemDecoration
 import org.wikipedia.views.MultiSelectActionModeCallback
@@ -49,7 +51,7 @@ import org.wikipedia.views.ViewUtil
 class TalkTemplatesFragment : Fragment() {
     private var _binding: FragmentTalkTemplatesBinding? = null
 
-    private val viewModel: TalkTemplatesViewModel by viewModels { TalkTemplatesViewModel.Factory(requireArguments()) }
+    private val viewModel: TalkTemplatesViewModel by viewModels()
     private val binding get() = _binding!!
 
     private lateinit var itemTouchHelper: ItemTouchHelper
@@ -80,63 +82,30 @@ class TalkTemplatesFragment : Fragment() {
     }
 
     private val requestNewTemplate = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        binding.talkTemplatesTabLayout.getTabAt(0)?.select()
-
         if (result.resultCode == RESULT_OK || result.resultCode == RESULT_BACK_FROM_TOPIC) {
             viewModel.loadTalkTemplates()
             PatrollerExperienceEvent.logAction("save_message_toast", "pt_templates")
             if (result.resultCode != RESULT_BACK_FROM_TOPIC) {
+                binding.talkTemplatesTabLayout.getTabAt(0)?.select()
                 FeedbackUtil.showMessage(this, R.string.talk_templates_new_message_saved)
             }
-        }
-        if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS || result.resultCode == TalkReplyActivity.RESULT_SAVE_TEMPLATE) {
-            val pageTitle = viewModel.pageTitle
-            val message = if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS) {
-                PatrollerExperienceEvent.logAction("publish_message_toast", "pt_warning_messages")
-                R.string.talk_warn_submitted
-            } else {
-                PatrollerExperienceEvent.logAction("publish_message_saved_toast", "pt_warning_messages")
-                R.string.talk_warn_submitted_and_saved
-            }
-            updateAndNotifyAdapter()
-            val snackbar = FeedbackUtil.makeSnackbar(requireActivity(), getString(message))
-            snackbar.setAction(R.string.patroller_tasks_patrol_edit_snackbar_view) {
-                if (isAdded) {
-                    PatrollerExperienceEvent.logAction("publish_message_view_click", "pt_warning_messages")
-                    startActivity(TalkTopicsActivity.newIntent(requireContext(), pageTitle, Constants.InvokeSource.DIFF_ACTIVITY))
-                }
-            }
-            snackbar.show()
+        } else if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS || result.resultCode == TalkReplyActivity.RESULT_SAVE_TEMPLATE) {
+            requireActivity().setResult(result.resultCode, Intent().putExtra(Constants.ARG_TITLE, viewModel.pageTitle))
+            requireActivity().finish()
         }
     }
 
     private val requestEditTemplate = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK || result.resultCode == RESULT_BACK_FROM_TOPIC) {
-            binding.talkTemplatesTabLayout.getTabAt(0)?.select()
             viewModel.loadTalkTemplates()
             PatrollerExperienceEvent.logAction("update_message_toast", "pt_templates")
             if (result.resultCode != RESULT_BACK_FROM_TOPIC) {
+                binding.talkTemplatesTabLayout.getTabAt(0)?.select()
                 FeedbackUtil.showMessage(this, R.string.talk_templates_edit_message_updated)
             }
-        }
-        if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS || result.resultCode == TalkReplyActivity.RESULT_SAVE_TEMPLATE) {
-            val pageTitle = viewModel.pageTitle
-            val message = if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS) {
-                PatrollerExperienceEvent.logAction("publish_message_toast", "pt_warning_messages")
-                R.string.talk_warn_submitted
-            } else {
-                PatrollerExperienceEvent.logAction("publish_message_saved_toast", "pt_warning_messages")
-                R.string.talk_warn_submitted_and_saved
-            }
-            updateAndNotifyAdapter()
-            val snackbar = FeedbackUtil.makeSnackbar(requireActivity(), getString(message))
-            snackbar.setAction(R.string.patroller_tasks_patrol_edit_snackbar_view) {
-                if (isAdded) {
-                    PatrollerExperienceEvent.logAction("publish_message_view_click", "pt_warning_messages")
-                    startActivity(TalkTopicsActivity.newIntent(requireContext(), pageTitle, Constants.InvokeSource.DIFF_ACTIVITY))
-                }
-            }
-            snackbar.show()
+        } else if (result.resultCode == TalkReplyActivity.RESULT_EDIT_SUCCESS || result.resultCode == TalkReplyActivity.RESULT_SAVE_TEMPLATE) {
+            requireActivity().setResult(result.resultCode, Intent().putExtra(Constants.ARG_TITLE, viewModel.pageTitle))
+            requireActivity().finish()
         }
     }
 
@@ -150,9 +119,9 @@ class TalkTemplatesFragment : Fragment() {
                 launch {
                     viewModel.uiState.collect {
                         when (it) {
-                            is TalkTemplatesViewModel.UiState.Loading -> onLoading()
-                            is TalkTemplatesViewModel.UiState.Success -> onSuccess()
-                            is TalkTemplatesViewModel.UiState.Error -> onError(it.throwable)
+                            is Resource.Loading -> onLoading()
+                            is Resource.Success -> onSuccess()
+                            is Resource.Error -> onError(it.throwable)
                         }
                     }
                 }
@@ -191,7 +160,7 @@ class TalkTemplatesFragment : Fragment() {
                 }
                 touchCallback.swipeableEnabled = tab.position == 0
                 updateAndNotifyAdapter()
-                showToolbarEditButton(tab.position == 0)
+                updateToolbarEditButton()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
@@ -208,8 +177,8 @@ class TalkTemplatesFragment : Fragment() {
         }
     }
 
-    private fun showToolbarEditButton(visible: Boolean) {
-        binding.toolBarEditButton.isVisible = visible
+    private fun updateToolbarEditButton() {
+        binding.toolBarEditButton.isVisible = binding.talkTemplatesTabLayout.selectedTabPosition == 0 && viewModel.talkTemplatesList.isNotEmpty()
     }
 
     private fun setToolbarTitle() {
@@ -244,7 +213,7 @@ class TalkTemplatesFragment : Fragment() {
         adapter.templatesList.clear()
         adapter.templatesList.addAll(if (binding.talkTemplatesTabLayout.selectedTabPosition == 0) viewModel.talkTemplatesList else viewModel.savedTemplatesList)
         updateEmptyState()
-        showToolbarEditButton(binding.talkTemplatesTabLayout.selectedTabPosition == 0 && viewModel.talkTemplatesList.isNotEmpty())
+        updateToolbarEditButton()
         adapter.notifyDataSetChanged()
     }
 
@@ -270,11 +239,9 @@ class TalkTemplatesFragment : Fragment() {
 
     private fun onSuccess() {
         setRecyclerView()
-        showToolbarEditButton(binding.talkTemplatesTabLayout.selectedTabPosition == 0 && viewModel.talkTemplatesList.isNotEmpty())
-        binding.talkTemplatesEmptyContainer.isVisible = viewModel.talkTemplatesList.isEmpty()
+        updateToolbarEditButton()
         binding.talkTemplatesErrorView.visibility = View.GONE
         binding.talkTemplatesProgressBar.visibility = View.GONE
-        binding.talkTemplatesRecyclerView.isVisible = viewModel.talkTemplatesList.isNotEmpty()
         if (binding.talkTemplatesEmptyContainer.isVisible) {
             PatrollerExperienceEvent.logAction("templates_empty_impression", "pt_templates")
         }
@@ -284,7 +251,7 @@ class TalkTemplatesFragment : Fragment() {
         PatrollerExperienceEvent.logAction("message_deleted_toast", "pt_templates")
         PatrollerExperienceEvent.logAction("delete_message_success", "pt_warning_messages")
         val messageStr = resources.getQuantityString(R.plurals.talk_templates_message_deleted, size)
-        FeedbackUtil.makeSnackbar(requireActivity(), messageStr)
+        FeedbackUtil.makeSnackbar(binding.coordinatorView, messageStr)
             .setAction(R.string.reading_list_item_delete_undo) {
                 viewModel.saveTemplates(deletedItems)
             }
@@ -299,7 +266,7 @@ class TalkTemplatesFragment : Fragment() {
     }
 
     private fun onAdded() {
-      updateAndNotifyAdapter()
+        updateAndNotifyAdapter()
     }
 
     private fun onActionError(t: Throwable) {
