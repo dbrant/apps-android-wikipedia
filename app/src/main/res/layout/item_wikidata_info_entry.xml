@@ -18,7 +18,8 @@
         android:layout_width="0dp"
         android:layout_weight="1"
         style="@style/RtlAwareTextView"
-        android:textSize="12sp"
+        android:textSize="14sp"
+        android:textColor="?attr/secondary_color"
         android:layout_gravity="center_vertical"
         tools:text="Sample property name" />
 
@@ -32,7 +33,8 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:gravity="end"
-            android:textSize="12sp"
+            android:textSize="14sp"
+            android:textColor="?attr/secondary_color"
             android:textStyle="bold"
             android:textAlignment="viewEnd"
             android:layout_gravity="end|center_vertical"
