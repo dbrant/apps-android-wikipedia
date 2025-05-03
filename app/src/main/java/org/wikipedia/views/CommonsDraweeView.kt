@@ -1,15 +1,16 @@
 package org.wikipedia.views
 
 import android.content.Context
-import android.net.Uri
 import android.util.AttributeSet
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.disposables.Disposable
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import org.wikipedia.Constants
 import org.wikipedia.WikipediaApp
 import org.wikipedia.dataclient.ServiceFactory
 import org.wikipedia.util.log.L
+import androidx.core.net.toUri
 
 class CommonsDraweeView : FaceAndColorDetectImageView {
 
@@ -17,20 +18,23 @@ class CommonsDraweeView : FaceAndColorDetectImageView {
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle)
 
-    private var disposable: Disposable? = null
+    private var job: Job? = null
 
     fun loadImage(commonsTitle: String) {
         cancel()
-        disposable = ServiceFactory.get(Constants.commonsWikiSite)
+        MainScope().launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+            val response = ServiceFactory.get(Constants.commonsWikiSite)
                 .getImageInfo(commonsTitle, WikipediaApp.instance.appOrSystemLanguageCode)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe({ response -> loadImage(Uri.parse(response.query!!.firstPage()!!.imageInfo()!!.thumbUrl)) }) { L.e(it) }
+            val url = response.query?.firstPage()?.imageInfo()?.thumbUrl
+            url?.let {
+                loadImage(it.toUri())
+            }
+        }
     }
 
     private fun cancel() {
-        disposable?.dispose()
-        disposable = null
+        job?.cancel()
+        job = null
     }
 
     public override fun onDetachedFromWindow() {

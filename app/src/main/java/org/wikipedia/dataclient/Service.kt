@@ -455,7 +455,7 @@ interface Service {
     // ------- Wikidata -------
 
     @GET(MW_API_PREFIX + "action=wbgetentities")
-    suspend fun getEntitiesByTitleSuspend(
+    suspend fun getEntitiesByTitle(
         @Query("titles") titles: String,
         @Query("sites") sites: String
     ): Entities

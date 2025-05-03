@@ -45,7 +45,7 @@ class GalleryViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
         viewModelScope.launch(CoroutineExceptionHandler { _, throwable ->
             _descriptionState.value = Resource.Error(throwable)
         }) {
-            val firstEntity = async { ServiceFactory.get(Constants.commonsWikiSite).getEntitiesByTitleSuspend(pageTitle.prefixedText, Constants.COMMONS_DB_NAME).first }
+            val firstEntity = async { ServiceFactory.get(Constants.commonsWikiSite).getEntitiesByTitle(pageTitle.prefixedText, Constants.COMMONS_DB_NAME).first }
             val protectionInfoResponse = async { ServiceFactory.get(Constants.commonsWikiSite).getProtectionWithUserInfo(pageTitle.prefixedText) }
             val isProtected = protectionInfoResponse.await().query?.isEditProtected == true
             _descriptionState.value = Resource.Success(isProtected to firstEntity.await())

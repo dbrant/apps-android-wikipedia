@@ -6,11 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonPrimitive
 import org.wikipedia.R
@@ -45,7 +45,6 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     private lateinit var pageTitle: PageTitle
     private val adapter = InfoAdapter()
     private val infoItems = mutableListOf<ListItem>()
-    private val disposables = CompositeDisposable()
 
     private val listItemComparator = Comparator { lhs: ListItem, rhs: ListItem ->
         val pos1 = PropertiesPreferred.PREFERRED_PROPS.indexOf(lhs.p)
@@ -82,63 +81,58 @@ class WikidataInfoDialog : ExtendedBottomSheetDialogFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        disposables.clear()
     }
 
     private fun loadEntities() {
-        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getEntitiesByTitle(pageTitle.prefixedText, "enwiki")
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doAfterTerminate { binding.infoProgress.visibility = View.GONE }
-                .subscribe({ entities ->
-                    infoItems.clear()
-                    val entitiesToRetrieve = mutableListOf<String>()
-                    val claims = entities.first!!.claims
-                    for (key in claims.keys) {
-                        val claimList = if (claims[key] != null) claims[key] else emptyList()
-                        for (claim in claimList!!) {
-                            if (claim.mainsnak?.datavalue == null) {
-                                continue
-                            }
-                            val prop = claim.mainsnak.property.replace("P", "").toInt()
-                            val valueType = claim.mainsnak.datavalue.type
+        lifecycleScope.launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+            val entities = ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getEntitiesByTitle(pageTitle.prefixedText, "enwiki")
 
-                            val infoVal = getDataValueString(claim.mainsnak.datavalue)
+            infoItems.clear()
+            val entitiesToRetrieve = mutableListOf<String>()
+            val claims = entities.first!!.claims
+            for (key in claims.keys) {
+                val claimList = if (claims[key] != null) claims[key] else emptyList()
+                for (claim in claimList!!) {
+                    if (claim.mainsnak?.datavalue == null) {
+                        continue
+                    }
+                    val prop = claim.mainsnak.property.replace("P", "").toInt()
+                    val valueType = claim.mainsnak.datavalue.type
+                    val infoVal = getDataValueString(claim.mainsnak.datavalue)
 
-                            val maxEntities = 50
-                            if (valueType == "wikibase-entityid" && entitiesToRetrieve.size < maxEntities) {
-                                entitiesToRetrieve.add(infoVal)
-                            }
-                            infoItems.add(ListItem(prop, infoVal))
-                        }
+                    val maxEntities = 50
+                    if (valueType == "wikibase-entityid" && entitiesToRetrieve.size < maxEntities) {
+                        entitiesToRetrieve.add(infoVal)
                     }
-                    Collections.sort(infoItems, listItemComparator)
-                    if (entitiesToRetrieve.isNotEmpty()) {
-                        populateEntityLabels(entitiesToRetrieve)
-                    } else {
-                        adapter.notifyDataSetChanged()
-                    }
-                }) { L.e(it) })
+                    infoItems.add(ListItem(prop, infoVal))
+                }
+            }
+            Collections.sort(infoItems, listItemComparator)
+            if (entitiesToRetrieve.isNotEmpty()) {
+                populateEntityLabels(entitiesToRetrieve)
+            } else {
+                adapter.notifyDataSetChanged()
+            }
+            binding.infoProgress.visibility = View.GONE
+        }
     }
 
     private fun populateEntityLabels(entitiesToRetrieve: List<String>) {
-        disposables.add(ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataEntities(entitiesToRetrieve.joinToString("|"))
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doAfterTerminate { binding.infoProgress.visibility = View.GONE }
-                .subscribe({ entities ->
-                    for (key in entities.entities.keys) {
-                        for (item in infoItems) {
-                            if (key == item.value) {
-                                val label = entities.entities[key]!!.getLabelForLang(WikipediaApp.instance.appOrSystemLanguageCode)
-                                if (label.isNotEmpty()) {
-                                    item.value = label
-                                }
-                            }
+        lifecycleScope.launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+            val entities = ServiceFactory.get(WikiSite(Service.WIKIDATA_URL)).getWikidataEntities(entitiesToRetrieve.joinToString("|"))
+            for (key in entities.entities.keys) {
+                for (item in infoItems) {
+                    if (key == item.value) {
+                        val label = entities.entities[key]!!.getLabelForLang(WikipediaApp.instance.appOrSystemLanguageCode)
+                        if (label.isNotEmpty()) {
+                            item.value = label
                         }
                     }
-                    adapter.notifyDataSetChanged()
-                }) { L.e(it) })
+                }
+            }
+            adapter.notifyDataSetChanged()
+            binding.infoProgress.visibility = View.GONE
+        }
     }
 
     private fun getDataValueString(dataValue: Entities.DataValue): String {
