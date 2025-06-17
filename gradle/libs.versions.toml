@@ -1,6 +1,7 @@
 [versions]
 androidPluginAnnotationV9 = "3.0.2"
 androidSdk = "11.10.3"
+appauth = "0.11.1"
 appcompat = "1.7.1"
 balloon = "1.6.12"
 browser = "1.8.0"
@@ -60,6 +61,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomVersion" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+appauth = { module = "net.openid:appauth", version.ref = "appauth" }
 balloon = { module = "com.github.skydoves:balloon", version.ref = "balloon" }
 browser = { module = "androidx.browser:browser", version.ref = "browser" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
