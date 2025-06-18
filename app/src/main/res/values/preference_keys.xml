@@ -181,6 +181,9 @@
     <string name="preference_key_playground_category">categoryPlayground</string>
     <string name="preference_key_otd_is_archive_game_playing">isArchiveGamePlaying</string>
     <string name="preference_key_otd_sound_on">isOtdSoundOn</string>
+    <string name="oauth_access_token">oauthAccessToken</string>
+    <string name="oauth_refresh_token">oauthRefreshToken</string>
+    <string name="oauth_id_token">oauthIdToken</string>
     <string name="preference_category_recommended_reading_list">recommendedReadingListSettings</string>
     <string name="preference_key_recommended_reading_list_enabled">recommendedReadingListEnabled</string>
     <string name="preference_key_recommended_reading_list_articles_number">recommendedReadingListArticlesNumber</string>

@@ -76,6 +76,18 @@ object Prefs {
             PrefsIoUtil.setString(R.string.preference_key_cookie_map, JsonUtil.encodeToString(map))
         }
 
+    var oauthAccessToken
+        get() = PrefsIoUtil.getString(R.string.oauth_access_token, "")
+        set(value) = PrefsIoUtil.setString(R.string.oauth_access_token, value)
+
+    var oauthRefreshToken
+        get() = PrefsIoUtil.getString(R.string.oauth_refresh_token, "")
+        set(value) = PrefsIoUtil.setString(R.string.oauth_refresh_token, value)
+
+    var oauthIdToken
+        get() = PrefsIoUtil.getString(R.string.oauth_id_token, "")
+        set(value) = PrefsIoUtil.setString(R.string.oauth_id_token, value)
+
     var isShowDeveloperSettingsEnabled
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_show_developer_settings, isDevRelease)
         set(enabled) = PrefsIoUtil.setBoolean(R.string.preference_key_show_developer_settings, enabled)

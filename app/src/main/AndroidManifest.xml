@@ -125,11 +125,27 @@
                      so http and https apply to all prefixes-->
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:host="*.wikipedia.org" android:pathPrefix="/wiki/" />
                 <data android:host="*.wikipedia.org" android:pathPattern="/zh.*" />
                 <data android:host="*.wikipedia.org" android:pathPattern="/sr.*" />
             </intent-filter>
         </activity>
+
+        <!-- Override the AppAuth activity to use our claimed HTTPS scheme for login responses -->
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:exported="true">
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="wikipedia.org"
+                    android:path="/wiki/oauth/callback" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".settings.SettingsActivity"
             android:label="@string/settings_activity_title"
@@ -445,4 +461,12 @@
         </service>
 
     </application>
+
+    <!-- The Android 11 SDK requires this extra section in order to use Custom Tabs -->
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
 </manifest>

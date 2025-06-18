@@ -27,6 +27,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
+import com.github.scribejava.apis.GoogleApi20
+import com.github.scribejava.core.builder.ServiceBuilder
+import com.github.scribejava.core.oauth.OAuth20Service
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -39,6 +42,8 @@ import org.wikipedia.activity.BaseActivity
 import org.wikipedia.activity.FragmentUtil.getCallback
 import org.wikipedia.analytics.eventplatform.ReadingListsAnalyticsHelper
 import org.wikipedia.auth.AccountUtil
+import org.wikipedia.auth.OAuthClientImpl
+import org.wikipedia.auth.OAuthConfiguration
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.concurrency.FlowEventBus
 import org.wikipedia.databinding.FragmentMainBinding
@@ -89,7 +94,9 @@ import org.wikipedia.views.TabCountsView
 import org.wikipedia.views.imageservice.ImageService
 import org.wikipedia.watchlist.WatchlistActivity
 import java.io.File
+import java.util.Scanner
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.Callback, HistoryFragment.Callback, MenuNavTabDialog.Callback {
     interface Callback {
@@ -417,8 +424,34 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     }
 
     override fun onLoginRequested() {
-        startActivityForResult(LoginActivity.newIntent(requireContext(), LoginActivity.SOURCE_NAV),
-                Constants.ACTIVITY_REQUEST_LOGIN)
+        // startActivityForResult(LoginActivity.newIntent(requireContext(), LoginActivity.SOURCE_NAV),
+        //         Constants.ACTIVITY_REQUEST_LOGIN)
+
+
+
+
+        val config = OAuthConfiguration()
+        config.scope = "openid profile https://wikipedia.org/"
+        config.clientId = "9ebbccecbfaa66a3bcdf945ec20e21c3"
+        config.redirectUri = "https://wikipedia.org/wiki/oauth/callback"
+        config.authority = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
+        config.postLogoutRedirectUri = ""
+        config.customLogoutEndpoint = ""
+        config.deepLinkBaseUrl = "wikipedia://"
+        config.userInfoEndpoint = "https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile"
+
+        lifecycleScope.launch {
+            val client = OAuthClientImpl(
+                config,
+                WikipediaApp.instance
+            )
+
+            client.initialize()
+
+            client.startLogin { intent ->
+                startActivity(intent)
+            }
+        }
     }
 
     override fun updateToolbarElevation(elevate: Boolean) {
