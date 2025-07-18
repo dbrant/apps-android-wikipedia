@@ -432,9 +432,9 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
 
 
         val config = OAuthConfiguration()
-        config.scope = "openid profile https://wikipedia.org/"
-        config.clientId = "9ebbccecbfaa66a3bcdf945ec20e21c3"
-        config.redirectUri = "https://wikipedia.org/wiki/oauth/callback"
+        config.scope = "" //""openid profile https://wikipedia.org/"
+        config.clientId = "50ad79ffa34f64853c96b729e4aa5d8c"
+        config.redirectUri = "wikipedia://oauth/callback"
         config.authority = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
         config.postLogoutRedirectUri = ""
         config.customLogoutEndpoint = ""

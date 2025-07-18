@@ -101,7 +101,6 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="wikipedia" />
             </intent-filter>
         </activity>
         <activity
@@ -130,7 +129,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Override the AppAuth activity to use our claimed HTTPS scheme for login responses -->
+        <!-- Override the AppAuth activity to use our callback for login responses -->
         <activity
             android:name="net.openid.appauth.RedirectUriReceiverActivity"
             android:exported="true">
@@ -140,9 +139,9 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
-                    android:scheme="https"
-                    android:host="wikipedia.org"
-                    android:path="/wiki/oauth/callback" />
+                    android:scheme="wikipedia"
+                    android:host="oauth"
+                    android:path="/callback" />
             </intent-filter>
         </activity>
 
