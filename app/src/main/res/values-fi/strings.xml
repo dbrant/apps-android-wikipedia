@@ -465,8 +465,8 @@
   <string name="theme_chooser_menu_item_short_tooltip">Mukauta työkalupalkkia</string>
   <string name="error_blocked_footer_no_blocker">Voit olla yhteydessä &lt;a href=\"https://en.wikipedia.org/wiki/Wikipedia:Administrators\"&gt;ylläpitäjään&lt;/a&gt; keskustellaksesi estosta.</string>
   <string name="temp_account_not_logged_in">Et ole kirjautunut sisään</string>
-  <string name="temp_account_anon_ip_dialog_body">Kun teet muokkauksen, IP-osoitteesi liitetään muokkauksiisi.&lt;br /&gt;&lt;br /&gt;&lt;a href=\"https://#login\"&gt;Kirjaudu sisään&lt;/a&gt; tai &lt;a href=\"https://#createaccount\"&gt;Luo tunnus&lt;/a&gt; saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään muita ominaisuuksia.</string>
-  <string name="temp_account_anon_dialog_body">Kun teet muokkauksen, sinulle luodaan &lt;b&gt;tilapäinen tunnus&lt;/b&gt; yksityisyytesi suojelemiseksi. &lt;a href=\"%1$s\"&gt;Lisätietoja&lt;/a&gt;.&lt;br /&gt;&lt;br /&gt;&lt;a href=\"https://#login\"&gt;Kirjaudu sisään&lt;/a&gt; tai &lt;a href=\"https://#createaccount\"&gt;Luo tunnus&lt;/a&gt; saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään muita ominaisuuksia.</string>
+  <string name="temp_account_anon_ip_dialog_body">Kun teet muokkauksen, IP-osoitteesi liitetään muokkauksiisi.&lt;br /&gt;&lt;br /&gt;&lt;a href=\"https://#login\"&gt;Kirjaudu sisään&lt;/a&gt; tai &lt;a href=\"https://#createaccount\"&gt;Luo tunnus&lt;/a&gt; saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään lisäominaisuuksia.</string>
+  <string name="temp_account_anon_dialog_body">Kun teet muokkauksen, sinulle luodaan &lt;b&gt;tilapäinen tunnus&lt;/b&gt; yksityisyytesi suojelemiseksi. &lt;a href=\"%1$s\"&gt;Lisätietoja&lt;/a&gt;.&lt;br /&gt;&lt;br /&gt;&lt;a href=\"https://#login\"&gt;Kirjaudu sisään&lt;/a&gt; tai &lt;a href=\"https://#createaccount\"&gt;Luo tunnus&lt;/a&gt; saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään lisäominaisuuksia.</string>
   <string name="temp_account_temp_dialog_body">Muokkauksesi merkitään nimellä %1$s. IP-osoitteesi tulee näkymään ylläpitäjille.&lt;br /&gt;&lt;br /&gt;Jos &lt;a href=\"https://#login\"&gt;kirjaudut sisään&lt;/a&gt; tai &lt;a href=\"https://#createaccount\"&gt;luot tunnuksen&lt;/a&gt;, muokkauksesi merkitään valitsemallesi nimelle, ja saat muita etuja.</string>
   <string name="temp_account_dialog_ok">Selvä</string>
   <string name="temp_account_using_title">Käytät tilapäistä tunnusta</string>
@@ -482,7 +482,7 @@
   <string name="temp_account_anon_ip_edit_status">&lt;b&gt;Et ole kirjautunut sisään.&lt;/b&gt; Kun teet muokkauksen, IP-osoitteesi liitetään muokkauksiisi.</string>
   <string name="temp_account_anon_edit_status">&lt;b&gt;Et ole kirjautunut sisään.&lt;/b&gt; Kun teet muokkauksen, sinulle luodaan &lt;b&gt;tilapäinen tunnus&lt;/b&gt; yksityisyytesi suojelemiseksi. &lt;a href=\"%1$s\"&gt;Lisätietoja&lt;/a&gt;</string>
   <string name="temp_account_edit_status">&lt;b&gt;Käytät tilapäistä tunnusta.&lt;/b&gt; Muokkauksesi merkitään nimelle %1$s. &lt;a href=\"%2$s\"&gt;Lisätietoja&lt;/a&gt;.</string>
-  <string name="temp_account_login_status">&lt;b&gt;Käytät tällä hetkellä tilapäistä tunnusta&lt;/b&gt;. Tilapäisellä tunnuksella %1$s tehtyjä muokkauksia ei siirretä pysyvälle tunnukselle, kun kirjaudut sisään. Kirjaudu sisään tai luo tunnus saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään muita ominaisuuksia.</string>
+  <string name="temp_account_login_status">&lt;b&gt;Käytät tällä hetkellä tilapäistä tunnusta&lt;/b&gt;. Tilapäisellä tunnuksella %1$s tehtyjä muokkauksia ei siirretä pysyvälle tunnukselle, kun kirjaudut sisään. Kirjaudu sisään tai luo tunnus saadaksesi tulevat muokkauksesi oman tunnuksesi nimiin sekä päästäksesi käyttämään lisäominaisuuksia.</string>
   <string name="temp_account_end_session">Lopeta istunto</string>
   <string name="temp_account_end_session_confirm">Tämä kirjaa sinut ulos tilapäiseltä tunnukseltasi. Haluatko jatkaa?</string>
   <string name="crash_report_activity_title">Sovellusvirhe</string>
@@ -928,21 +928,21 @@
   <string name="description_edit_success_encouragement">Teit juuri Wikipediasta kaikille paremman</string>
   <string name="description_edit_success_done">Valmis</string>
   <string name="description_edit_success_did_you_know">Tiesitkö?</string>
-  <string name="description_edit_success_article_edit_hint">Voit myös muokata artikkeleja tästä sovelluksesta käsin. Kokeile kirjoitusvirheiden ja lyhyiden lauseiden korjaamista ensi kerralla napauttamalla ^1-kuvaketta.</string>
+  <string name="description_edit_success_article_edit_hint">Voit myös muokata artikkeleita tällä sovelluksella. Kokeile ensi kerralla kirjoitusvirheiden tai lyhyiden lauseiden korjaamista napauttamalla ^1-kuvaketta.</string>
   <string name="description_edit_tutorial_title_descriptions">Artikkelien kuvaukset</string>
   <string name="description_edit_tutorial_title_descriptions_summary">Artikkelin lyhyt kuvaus auttaa hahmottamaan aiheen nopeasti</string>
-  <string name="description_edit_tutorial_keep_it_short">Pidä se lyhyenä</string>
+  <string name="description_edit_tutorial_keep_it_short">Pidä kuvaus lyhyenä</string>
   <string name="description_edit_tutorial_keep_it_short_instructions">Ihanteellisesti yksi rivi, kahdesta kahteentoista sanaa</string>
   <string name="description_edit_tutorial_button_label_start_editing">Aloita muokkaaminen</string>
   <string name="description_edit_tutorial_promise">Aloittamalla lupaan olla väärinkäyttämättä tätä ominaisuutta.</string>
   <string name="description_edit_tutorial_machine_suggestions_title">Ohjelmiston ehdotukset</string>
-  <string name="description_edit_tutorial_machine_suggestions_description">Ehdotukset ovat ohjelmiston luomia, eivät vapaaehtoisten tai Wikimedia Foundationin luomia</string>
+  <string name="description_edit_tutorial_machine_suggestions_description">Ehdotukset ovat ohjelmiston luomia, eivät vapaaehtoisten tai Wikimedia-säätiön tekemiä</string>
   <string name="customize_toolbar_title">Mukauta työkalupalkkia</string>
-  <string name="customize_toolbar_shortcut_description_text">Valitse ruudun alaosan palkkiin viisi toimintoa.</string>
+  <string name="customize_toolbar_shortcut_description_text">Valitse ruudun alaosan työkalupalkkiin viisi toimintoa, joita pidät hyödyllisimpinä.</string>
   <string name="customize_toolbar_category_toolbar">Työkalupalkki</string>
   <string name="customize_toolbar_category_menu">Valikko</string>
   <string name="customize_toolbar_drag_and_drop_placeholder">Raahaa ja pudota suosikkikohteesi tähän 👋</string>
-  <string name="customize_toolbar_reset_to_default_button">Nollaa oletukseksi</string>
+  <string name="customize_toolbar_reset_to_default_button">Palauta oletusarvoihin</string>
   <string name="customize_toolbar_item_drag_handle_default_tooltip">Siirrä kohdetta pitämällä vetokuvaketta painettuna</string>
   <string name="customize_toolbar_item_default_tooltip">Paina ja vedä kohdetta sijoittaaksesi sen uudelleen</string>
   <string name="suggested_edits_describe_articles">Kuvaile artikkeleita</string>
@@ -1076,7 +1076,7 @@
   <string name="suggested_edits_cc0_notice">Julkaisemalla hyväksyn &lt;a href=\"%1$s\"&gt;käyttöehdot&lt;/a&gt; ja julkaisen muokkaukseni peruuttamattomasti &lt;a href=\"%2$s\"&gt;CC0&lt;/a&gt; -lisenssillä.</string>
   <string name="suggested_edits_reactivation_notification_title">Ehdotetut muokkaukset</string>
   <string name="suggested_edits_reactivation_notification_stage_one">Kiitos Wikipedian muokkaamisesta! Miksi et jatkaisi siitä mihin jäit?</string>
-  <string name="suggested_edits_reactivation_notification_stage_two">Onko sinulla hetki aikaa jatkaa Wikipedian parantamista? Tarkista nämä muokkausehdotukset.</string>
+  <string name="suggested_edits_reactivation_notification_stage_two">Olisiko sinulla hetki aikaa jatkaa Wikipedian parantamista? Tutustu näihin muokkausehdotuksiin.</string>
   <string name="suggested_edits_contributions_screen_title">Käyttäjän %s muokkaukset</string>
   <string name="suggested_edits_contribution_language_label">Kieli</string>
   <string name="suggested_edits_contribution_date_time_label">Päiväys / Aika</string>
@@ -1134,17 +1134,17 @@
   <string name="image_recommendation_reject_title">Hylkäämisen syy</string>
   <string name="image_recommendation_reject_subtitle">Hylkäämisen syy on anonyymi ja se auttaa parantamaan tulevia ehdotuksia.</string>
   <string name="image_recommendation_reject_not_relevant">Kuva ei liity aiheeseen</string>
-  <string name="image_recommendation_reject_no_info">Ei riittävästi tietoa päätöksentekoon</string>
+  <string name="image_recommendation_reject_no_info">Ei riittävästi tietoa päätöstä varten</string>
   <string name="image_recommendation_reject_offensive">Kuva on loukkaava</string>
   <string name="image_recommendation_reject_low_quality">Kuva on heikkolaatuinen</string>
-  <string name="image_recommendation_reject_dont_know">En tiedä aihetta</string>
+  <string name="image_recommendation_reject_dont_know">En tunne tätä aihetta</string>
   <string name="image_recommendation_reject_other">Muu</string>
   <string name="image_recommendation_reject_submit">Lähetä</string>
   <string name="image_recommendation_tooltip_main">Lisää puuttuvia kuvia artikkeleihin Ehdotetuissa muokkauksissa</string>
-  <string name="image_recommendation_onboarding_1">Kuvat auttavat ihmisiä ymmärtämään, mutta monissa artikkeleissa ei ole niitä.</string>
-  <string name="image_recommendation_onboarding_2">Sinä päätät, tulisiko ehdotettu kuva sijoittaa Wikipedia-artikkeliin.</string>
-  <string name="image_recommendation_onboarding_3">Ehdotukset ovat ohjelmiston luomia, ja sinä käytät harkintavaltaasi päättääksesi hyväksyäkö vaiko hylätä ne.</string>
-  <string name="image_recommendation_onboarding_4">Kuvat ovat Wikimedia Commonsista, joka on kokoelma vapaasti lisensoituja kuvia, joita käytetään Wikipediassa.</string>
+  <string name="image_recommendation_onboarding_1">Kuvat auttavat ymmärtämään, mutta monessa artikkelissa ei ole yhtään kuvaa.</string>
+  <string name="image_recommendation_onboarding_2">Sinä päätät, tulisiko ehdotettu kuva lisätä Wikipedia-artikkeliin.</string>
+  <string name="image_recommendation_onboarding_3">Ehdotukset ovat koneen laatimia, ja sinun tulee käyttää omaa harkintaasi päättääksesi, hyväksytkö vai hylkäätkö ne.</string>
+  <string name="image_recommendation_onboarding_4">Kuvat ovat peräisin Wikimedia Commonsista, joka on kokoelma vapaasti lisensoituja kuvia Wikipediassa käytettäväksi.</string>
   <string name="image_recommendation_tooltip_1">Tarkista tämä artikkeli ymmärtääksesi sen aiheen</string>
   <string name="image_recommendation_tooltip_2">Tarkista kuva ja siihen liittyvät tiedot</string>
   <string name="image_recommendation_tooltip_3">Päätä, auttaako kuva lukijoita ymmärtämään tätä aihetta paremmin</string>
@@ -1176,11 +1176,11 @@
   <string name="onboarding_get_started">Aloitetaan</string>
   <string name="onboarding_maybe_later">Ehkä myöhemmin</string>
   <string name="onboarding_explore_title">Tutki sisältöä uusin tavoin</string>
-  <string name="onboarding_explore_text">Sukella Wikipedian syövereihin aina ajan tasalla olevalla Tutki-syötteellä. &lt;br/&gt; &lt;b&gt;Mukauta&lt;/b&gt; syötettä mielenkiinnonkohteidesi mukaan – vaikkapa tutustumalla &lt;b&gt;tämän päivämäärän&lt;/b&gt; historiallisiin tapahtumiin tai &lt;b&gt;satunnaisesti&lt;/b&gt; valittuun artikkeliin.</string>
+  <string name="onboarding_explore_text">Sukella Wikipedian syövereihin aina ajan tasalla olevalla Tutki-syötteellä. &lt;br/&gt; &lt;b&gt;Mukauta&lt;/b&gt; syötettä mielenkiinnon kohteidesi mukaan – vaikkapa tutustumalla &lt;b&gt;tämän päivämäärän&lt;/b&gt; historiallisiin tapahtumiin tai &lt;b&gt;satunnaisesti&lt;/b&gt; valittuun artikkeliin.</string>
   <string name="onboarding_reading_list_sync_title">Synkronoidut lukulistat</string>
   <string name="onboarding_reading_list_sync_text_v2">Voit tehdä lukulistoja artikkeleista, joita haluat lukea myöhemmin, myös ilman verkkoyhteyttä. &lt;br/&gt;Lukulistojen käyttö edellyttää Wikipedia-tunnuksella kirjautumista. &lt;a href=\"#login\"&gt;Liity Wikipediaan&lt;/a&gt;</string>
   <string name="onboarding_data_privacy_title">Data ja yksityisyys</string>
-  <string name="onboarding_data_privacy_text">Uskomme, että sinun ei tarvitsisi antaa henkilötietoja osallistukasesi vapaan tiedon liikkeeseen. Tämän sovelluksen käytöstä kerätyt tiedot ovat anonyymejä. Lue lisää &lt;a href=\"#privacy\"&gt;tietosuojakäytännöstämme&lt;/a&gt; ja &lt;a href=\"#termsOfUse\"&gt;käyttöehdoistamme&lt;/a&gt; .</string>
+  <string name="onboarding_data_privacy_text">Uskomme, ettei sinun tarvitse antaa henkilötietoja osallistuaksesi vapaan tiedon liikkeeseen. Tämän sovelluksen käytöstä kerätyt tiedot ovat anonyymejä. Lisätietoja löytyy &lt;a href=\"#privacy\"&gt;tietosuojakäytännöstämme&lt;/a&gt; ja &lt;a href=\"#termsOfUse\"&gt;käyttöehdoistamme&lt;/a&gt;.</string>
   <string name="onboarding_analytics_switch_title">Lähetä dataa tavasta, jolla käytät sovellusta</string>
   <string name="onboarding_got_it">Selvä</string>
   <string name="onboarding_multilingual_secondary_text">Laitteesta löytyneet kielet:</string>
@@ -1692,7 +1692,7 @@
   <string name="survey_dialog_option_very_unsatisfied">Erittäin tyytymätön</string>
   <string name="survey_dialog_cancel">Peruuta</string>
   <string name="survey_dialog_submit">Lähetä</string>
-  <string name="survey_dialog_next">Teksti</string>
+  <string name="survey_dialog_next">Seuraava</string>
   <string name="survey_dialog_general_yes">Kyllä</string>
   <string name="survey_dialog_general_no">Ei</string>
   <string name="survey_dialog_general_maybe">Ehkä</string>
@@ -1756,8 +1756,6 @@
   <string name="on_this_day_game_share_link_message">Pelaan päivittäistä \"Kumpi tuli ensin?\" -triviapeliä Wikipedian Android-sovelluksessa %s</string>
   <string name="on_this_day_game_share_screen_title">Sain tänään %1$d/%2$d pistettä \"Kumpi tuli ensin?\" -pelissä.</string>
   <string name="on_this_day_game_share_screen_subtitle">Mukana olleet aiheet:</string>
-  <string name="on_this_day_game_survey_q1">Kuinka tyytyväinen olit tähän peliin?</string>
-  <string name="on_this_day_game_survey_q2">Olisitko kiinnostunut pelaamaan muita erilaisia Wikipedia-pelejä?</string>
   <string name="on_this_day_game_archive_calendar_title">Valitse peli päivämäärän mukaan.</string>
   <string name="on_this_day_game_score_toast_message">Sait kyseisenä päivänä %1$d/%2$d pistettä.</string>
   <string name="on_this_day_game_continue_btn_text">Jatka tämän päivän peliä</string>
@@ -1768,6 +1766,17 @@
   <string name="on_this_day_game_continue_playing_btn_text">Jatka pelaamista</string>
   <string name="on_this_day_game_sound_on">Laita ääni päälle</string>
   <string name="on_this_day_game_sound_off">Laita ääni pois</string>
+  <string name="year_in_review_learn_more">Lisätietoja</string>
+  <string name="year_in_review_get_started">Aloita</string>
+  <string name="year_in_review_topbar_w_icon">Wikipedian W-kuvake</string>
+  <string name="year_in_review_navigate_left">Mene vasemmalle</string>
+  <string name="year_in_review_share_icon">Jaa-kuvake</string>
+  <string name="year_in_review_heart_icon">Sydän-kuvake</string>
+  <string name="year_in_review_navigate_right">Mene oikealle</string>
+  <string name="year_in_review_donate">Lahjoita</string>
+  <string name="year_in_review_information_icon">Tietoa-kuvake</string>
+  <string name="year_in_review_get_started_headline">Tutustu Wikipedia-vuoteesi</string>
+  <string name="year_in_review_globe_icon">Maapallo-kuvake</string>
   <string name="recommended_reading_list_title">Löydä artikkeleita</string>
   <string name="recommended_reading_list_onboarding_card_title">Löydä juuri sinulle valittuja artikkeleita</string>
   <string name="recommended_reading_list_onboarding_card_message">Viikoittainen Wikipedia-artikkeleiden lukulistasi, kuratoitu juuri sinulle.</string>
@@ -1846,5 +1855,6 @@
   <string name="recommended_reading_list_settings_notifications_dialog_message">Jos poistat ilmoitukset käytöstä, et enää saa ilmoituksia Löydä artikkeleita -listan päivityksistä.</string>
   <string name="recommended_reading_list_settings_notifications_dialog_positive_button">Poista ne käytöstä</string>
   <string name="recommended_reading_list_settings_notifications_dialog_negative_button">Ei, pidä ne päällä</string>
+  <string name="recommended_reading_list_notification_title">%s Löydä artikkeleita -lukulistasi on valmis.</string>
   <string name="recommended_reading_list_notification_subtitle">Napauta nähdäksesi uusimmat suosituksesi.</string>
 </resources>

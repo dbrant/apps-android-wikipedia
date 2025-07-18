@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -50,13 +51,11 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import org.wikipedia.activity.BaseActivity
 import org.wikipedia.categories.db.Category
-import org.wikipedia.categories.db.CategoryCount
 import org.wikipedia.compose.components.AppButton
 import org.wikipedia.compose.components.WikiTopAppBar
 import org.wikipedia.compose.theme.BaseTheme
 import org.wikipedia.compose.theme.WikipediaTheme
 import org.wikipedia.theme.Theme
-import org.wikipedia.util.DateUtil
 import org.wikipedia.util.UiState
 
 class CategoryDeveloperPlayGround : BaseActivity() {
@@ -66,7 +65,6 @@ class CategoryDeveloperPlayGround : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val categoryCountState = viewModel.categoryCountState.collectAsState()
             val categoryState = viewModel.categoryState.collectAsState()
 
             BaseTheme {
@@ -74,7 +72,6 @@ class CategoryDeveloperPlayGround : BaseActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    categoryCountState = categoryCountState.value,
                     categoryState = categoryState.value,
                     onAddToDb = { title, languageCode, year ->
                         if (!validateInput(title.isEmpty() || languageCode.isEmpty() || year.isEmpty())) {
@@ -135,7 +132,6 @@ class CategoryDeveloperPlayGround : BaseActivity() {
 @Composable
 fun CategoryDeveloperPlayGroundScreen(
     modifier: Modifier = Modifier,
-    categoryCountState: UiState<List<CategoryCount>>,
     categoryState: UiState<List<Category>>,
     onAddToDb: (String, String, String) -> Unit,
     onBulkAddToDb: (String, String) -> Unit,
@@ -277,10 +273,10 @@ fun CategoryDeveloperPlayGroundScreen(
                     .height(tableHeight.coerceAtLeast(300.dp))
             ) {
                 when {
-                    selectedOption == Option.FILTER && categoryCountState is UiState.Success -> {
+                    selectedOption == Option.FILTER && categoryState is UiState.Success -> {
                         CategoryTable(
                             modifier = Modifier.fillMaxSize(),
-                            categoriesCount = categoryCountState.data
+                            categories = categoryState.data
                         )
                     }
 
@@ -588,7 +584,6 @@ fun ChipButton(
 @Composable
 fun CategoryTable(
     modifier: Modifier = Modifier,
-    categoriesCount: List<CategoryCount>? = null,
     categories: List<Category>? = null
 ) {
     LazyColumn(
@@ -606,25 +601,25 @@ fun CategoryTable(
                     text = "Title",
                     modifier = Modifier.weight(0.4f),
                     color = WikipediaTheme.colors.primaryColor,
-                    style = WikipediaTheme.typography.h3
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
                     text = "Language",
                     modifier = Modifier.weight(0.3f),
                     color = WikipediaTheme.colors.primaryColor,
-                    style = WikipediaTheme.typography.h3
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = if (categoriesCount != null) "Count" else "Timestamp",
+                    text = if (categories != null) "Count" else "Timestamp",
                     modifier = Modifier.weight(0.3f),
                     color = WikipediaTheme.colors.primaryColor,
-                    style = WikipediaTheme.typography.h3
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
         }
 
-        if (categoriesCount != null) {
-            items(categoriesCount) { categoryCount ->
+        if (categories != null) {
+            items(categories) { categoryCount ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -669,7 +664,7 @@ fun CategoryTable(
                         modifier = Modifier.weight(0.3f)
                     )
                     Text(
-                        text = DateUtil.epochMilliToYear(category.timeStamp.time).toString(),
+                        text = category.year.toString(),
                         color = WikipediaTheme.colors.primaryColor,
                         modifier = Modifier.weight(0.3f)
                     )
@@ -697,7 +692,6 @@ private fun CategoryDeveloperPlayGroundScreenPreview() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            categoryCountState = UiState.Loading,
             categoryState = UiState.Loading,
             onAddToDb = { _, _, _ -> },
             onDeleteAll = {},
