@@ -1,14 +1,12 @@
 package org.wikipedia.auth
 
+import android.app.PendingIntent
 import android.content.Intent
 
-/*
- * An interface to make authentication related operations explicit
- */
 interface OAuthClient {
 
     // Startup initialization
-    suspend fun initialize()
+    fun initialize()
 
     // Try to get an access token
     suspend fun getAccessToken(): String?
@@ -20,7 +18,7 @@ interface OAuthClient {
     fun isLoggedIn(): Boolean
 
     // Start a login redirect
-    fun startLogin(launchAction: (i: Intent) -> Unit)
+    fun startLogin(pendingIntent: PendingIntent)
 
     // Complete a login
     suspend fun finishLogin(intent: Intent)

@@ -3,9 +3,6 @@ package org.wikipedia.auth
 import android.content.Context
 import org.wikipedia.settings.Prefs
 
-/*
- * Tokens are stored in shared preferences which is not accessible by other apps on the device
- */
 class TokenStorage(private val context: Context) {
 
     private val tokenData = TokenData()
@@ -34,9 +31,6 @@ class TokenStorage(private val context: Context) {
         this.saveTokenData()
     }
 
-    /*
-     * A hacky method for testing, to update token storage to make the access token act like it is expired
-     */
     fun expireAccessToken() {
         this.tokenData.accessToken = "${this.tokenData.accessToken}x"
         this.saveTokenData()

@@ -1,8 +1,8 @@
 package org.wikipedia.auth
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthorizationException
@@ -10,7 +10,6 @@ import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.AuthorizationServiceConfiguration
-import net.openid.appauth.AuthorizationServiceDiscovery
 import net.openid.appauth.GrantTypeValues
 import net.openid.appauth.NoClientAuthentication
 import net.openid.appauth.ResponseTypeValues
@@ -19,16 +18,14 @@ import net.openid.appauth.TokenResponse
 import net.openid.appauth.browser.BrowserAllowList
 import net.openid.appauth.browser.BrowserMatcher
 import net.openid.appauth.browser.VersionedBrowserMatcher
-import net.openid.appauth.connectivity.DefaultConnectionBuilder
 import org.wikipedia.auth.logout.LogoutUrlBuilder
 import org.wikipedia.auth.logout.StandardLogoutUrlBuilder
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import androidx.core.net.toUri
+import org.wikipedia.WikipediaApp
 
-/*
- * A class to manage integration with the AppAuth libraries
- */
 class OAuthClientImpl(
     private val configuration: OAuthConfiguration,
     private val applicationContext: Context
@@ -42,7 +39,7 @@ class OAuthClientImpl(
     /*
      * One time initialization on application startup
      */
-    override suspend fun initialize() {
+    override fun initialize() {
 
         // Load OpenID Connect metadata
         this.getMetadata()
@@ -57,7 +54,7 @@ class OAuthClientImpl(
     override suspend fun getAccessToken(): String? {
 
         // See if there is a token in storage
-        val accessToken = this.tokenStorage.getTokens()?.accessToken
+        val accessToken = this.tokenStorage.getTokens().accessToken
         if (!accessToken.isNullOrBlank()) {
             return accessToken
         }
@@ -71,14 +68,14 @@ class OAuthClientImpl(
      */
     override suspend fun synchronizedRefreshAccessToken(): String {
 
-        val refreshToken = this.tokenStorage.getTokens()?.refreshToken
+        val refreshToken = this.tokenStorage.getTokens().refreshToken
         if (!refreshToken.isNullOrBlank()) {
 
             //this.concurrencyHandler.execute(this::performRefreshTokenGrant)
             performRefreshTokenGrant()
 
             // Return the token on success
-            val accessToken = this.tokenStorage.getTokens()?.accessToken
+            val accessToken = this.tokenStorage.getTokens().accessToken
             if (!accessToken.isNullOrBlank()) {
                 return accessToken
             }
@@ -96,7 +93,7 @@ class OAuthClientImpl(
     /*
      * Do the work to perform an authorization redirect
      */
-    override fun startLogin(launchAction: (i: Intent) -> Unit) {
+    override fun startLogin(pendingIntent: PendingIntent) {
         val authService = AuthorizationService(this.applicationContext, this.getBrowserConfiguration())
         this.loginAuthService = authService
 
@@ -106,21 +103,18 @@ class OAuthClientImpl(
             this.metadata!!,
             this.configuration.clientId,
             ResponseTypeValues.CODE,
-            Uri.parse(this.configuration.redirectUri)
+            this.configuration.redirectUri.toUri()
         )
             .setScope(this.configuration.scope)
         val request = builder.build()
 
-        // Do the AppAuth redirect
-        val authIntent = authService.getAuthorizationRequestIntent(request)
-        launchAction(authIntent)
+        authService.performAuthorizationRequest(request, pendingIntent)
     }
 
     /*
      * When a login redirect completes, process the login response here
      */
     override suspend fun finishLogin(intent: Intent) {
-
         // Get the response details
         val authorizationResponse = AuthorizationResponse.fromIntent(intent)
         val ex = AuthorizationException.fromIntent(intent)
@@ -132,21 +126,16 @@ class OAuthClientImpl(
 
         when {
             ex != null -> {
-
                 // Handle the case where the user closes the Chrome Custom Tab rather than logging in
                 if (ex.type == AuthorizationException.TYPE_GENERAL_ERROR &&
                     ex.code == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW.code
                 ) {
-
                     throw Exception("Login cancelled from redirect.")
                 }
-
                 // Translate AppAuth errors to the display format
                 throw Exception("Login operation failed.")
             }
             authorizationResponse != null -> {
-
-                // Swap the authorization code for tokens and update state
                 this.exchangeAuthorizationCode(authorizationResponse)
             }
         }
@@ -159,7 +148,7 @@ class OAuthClientImpl(
 
         // First force removal of tokens from storage
         val tokens = this.tokenStorage.getTokens()
-        val idToken = tokens?.idToken
+        val idToken = tokens.idToken
         this.clearLoginState()
 
         // Fail if there is no id token
@@ -217,51 +206,35 @@ class OAuthClientImpl(
     /*
      * Get metadata and convert the callback to a suspendable function
      */
-    private suspend fun getMetadata() {
-
+    private fun getMetadata() {
         metadata = AuthorizationServiceConfiguration(
-                Uri.parse("https://meta.wikimedia.org/w/rest.php/oauth2/authorize"), // authorization endpoint
-                Uri.parse("https://meta.wikimedia.org/w/rest.php/oauth2/access_token") // token endpoint
+            "https://meta.wikimedia.org/w/rest.php/oauth2/authorize".toUri(), // authorization endpoint
+            "https://meta.wikimedia.org/w/rest.php/oauth2/access_token".toUri() // token endpoint
             )
-
     }
 
     /*
      * When a login succeeds, exchange the authorization code for tokens
      */
     private suspend fun exchangeAuthorizationCode(authResponse: AuthorizationResponse) {
-
-        // Wrap the request in a coroutine
         return suspendCoroutine { continuation ->
-
-            // Define a callback to handle the result of the authorization code grant
-            val callback =
-                AuthorizationService.TokenResponseCallback { tokenResponse, ex ->
-
-                    when {
-                        // Translate AppAuth errors to the display format
-                        ex != null -> {
-                            continuation.resumeWithException(ex)
-                        }
-
-                        // Sanity check
-                        tokenResponse == null -> {
-                            val empty = RuntimeException("Authorization code grant returned an empty response")
-                            continuation.resumeWithException(empty)
-                        }
-
-                        // Process the response by saving tokens to secure storage
-                        else -> {
-                            this.saveTokens(tokenResponse)
-                            continuation.resume(Unit)
-                        }
+            val callback = AuthorizationService.TokenResponseCallback { tokenResponse, ex ->
+                when {
+                    // Translate AppAuth errors to the display format
+                    ex != null -> {
+                        continuation.resumeWithException(ex)
+                    }
+                    tokenResponse == null -> {
+                        val empty = RuntimeException("Authorization code grant returned an empty response")
+                        continuation.resumeWithException(empty)
+                    }
+                    else -> {
+                        this.saveTokens(tokenResponse)
+                        continuation.resume(Unit)
                     }
                 }
-
-            // Create the authorization code grant request
+            }
             val tokenRequest = authResponse.createTokenExchangeRequest()
-
-            // Trigger the request
             val authService = AuthorizationService(this.applicationContext)
             authService.performTokenRequest(tokenRequest, NoClientAuthentication.INSTANCE, callback)
         }
@@ -271,16 +244,12 @@ class OAuthClientImpl(
      * Do the work of refreshing an access token
      */
     private suspend fun performRefreshTokenGrant() {
-
         // Check we have a refresh token
-        val refreshToken = this.tokenStorage.getTokens()?.refreshToken
+        val refreshToken = this.tokenStorage.getTokens().refreshToken
         if (refreshToken.isNullOrBlank()) {
             return
         }
-
-        // Wrap the request in a coroutine
         return suspendCoroutine { continuation ->
-
             // Define a callback to handle the result of the refresh token grant
             val callback =
                 AuthorizationService.TokenResponseCallback { tokenResponse, ex ->
@@ -299,7 +268,6 @@ class OAuthClientImpl(
                                 continuation.resume(Unit)
 
                             } else {
-
                                 // Process real errors
                                 continuation.resumeWithException(ex)
                             }
@@ -386,14 +354,14 @@ class OAuthClientImpl(
             val customTabsIntent = authService.customTabManager.createTabBuilder().build()
             val logoutIntent = customTabsIntent.intent
             logoutIntent.setPackage(authService.browserDescriptor.packageName)
-            logoutIntent.data = Uri.parse(logoutUrl)
+            logoutIntent.data = logoutUrl.toUri()
             return logoutIntent
 
         } else {
 
             // Start a logout intent in the Chrome browser
             val logoutIntent = Intent(Intent.ACTION_VIEW)
-            logoutIntent.data = Uri.parse(logoutUrl)
+            logoutIntent.data = logoutUrl.toUri()
             return logoutIntent
         }
     }
@@ -431,5 +399,30 @@ class OAuthClientImpl(
         return model.contains("emulator") ||
             (model.startsWith("sdk_gphone") && manufacturer.contains("google"))
 
+    }
+
+    companion object {
+        private var _instance: OAuthClient? = null
+        val instance: OAuthClient get() {
+            if (_instance == null) {
+                initialize(WikipediaApp.instance)
+            }
+            return _instance!!
+        }
+
+        private fun initialize(context: Context) {
+            val config = OAuthConfiguration()
+            config.scope = "" //""openid profile https://wikipedia.org/"
+            config.clientId = "50ad79ffa34f64853c96b729e4aa5d8c"
+            config.redirectUri = "wikipedia://oauth/callback"
+            config.authority = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
+            config.postLogoutRedirectUri = ""
+            config.customLogoutEndpoint = ""
+            config.deepLinkBaseUrl = "wikipedia://"
+            config.userInfoEndpoint = "https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile"
+
+            _instance = OAuthClientImpl(config, context)
+            _instance?.initialize()
+        }
     }
 }

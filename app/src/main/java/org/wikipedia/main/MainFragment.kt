@@ -3,6 +3,7 @@ package org.wikipedia.main
 import android.Manifest
 import android.app.Activity
 import android.app.ActivityOptions
+import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -28,9 +29,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
-import com.github.scribejava.apis.GoogleApi20
-import com.github.scribejava.core.builder.ServiceBuilder
-import com.github.scribejava.core.oauth.OAuth20Service
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -46,7 +44,6 @@ import org.wikipedia.activitytab.ActivityTabOnboardingActivity
 import org.wikipedia.analytics.eventplatform.ReadingListsAnalyticsHelper
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.auth.OAuthClientImpl
-import org.wikipedia.auth.OAuthConfiguration
 import org.wikipedia.commons.FilePageActivity
 import org.wikipedia.concurrency.FlowEventBus
 import org.wikipedia.databinding.FragmentMainBinding
@@ -100,9 +97,7 @@ import org.wikipedia.yearinreview.YearInReviewDialog
 import org.wikipedia.yearinreview.YearInReviewOnboardingActivity
 import org.wikipedia.yearinreview.YearInReviewViewModel
 import java.io.File
-import java.util.Scanner
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
 class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.Callback, HistoryFragment.Callback, MenuNavTabDialog.Callback, ActivityTabFragment.Callback {
     interface Callback {
@@ -347,7 +342,11 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     }
 
     fun handleIntent(intent: Intent) {
-        if (intent.hasExtra(Constants.INTENT_APP_SHORTCUT_RANDOMIZER)) {
+        if (intent.data?.toString().orEmpty().contains("/oauth/")) {
+            lifecycleScope.launch {
+                OAuthClientImpl.instance.finishLogin(intent)
+            }
+        } else if (intent.hasExtra(Constants.INTENT_APP_SHORTCUT_RANDOMIZER)) {
             startActivity(RandomActivity.newIntent(requireActivity(), WikipediaApp.instance.wikiSite, InvokeSource.APP_SHORTCUTS))
         } else if (intent.hasExtra(Constants.INTENT_APP_SHORTCUT_SEARCH)) {
             openSearchActivity(InvokeSource.APP_SHORTCUTS, null, null)
@@ -452,31 +451,8 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         // startActivityForResult(LoginActivity.newIntent(requireContext(), LoginActivity.SOURCE_NAV),
         //         Constants.ACTIVITY_REQUEST_LOGIN)
 
-
-
-
-        val config = OAuthConfiguration()
-        config.scope = "" //""openid profile https://wikipedia.org/"
-        config.clientId = "50ad79ffa34f64853c96b729e4aa5d8c"
-        config.redirectUri = "wikipedia://oauth/callback"
-        config.authority = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
-        config.postLogoutRedirectUri = ""
-        config.customLogoutEndpoint = ""
-        config.deepLinkBaseUrl = "wikipedia://"
-        config.userInfoEndpoint = "https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile"
-
-        lifecycleScope.launch {
-            val client = OAuthClientImpl(
-                config,
-                WikipediaApp.instance
-            )
-
-            client.initialize()
-
-            client.startLogin { intent ->
-                startActivity(intent)
-            }
-        }
+        OAuthClientImpl.instance.startLogin(PendingIntent.getActivity(WikipediaApp.instance, 0,
+            MainActivity.newIntent(WikipediaApp.instance), PendingIntent.FLAG_MUTABLE))
     }
 
     override fun updateToolbarElevation(elevate: Boolean) {
