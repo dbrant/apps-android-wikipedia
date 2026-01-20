@@ -30,6 +30,8 @@ mapLibre = "12.2.2"
 mapLibreAnnotation = "3.0.2"
 material = "1.13.0"
 mlKitVersion = "17.0.6"
+mlKitImageLabelingVersion = "17.0.9"
+googleCloudVision = "3.52.0"
 mockitoVersion = "5.2.0"
 navigationCompose = "2.9.6"
 okHttpVersion = "5.3.2"
@@ -70,6 +72,8 @@ coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }
 com-google-android-gms-play-services-wallet2 = { module = "com.google.android.gms:play-services-wallet", version.ref = "googlePayVersion" }
 com-google-firebase-firebase-messaging-ktx3 = { module = "com.google.firebase:firebase-messaging-ktx", version.ref = "firebaseMessagingVersion" }
 com-google-mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlKitVersion" }
+com-google-mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlKitImageLabelingVersion" }
+com-google-cloud-vision = { module = "com.google.cloud:google-cloud-vision", version.ref = "googleCloudVision" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }

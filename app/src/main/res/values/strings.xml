@@ -1874,6 +1874,15 @@
     <string name="places_empty_message_snackbar">There are no nearby articles. Try zooming out and moving the map.</string>
     <!-- /Places -->
 
+    <!-- WikiLens -->
+    <string name="wikilens_title">WikiLens</string>
+    <string name="wikilens_permission_title">Photo Access</string>
+    <string name="wikilens_permission_rationale">WikiLens needs access to your photos to identify interesting subjects and suggest Wikipedia articles.</string>
+    <string name="wikilens_permission_denied">Photo access is required to use WikiLens. You can enable it in your device settings.</string>
+    <string name="permission_grant">Grant Permission</string>
+    <string name="permission_deny">Not Now</string>
+    <!-- /WikiLens -->
+
     <!-- Survey dialog -->
     <string name="survey_dialog_title">Help us improve this feature</string>
     <string name="survey_dialog_message">Are you satisfied with this feature?</string>

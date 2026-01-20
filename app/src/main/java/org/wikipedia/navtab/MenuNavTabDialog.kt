@@ -22,6 +22,7 @@ import org.wikipedia.settings.Prefs
 import org.wikipedia.suggestededits.SuggestedEditsTasksActivity
 import org.wikipedia.util.DimenUtil
 import org.wikipedia.util.ResourceUtil.getThemedColorStateList
+import org.wikipedia.wikilens.WikiLensActivity
 import org.wikipedia.yearinreview.YearInReviewViewModel
 
 class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
@@ -75,6 +76,12 @@ class MenuNavTabDialog : ExtendedBottomSheetDialogFragment() {
         binding.mainDrawerPlacesContainer.setOnClickListener {
             PlacesEvent.logAction("places_click", "main_nav_tab")
             requireActivity().startActivity(PlacesActivity.newIntent(requireActivity()))
+            dismiss()
+        }
+
+        binding.mainDrawerWikilensContainer.setOnClickListener {
+            BreadCrumbLogEvent.logClick(requireActivity(), binding.mainDrawerWikilensContainer)
+            requireActivity().startActivity(WikiLensActivity.newIntent(requireActivity()))
             dismiss()
         }
 
