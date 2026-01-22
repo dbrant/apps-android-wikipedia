@@ -140,12 +140,7 @@ private fun CameraView(
             text = "Point camera at objects to discover Wikipedia articles",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
-                .background(
-                    WikipediaTheme.colors.paperColor.copy(alpha = 0.9f),
-                    RoundedCornerShape(8.dp)
-                )
-                .padding(12.dp),
+                .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
             color = WikipediaTheme.colors.primaryColor,
             fontSize = 14.sp,
             textAlign = TextAlign.Center
@@ -259,31 +254,31 @@ private fun FeatureCard(
     Card(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(4.dp),
+            .padding(5.dp),
         colors = CardDefaults.cardColors(
-            containerColor = WikipediaTheme.colors.paperColor.copy(alpha = 0.95f)
+            containerColor = WikipediaTheme.colors.paperColor.copy(alpha = 0.5f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
+        shape = RoundedCornerShape(14.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CategoryIcon(category = feature.category)
             
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             
             Column {
                 Text(
                     feature.title,
-                    fontSize = 14.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = WikipediaTheme.colors.primaryColor
                 )
                 Text(
                     feature.description,
-                    fontSize = 11.sp,
+                    fontSize = 16.sp,
                     color = WikipediaTheme.colors.secondaryColor
                 )
             }
@@ -305,14 +300,14 @@ private fun CategoryIcon(category: FeatureCategory) {
     
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(38.dp)
             .background(
                 WikipediaTheme.colors.paperColor,
-                RoundedCornerShape(16.dp)
+                RoundedCornerShape(19.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
-        Text(emoji, fontSize = 16.sp)
+        Text(emoji, fontSize = 20.sp)
     }
 }
 
