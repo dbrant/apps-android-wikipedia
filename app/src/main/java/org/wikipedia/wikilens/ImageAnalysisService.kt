@@ -15,6 +15,7 @@ import com.google.protobuf.ByteString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import org.wikipedia.util.log.L
 import java.io.ByteArrayOutputStream
 
 /**
@@ -32,11 +33,9 @@ object ImageAnalysisService {
 
     private const val CONFIDENCE_THRESHOLD = 0.5f
     private const val MAX_RESULTS = 15
-    private const val USE_CLOUD_VISION = true
+    private const val USE_CLOUD_VISION = false
 
-    suspend fun analyzeImage(context: Context, photoUri: Uri): List<ExtractedFeature> {
-        val bitmap = loadBitmap(context, photoUri) ?: return emptyList()
-        
+    suspend fun analyzeBitmap(context: Context, bitmap: Bitmap): List<ExtractedFeature> {
         return try {
             if (USE_CLOUD_VISION) {
                 analyzeWithCloudVision(bitmap)
@@ -51,6 +50,11 @@ object ImageAnalysisService {
                 emptyList()
             }
         }
+    }
+
+    suspend fun analyzeImage(context: Context, photoUri: Uri): List<ExtractedFeature> {
+        val bitmap = loadBitmap(context, photoUri) ?: return emptyList()
+        return analyzeBitmap(context, bitmap)
     }
 
     private suspend fun analyzeWithCloudVision(bitmap: Bitmap): List<ExtractedFeature> = withContext(Dispatchers.IO) {
@@ -141,6 +145,7 @@ object ImageAnalysisService {
             }
         } catch (e: Exception) {
             // If Cloud Vision fails, return empty and let caller fallback to on-device
+            L.e(e)
             throw e
         }
         

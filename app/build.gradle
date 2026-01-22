@@ -247,6 +247,12 @@ dependencies {
     devImplementation libs.com.google.cloud.vision
     customImplementation libs.com.google.cloud.vision
 
+    // CameraX for real-time camera in WikiLens
+    implementation libs.camerax.core
+    implementation libs.camerax.camera2
+    implementation libs.camerax.lifecycle
+    implementation libs.camerax.view
+
     // For receiving push notifications for logged-in users.
     prodImplementation libs.com.google.firebase.firebase.messaging.ktx3
     betaImplementation libs.com.google.firebase.firebase.messaging.ktx3

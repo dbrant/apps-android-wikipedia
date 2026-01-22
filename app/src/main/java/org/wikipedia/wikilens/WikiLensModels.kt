@@ -1,20 +1,15 @@
 package org.wikipedia.wikilens
 
-import android.net.Uri
 import org.wikipedia.page.PageTitle
 import org.wikipedia.dataclient.WikiSite
-
-data class PhotoItem(
-    val uri: Uri,
-    val dateTaken: Long,
-    val displayName: String
-)
 
 data class ExtractedFeature(
     val title: String,
     val description: String,
     val confidence: Float,
-    val category: FeatureCategory
+    val category: FeatureCategory,
+    val x: Float = 0.5f,  // Normalized position 0-1
+    val y: Float = 0.5f   // Normalized position 0-1
 ) {
     fun toPageTitle(): PageTitle {
         return PageTitle(title, WikiSite.forLanguageCode("en"))
@@ -32,14 +27,9 @@ enum class FeatureCategory {
 }
 
 sealed class WikiLensState {
-    object Loading : WikiLensState()
+    object Initializing : WikiLensState()
     object PermissionDenied : WikiLensState()
-    data class PhotosLoaded(val photos: List<PhotoItem>) : WikiLensState()
-    data class AnalyzingPhoto(val photo: PhotoItem, val allPhotos: List<PhotoItem>) : WikiLensState()
-    data class FeaturesExtracted(
-        val photo: PhotoItem,
-        val features: List<ExtractedFeature>,
-        val allPhotos: List<PhotoItem>
-    ) : WikiLensState()
+    object CameraReady : WikiLensState()
+    data class Analyzing(val features: List<ExtractedFeature> = emptyList()) : WikiLensState()
     data class Error(val message: String) : WikiLensState()
 }

@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.wikipedia.R
 import org.wikipedia.compose.theme.BaseTheme
+import org.wikipedia.history.HistoryEntry
 import org.wikipedia.page.PageActivity
 
 class WikiLensActivity : ComponentActivity() {
@@ -25,7 +26,7 @@ class WikiLensActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            viewModel.loadRecentPhotos(this)
+            viewModel.onCameraPermissionGranted()
         } else {
             showPermissionDeniedDialog()
         }
@@ -37,16 +38,16 @@ class WikiLensActivity : ComponentActivity() {
         setContent {
             BaseTheme {
                 val state by viewModel.state.collectAsState()
-                WikiLensScreen(
+                WikiLensCameraScreen(
                     state = state,
-                    onPhotoClick = { photo ->
-                        viewModel.analyzePhoto(photo)
-                    },
                     onFeatureClick = { feature ->
                         openWikipediaArticle(feature)
                     },
+                    onStartAnalysis = { bitmap ->
+                        viewModel.analyzeFrame(bitmap)
+                    },
                     onRetry = {
-                        checkPermissionAndLoadPhotos()
+                        checkCameraPermission()
                     },
                     onBack = {
                         finish()
@@ -55,22 +56,22 @@ class WikiLensActivity : ComponentActivity() {
             }
         }
 
-        checkPermissionAndLoadPhotos()
+        checkCameraPermission()
     }
 
-    private fun checkPermissionAndLoadPhotos() {
+    private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.READ_MEDIA_IMAGES
+                Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                viewModel.loadRecentPhotos(this)
+                viewModel.onCameraPermissionGranted()
             }
-            shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_IMAGES) -> {
+            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
                 showPermissionRationaleDialog()
             }
             else -> {
-                requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
     }
@@ -78,9 +79,9 @@ class WikiLensActivity : ComponentActivity() {
     private fun showPermissionRationaleDialog() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.wikilens_permission_title)
-            .setMessage(R.string.wikilens_permission_rationale)
+            .setMessage(R.string.wikilens_camera_permission_rationale)
             .setPositiveButton(R.string.permission_grant) { _, _ ->
-                requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
             .setNegativeButton(R.string.permission_deny) { _, _ ->
                 finish()
@@ -91,7 +92,7 @@ class WikiLensActivity : ComponentActivity() {
     private fun showPermissionDeniedDialog() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.wikilens_permission_title)
-            .setMessage(R.string.wikilens_permission_denied)
+            .setMessage(R.string.wikilens_camera_permission_denied)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 finish()
             }
@@ -100,12 +101,8 @@ class WikiLensActivity : ComponentActivity() {
 
     private fun openWikipediaArticle(feature: ExtractedFeature) {
         val title = feature.toPageTitle()
-        val entry = org.wikipedia.history.HistoryEntry(title, org.wikipedia.history.HistoryEntry.SOURCE_WIKILENS)
-        val intent = PageActivity.newIntentForNewTab(
-            this,
-            entry,
-            title
-        )
+        val entry = HistoryEntry(title, HistoryEntry.SOURCE_WIKILENS)
+        val intent = PageActivity.newIntentForNewTab(this, entry, title)
         startActivity(intent)
     }
 

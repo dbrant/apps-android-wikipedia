@@ -1876,9 +1876,9 @@
 
     <!-- WikiLens -->
     <string name="wikilens_title">WikiLens</string>
-    <string name="wikilens_permission_title">Photo Access</string>
-    <string name="wikilens_permission_rationale">WikiLens needs access to your photos to identify interesting subjects and suggest Wikipedia articles.</string>
-    <string name="wikilens_permission_denied">Photo access is required to use WikiLens. You can enable it in your device settings.</string>
+    <string name="wikilens_permission_title">Camera Access</string>
+    <string name="wikilens_camera_permission_rationale">WikiLens uses your camera to identify objects in real-time and suggest Wikipedia articles.</string>
+    <string name="wikilens_camera_permission_denied">Camera access is required to use WikiLens. You can enable it in your device settings.</string>
     <string name="permission_grant">Grant Permission</string>
     <string name="permission_deny">Not Now</string>
     <!-- /WikiLens -->
