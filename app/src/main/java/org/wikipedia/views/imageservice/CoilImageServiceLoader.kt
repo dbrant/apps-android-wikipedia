@@ -38,6 +38,7 @@ class CoilImageServiceLoader : ImageServiceLoader {
                         }
                     )
                 )
+                add(NsfwInterceptor())
             }
             .allowRgb565(true)
             .build()
