@@ -28,6 +28,7 @@ class NsfwInterceptor : Interceptor {
 
         if (!Prefs.isNsfwFilterEnabled || result !is SuccessResult) return result
 
+        val millis = System.currentTimeMillis()
         return try {
             val bitmap = result.image.toBitmap()
             val score = NsfwClassifier.getInstance(chain.request.context).score(bitmap)
@@ -40,6 +41,8 @@ class NsfwInterceptor : Interceptor {
         } catch (e: Exception) {
             L.e(e)
             result
+        }.also {
+            L.d("NSFW classification took ${System.currentTimeMillis() - millis}ms")
         }
     }
 
@@ -57,27 +60,35 @@ class NsfwInterceptor : Interceptor {
     private fun boxBlur(bitmap: Bitmap, radius: Int) {
         val w = bitmap.width
         val h = bitmap.height
-        val pixels = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
-        boxBlurHorizontal(pixels, w, h, radius)
-        boxBlurVertical(pixels, w, h, radius)
-        bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+        val source = IntArray(w * h)
+        val temp = IntArray(w * h)
+        val dest = IntArray(w * h)
+        bitmap.getPixels(source, 0, w, 0, 0, w, h)
+        boxBlurHorizontal(source, temp, w, h, radius)
+        boxBlurVertical(temp, dest, w, h, radius)
+        bitmap.setPixels(dest, 0, w, 0, 0, w, h)
     }
 
-    private fun boxBlurHorizontal(pixels: IntArray, w: Int, h: Int, radius: Int) {
+    private fun boxBlurHorizontal(source: IntArray, dest: IntArray, w: Int, h: Int, radius: Int) {
         val diameter = 2 * radius + 1
         for (y in 0 until h) {
-            var r = 0; var g = 0; var b = 0
+            var a = 0; var r = 0; var g = 0; var b = 0
             for (x in -radius..radius) {
-                val px = pixels[y * w + x.coerceIn(0, w - 1)]
+                val px = source[y * w + x.coerceIn(0, w - 1)]
+                a += (px ushr 24) and 0xFF
                 r += (px shr 16) and 0xFF
                 g += (px shr 8) and 0xFF
                 b += px and 0xFF
             }
             for (x in 0 until w) {
-                pixels[y * w + x] = (0xFF shl 24) or ((r / diameter) shl 16) or ((g / diameter) shl 8) or (b / diameter)
-                val leading = pixels[y * w + (x + radius + 1).coerceAtMost(w - 1)]
-                val trailing = pixels[y * w + (x - radius).coerceAtLeast(0)]
+                dest[y * w + x] =
+                    ((a / diameter) shl 24) or
+                    ((r / diameter) shl 16) or
+                    ((g / diameter) shl 8) or
+                    (b / diameter)
+                val leading = source[y * w + (x + radius + 1).coerceAtMost(w - 1)]
+                val trailing = source[y * w + (x - radius).coerceAtLeast(0)]
+                a += ((leading ushr 24) and 0xFF) - ((trailing ushr 24) and 0xFF)
                 r += ((leading shr 16) and 0xFF) - ((trailing shr 16) and 0xFF)
                 g += ((leading shr 8) and 0xFF) - ((trailing shr 8) and 0xFF)
                 b += (leading and 0xFF) - (trailing and 0xFF)
@@ -85,20 +96,26 @@ class NsfwInterceptor : Interceptor {
         }
     }
 
-    private fun boxBlurVertical(pixels: IntArray, w: Int, h: Int, radius: Int) {
+    private fun boxBlurVertical(source: IntArray, dest: IntArray, w: Int, h: Int, radius: Int) {
         val diameter = 2 * radius + 1
         for (x in 0 until w) {
-            var r = 0; var g = 0; var b = 0
+            var a = 0; var r = 0; var g = 0; var b = 0
             for (y in -radius..radius) {
-                val px = pixels[y.coerceIn(0, h - 1) * w + x]
+                val px = source[y.coerceIn(0, h - 1) * w + x]
+                a += (px ushr 24) and 0xFF
                 r += (px shr 16) and 0xFF
                 g += (px shr 8) and 0xFF
                 b += px and 0xFF
             }
             for (y in 0 until h) {
-                pixels[y * w + x] = (0xFF shl 24) or ((r / diameter) shl 16) or ((g / diameter) shl 8) or (b / diameter)
-                val leading = pixels[(y + radius + 1).coerceAtMost(h - 1) * w + x]
-                val trailing = pixels[(y - radius).coerceAtLeast(0) * w + x]
+                dest[y * w + x] =
+                    ((a / diameter) shl 24) or
+                    ((r / diameter) shl 16) or
+                    ((g / diameter) shl 8) or
+                    (b / diameter)
+                val leading = source[(y + radius + 1).coerceAtMost(h - 1) * w + x]
+                val trailing = source[(y - radius).coerceAtLeast(0) * w + x]
+                a += ((leading ushr 24) and 0xFF) - ((trailing ushr 24) and 0xFF)
                 r += ((leading shr 16) and 0xFF) - ((trailing shr 16) and 0xFF)
                 g += ((leading shr 8) and 0xFF) - ((trailing shr 8) and 0xFF)
                 b += (leading and 0xFF) - (trailing and 0xFF)
