@@ -4,14 +4,14 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import androidx.core.graphics.scale
 import org.tensorflow.lite.Interpreter
 import org.wikipedia.util.log.L
-import java.io.FileInputStream
 import java.io.ByteArrayOutputStream
+import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
-import androidx.core.graphics.scale
 
 /**
  * On-device NSFW image classifier backed by a TensorFlow Lite model.

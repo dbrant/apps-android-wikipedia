@@ -2,6 +2,9 @@ package org.wikipedia.views.imageservice
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.core.graphics.createBitmap
@@ -57,7 +60,21 @@ class CoilImageServiceLoader : ImageServiceLoader {
         listener: ImageLoadListener?
     ) {
         val context = imageView.context
-        val request = getRequestBuilder(context, url, detectFace, force, placeholderId, listener).target(imageView).build()
+        clearNsfwRenderEffect(imageView)
+        val request = getRequestBuilder(context, url, detectFace, force, placeholderId, null)
+            .listener(object : ImageRequest.Listener {
+                override fun onError(request: ImageRequest, result: ErrorResult) {
+                    clearNsfwRenderEffect(imageView)
+                    listener?.onError(error = result.throwable)
+                }
+
+                override fun onSuccess(request: ImageRequest, result: SuccessResult) {
+                    applyNsfwRenderEffectIfNeeded(imageView, request.data.toString())
+                    listener?.onSuccess(result, result.image.width, result.image.height)
+                }
+            })
+            .target(imageView)
+            .build()
         context.imageLoader.enqueue(request)
     }
 
@@ -145,5 +162,23 @@ class CoilImageServiceLoader : ImageServiceLoader {
         if (url.isNullOrEmpty()) return false
         // TODO: not perfect; should ideally detect based on MIME type.
         return url.endsWith(".jpg", true) || url.endsWith(".jpeg", true) || url.endsWith(".png", true)
+    }
+
+    private fun applyNsfwRenderEffectIfNeeded(imageView: ImageView, dataKey: String?) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !Prefs.isNsfwFilterEnabled) {
+            clearNsfwRenderEffect(imageView)
+            return
+        }
+        if (!dataKey.isNullOrEmpty() && NsfwInterceptor.flaggedUrls.contains(dataKey)) {
+            imageView.setRenderEffect(RenderEffect.createBlurEffect(64f, 64f, Shader.TileMode.CLAMP))
+        } else {
+            clearNsfwRenderEffect(imageView)
+        }
+    }
+
+    private fun clearNsfwRenderEffect(imageView: ImageView) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            imageView.setRenderEffect(null)
+        }
     }
 }

@@ -1,6 +1,7 @@
 package org.wikipedia.views.imageservice
 
 import android.graphics.Bitmap
+import android.os.Build
 import coil3.asImage
 import coil3.intercept.Interceptor
 import coil3.request.ImageResult
@@ -33,9 +34,12 @@ class NsfwInterceptor : Interceptor {
             val bitmap = result.image.toBitmap()
             val score = NsfwClassifier.getInstance(chain.request.context).score(bitmap)
             if (score >= NsfwClassifier.NSFW_THRESHOLD) {
-                flaggedUrls.add(chain.request.data.toString())
-                result.copy(image = blurBitmap(bitmap).asImage())
+                val dataKey = chain.request.data.toString()
+                flaggedUrls.add(dataKey)
+                // RenderEffect is applied at the ImageView layer on Android 12+.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) result else result.copy(image = blurBitmap(bitmap).asImage())
             } else {
+                flaggedUrls.remove(chain.request.data.toString())
                 result
             }
         } catch (e: Exception) {
@@ -124,7 +128,7 @@ class NsfwInterceptor : Interceptor {
     }
 
     companion object {
-        private const val BLUR_RADIUS = 32
+        const val BLUR_RADIUS = 32
         private const val BLUR_PASSES = 3
 
         /**
