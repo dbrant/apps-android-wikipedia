@@ -919,4 +919,8 @@ object Prefs {
     var readingChallengeWidgetFastCycle
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_reading_challenge_widget_fast_cycle, false)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_reading_challenge_widget_fast_cycle, value)
+
+    var isNsfwFilterEnabled
+        get() = PrefsIoUtil.getBoolean(R.string.preference_key_nsfw_filter_enabled, true)
+        set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_nsfw_filter_enabled, value)
 }
