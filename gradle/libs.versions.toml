@@ -52,12 +52,11 @@ composeBom = "2026.04.01"
 composeActivity = "1.13.0"
 composeViewModel = "2.10.0"
 uiGraphics = "1.11.0"
-tensorflowLite = "2.17.0"
+liteRt = "2.1.4"
 
 
 [libraries]
 androidx-espresso-intents = { module = "androidx.test.espresso:espresso-intents", version.ref = "espressoVersion" }
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junitVersion" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
@@ -95,6 +94,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 ktlint = { module = "com.pinterest.ktlint:ktlint-cli", version.ref = "ktlint" }
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakCanaryVersion" }
+litert = { module = "com.google.ai.edge.litert:litert", version.ref = "liteRt" }
 maplibre = { module = "org.maplibre.gl:android-sdk", version.ref = "mapLibre" }
 maplibre-annotation = { module = "org.maplibre.gl:android-plugin-annotation-v9", version.ref = "mapLibreAnnotation" }
 material = { module = "com.google.android.material:material", version.ref = "material" }

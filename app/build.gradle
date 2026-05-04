@@ -220,7 +220,7 @@ dependencies {
     implementation libs.androidx.glance.appwidget.preview
 
     // For on-device NSFW image classification
-    implementation libs.tensorflow.lite
+    implementation libs.litert
 
     // For language detection during editing
     prodImplementation libs.com.google.mlkit.language.id
