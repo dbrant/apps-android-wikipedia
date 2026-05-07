@@ -29,10 +29,11 @@ class NsfwInterceptor : Interceptor {
 
         if (!Prefs.isNsfwFilterEnabled || result !is SuccessResult) return result
 
+        var score = 0f
         val millis = System.currentTimeMillis()
         return try {
             val bitmap = result.image.toBitmap()
-            val score = NsfwClassifier.getInstance(chain.request.context).score(bitmap)
+            score = NsfwClassifier.getInstance(chain.request.context).score(bitmap)
             if (score >= NsfwClassifier.NSFW_THRESHOLD) {
                 val dataKey = chain.request.data.toString()
                 flaggedUrls.add(dataKey)
@@ -46,7 +47,7 @@ class NsfwInterceptor : Interceptor {
             L.e(e)
             result
         }.also {
-            L.d("NSFW classification took ${System.currentTimeMillis() - millis}ms")
+            L.d("NSFW classification took ${System.currentTimeMillis() - millis}ms, score=$score")
         }
     }
 
