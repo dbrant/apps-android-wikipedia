@@ -55,6 +55,7 @@
     <string name="preference_key_reading_lists_remote_setup_pending">readingListsRemoteSetupPending</string>
     <string name="preference_key_reading_lists_remote_delete_pending">readingListsRemoteDeletePending</string>
     <string name="preference_key_nsfw_filter_enabled">nsfwFilterEnabled</string>
+    <string name="preference_key_nsfw_threshold">nsfwThreshold</string>
     <string name="preference_key_initial_onboarding_enabled">initialOnboardingEnabled</string>
     <string name="preference_key_permission_asked">permissionAsked</string>
     <string name="preference_key_dim_dark_mode_images">dimDarkModeImages</string>

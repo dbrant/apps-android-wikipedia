@@ -60,16 +60,17 @@ class CoilImageServiceLoader : ImageServiceLoader {
         listener: ImageLoadListener?
     ) {
         val context = imageView.context
-        clearNsfwRenderEffect(imageView)
+        //clearNsfwRenderEffect(imageView)
         val request = getRequestBuilder(context, url, detectFace, force, placeholderId, null)
             .listener(object : ImageRequest.Listener {
                 override fun onError(request: ImageRequest, result: ErrorResult) {
-                    clearNsfwRenderEffect(imageView)
+                    //clearNsfwRenderEffect(imageView)
                     listener?.onError(error = result.throwable)
                 }
 
                 override fun onSuccess(request: ImageRequest, result: SuccessResult) {
-                    applyNsfwRenderEffectIfNeeded(imageView, request.data.toString())
+                    // TODO, if needed:
+                    //applyNsfwRenderEffectIfNeeded(imageView, request.data.toString())
                     listener?.onSuccess(result, result.image.width, result.image.height)
                 }
             })

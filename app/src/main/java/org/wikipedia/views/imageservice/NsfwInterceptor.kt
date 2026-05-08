@@ -1,6 +1,10 @@
 package org.wikipedia.views.imageservice
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import coil3.asImage
 import coil3.intercept.Interceptor
@@ -25,30 +29,79 @@ import java.util.Collections
 class NsfwInterceptor : Interceptor {
 
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
-        val result = chain.proceed()
-
+        var result = chain.proceed()
         if (!Prefs.isNsfwFilterEnabled || result !is SuccessResult) return result
 
         var score = 0f
         val millis = System.currentTimeMillis()
-        return try {
+        try {
+            val dataKey = chain.request.data.toString()
             val bitmap = result.image.toBitmap()
+
+            if (nonFlaggedUrls.containsKey(dataKey)) {
+                val annotated = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+                drawScoreOverlay(annotated, nonFlaggedUrls[dataKey] ?: 0f)
+                return result.copy(image = annotated.asImage())
+            }
+            if (flaggedUrls.containsKey(dataKey)) {
+                // return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) result else result.copy(image = blurBitmap(result.image.toBitmap()).asImage())
+                val blurred = blurBitmap(bitmap)
+                drawScoreOverlay(blurred, flaggedUrls[dataKey] ?: 0f)
+                return result.copy(image = blurred.asImage())
+            }
+
             score = NsfwClassifier.getInstance(chain.request.context).score(bitmap)
-            if (score >= NsfwClassifier.NSFW_THRESHOLD) {
-                val dataKey = chain.request.data.toString()
-                flaggedUrls.add(dataKey)
-                // RenderEffect is applied at the ImageView layer on Android 12+.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) result else result.copy(image = blurBitmap(bitmap).asImage())
+
+            if (score >= (Prefs.nsfwThreshold.toFloat() / 100f)) {
+                flaggedUrls[dataKey] = score
+                nonFlaggedUrls.remove(dataKey)
+                val blurred = blurBitmap(bitmap)
+                drawScoreOverlay(blurred, score)
+                result = result.copy(image = blurred.asImage())
             } else {
                 flaggedUrls.remove(chain.request.data.toString())
-                result
+                nonFlaggedUrls[dataKey] = score
+                val annotated = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+                drawScoreOverlay(annotated, score)
+                result = result.copy(image = annotated.asImage())
             }
         } catch (e: Exception) {
             L.e(e)
-            result
-        }.also {
+        } finally {
             L.d("NSFW classification took ${System.currentTimeMillis() - millis}ms, score=$score")
         }
+        return result
+    }
+
+    /**
+     * Draws the NSFW classifier score onto [bitmap] as a semi-transparent badge in the
+     * top-left corner. Text is white on a dark background for visibility on any image.
+     * This is a debug-only aid — remove or gate behind a BuildConfig flag before shipping.
+     */
+    private fun drawScoreOverlay(bitmap: Bitmap, score: Float) {
+        val score = (score * 100f)
+        val canvas = Canvas(bitmap)
+        val label = "NSFW: %.1f".format(score)
+        val textSize = (bitmap.height * 0.07f).coerceIn(14f, 48f)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            this.textSize = textSize
+        }
+        val textWidth = paint.measureText(label)
+        val padding = textSize * 0.3f
+        val cx = bitmap.width / 2f
+        val cy = bitmap.height / 2f
+        // Background pill centered on the image
+        paint.color = Color.argb(180, 0, 0, 0)
+        canvas.drawRoundRect(
+            cx - textWidth / 2f - padding, cy - textSize / 2f - padding,
+            cx + textWidth / 2f + padding, cy + textSize / 2f + padding,
+            padding, padding, paint
+        )
+        // Score text — green below threshold, red at or above
+        paint.color = if (score >= Prefs.nsfwThreshold) Color.RED else Color.GREEN
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText(label, cx, cy + textSize / 2f - paint.descent(), paint)
     }
 
     private fun blurBitmap(src: Bitmap): Bitmap {
@@ -137,6 +190,7 @@ class NsfwInterceptor : Interceptor {
          * The UI layer may use this to show a "Sensitive content" overlay or tap-to-reveal
          * affordance on the corresponding [android.widget.ImageView].
          */
-        val flaggedUrls: MutableSet<String> = Collections.synchronizedSet(mutableSetOf())
+        val flaggedUrls: MutableMap<String, Float> = Collections.synchronizedMap(mutableMapOf())
+        val nonFlaggedUrls: MutableMap<String, Float> = Collections.synchronizedMap(mutableMapOf())
     }
 }

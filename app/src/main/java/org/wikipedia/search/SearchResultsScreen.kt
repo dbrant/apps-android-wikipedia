@@ -319,7 +319,7 @@ fun SearchResultPageItem(
                         contentScale = ContentScale.Crop,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(120.dp)
                             .clip(RoundedCornerShape(8.dp))
                     )
                 }

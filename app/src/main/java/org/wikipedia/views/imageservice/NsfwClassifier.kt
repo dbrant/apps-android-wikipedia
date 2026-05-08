@@ -107,13 +107,6 @@ class NsfwClassifier private constructor(context: Context) {
         private const val MEAN_G = 117.0f
         private const val MEAN_R = 123.0f
 
-        /**
-         * Score threshold above which an image is considered NSFW.
-         * 0.857 gives a good precision/recall balance on the open_nsfw validation set;
-         * raise toward 1.0 to reduce false positives (important for Commons art/anatomy).
-         */
-        const val NSFW_THRESHOLD = 0.857f
-
         @Volatile private var instance: NsfwClassifier? = null
 
         fun getInstance(context: Context): NsfwClassifier =

@@ -923,4 +923,8 @@ object Prefs {
     var isNsfwFilterEnabled
         get() = PrefsIoUtil.getBoolean(R.string.preference_key_nsfw_filter_enabled, true)
         set(value) = PrefsIoUtil.setBoolean(R.string.preference_key_nsfw_filter_enabled, value)
+
+    var nsfwThreshold
+        get() = PrefsIoUtil.getInt(R.string.preference_key_nsfw_threshold, 75)
+        set(value) = PrefsIoUtil.setInt(R.string.preference_key_nsfw_threshold, value)
 }
