@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
-import android.util.Pair
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -52,12 +51,10 @@ import org.wikipedia.events.ImportReadingListsEvent
 import org.wikipedia.events.LoggedOutEvent
 import org.wikipedia.events.LoggedOutInBackgroundEvent
 import org.wikipedia.events.NewRecommendedReadingListEvent
-import org.wikipedia.feed.FeedFragment
+import org.wikipedia.feed.HomeFragment
 import org.wikipedia.feed.image.FeaturedImage
-import org.wikipedia.feed.image.FeaturedImageCard
 import org.wikipedia.feed.news.NewsActivity
-import org.wikipedia.feed.news.NewsCard
-import org.wikipedia.feed.news.NewsItemView
+import org.wikipedia.feed.news.NewsItem
 import org.wikipedia.gallery.GalleryActivity
 import org.wikipedia.gallery.MediaDownloadReceiver
 import org.wikipedia.history.HistoryEntry
@@ -73,8 +70,8 @@ import org.wikipedia.page.PageTitle
 import org.wikipedia.page.tabs.TabActivity
 import org.wikipedia.places.PlacesActivity
 import org.wikipedia.random.RandomActivity
-import org.wikipedia.readinglist.ReadingListBehaviorsUtil
 import org.wikipedia.readinglist.ReadingListsFragment
+import org.wikipedia.readinglist.SaveArticleSheetDialog
 import org.wikipedia.search.SearchActivity
 import org.wikipedia.search.SearchFragment
 import org.wikipedia.settings.Prefs
@@ -85,7 +82,8 @@ import org.wikipedia.staticdata.UserTalkAliasData
 import org.wikipedia.suggestededits.SuggestedEditsTasksFragment
 import org.wikipedia.talk.TalkTopicsActivity
 import org.wikipedia.usercontrib.UserContribListActivity
-import org.wikipedia.util.DimenUtil
+import org.wikipedia.util.ClipboardUtil
+import org.wikipedia.util.DeviceUtil
 import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ShareUtil
 import org.wikipedia.util.TabUtil
@@ -93,13 +91,15 @@ import org.wikipedia.views.NotificationButtonView
 import org.wikipedia.views.TabCountsView
 import org.wikipedia.views.imageservice.ImageService
 import org.wikipedia.watchlist.WatchlistActivity
+import org.wikipedia.widgets.SearchWidgetInstallDialog
 import org.wikipedia.yearinreview.YearInReviewDialog
 import org.wikipedia.yearinreview.YearInReviewOnboardingActivity
 import org.wikipedia.yearinreview.YearInReviewViewModel
 import java.io.File
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
-class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.Callback, HistoryFragment.Callback, MenuNavTabDialog.Callback, ActivityTabFragment.Callback {
+class MainFragment : Fragment(), BackPressedHandler, MenuProvider, HistoryFragment.Callback, MenuNavTabDialog.Callback, ActivityTabFragment.Callback {
     interface Callback {
         fun onTabChanged(tab: NavTab)
         fun updateToolbarElevation(elevate: Boolean)
@@ -148,6 +148,8 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
                     when (event) {
                         is LoggedOutEvent,
                         is LoggedOutInBackgroundEvent -> {
+                            requireActivity().invalidateOptionsMenu()
+                            (currentFragment as? HomeFragment)?.refreshNotification()
                             ExclusiveBottomSheetPresenter.dismiss(childFragmentManager)
                             refreshContents()
                         }
@@ -184,19 +186,24 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
                 return@setOnItemSelectedListener false
             }
             val fragment = currentFragment
-            if (fragment is FeedFragment && item.order == 0) {
-                fragment.scrollToTop()
-            }
             if (fragment is HistoryFragment && item.order == NavTab.SEARCH.code()) {
                 openSearchActivity(InvokeSource.NAV_MENU, null, null)
                 return@setOnItemSelectedListener true
             }
             binding.mainViewPager.setCurrentItem(item.order, false)
             requireActivity().invalidateOptionsMenu()
+            if (item.order == NavTab.SEARCH.code()) {
+                maybeShowSearchWidgetInstallPrompt()
+            }
             true
         }
 
         binding.mainNavTabLayout.setOverlayDot(NavTab.EDITS, !Prefs.isActivityTabOnboardingShown)
+
+        // Check this first because the Feed tooltip marks its preference before posting its UI.
+        maybeShowReadingListsUpdateTooltip()
+        maybeShowFeedNewModulesTooltip()
+        Prefs.incrementExploreFeedVisitCount()
 
         notificationButtonView = NotificationButtonView(requireActivity())
 
@@ -261,9 +268,6 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
                                 resultCode == SettingsActivity.ACTIVITY_RESULT_FEED_CONFIGURATION_CHANGED ||
                                 resultCode == SettingsActivity.ACTIVITY_RESULT_LOG_OUT))) {
             refreshContents()
-            if (resultCode == SettingsActivity.ACTIVITY_RESULT_FEED_CONFIGURATION_CHANGED) {
-                updateFeedHiddenCards()
-            }
             if (resultCode == SettingsActivity.ACTIVITY_RESULT_LOG_OUT) {
                 FeedbackUtil.showMessage(requireActivity(), R.string.toast_logout_complete)
             }
@@ -279,6 +283,12 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
         val fragment = currentFragment
         return when (menuItem.itemId) {
+            R.id.menu_filter_reading_lists_articles -> {
+                if (fragment is ReadingListsFragment) {
+                    fragment.showReadingListsFilterMenu()
+                }
+                true
+            }
             R.id.menu_search_lists -> {
                 if (fragment is ReadingListsFragment) {
                     fragment.startSearchActionMode()
@@ -296,10 +306,11 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     }
 
     override fun onPrepareMenu(menu: Menu) {
-        requestUpdateToolbarElevation()
-
-        menu.findItem(R.id.menu_search_lists).isVisible = currentFragment is ReadingListsFragment
-        menu.findItem(R.id.menu_overflow_button).isVisible = currentFragment is ReadingListsFragment
+        val readingListsFragment = currentFragment as? ReadingListsFragment
+        menu.findItem(R.id.menu_filter_reading_lists_articles).isVisible =
+            readingListsFragment?.isAllArticlesSelected() == true
+        menu.findItem(R.id.menu_search_lists).isVisible = readingListsFragment != null
+        menu.findItem(R.id.menu_overflow_button).isVisible = readingListsFragment != null
 
         val tabsItem = menu.findItem(R.id.menu_tabs)
         if (WikipediaApp.instance.tabCount < 1 || currentFragment is SuggestedEditsTasksFragment) {
@@ -357,9 +368,9 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         } else if (intent.hasExtra(Constants.INTENT_EXTRA_DELETE_READING_LIST)) {
             onNavigateTo(NavTab.READING_LISTS)
         } else if (intent.hasExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB) &&
-                !(binding.mainNavTabLayout.selectedItemId == NavTab.EXPLORE.code() &&
-                        intent.getIntExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB, NavTab.EXPLORE.code()) == NavTab.EXPLORE.code())) {
-            onNavigateTo(NavTab.of(intent.getIntExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB, NavTab.EXPLORE.code())))
+                !(binding.mainNavTabLayout.selectedItemId == NavTab.HOME.code() &&
+                        intent.getIntExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB, NavTab.HOME.code()) == NavTab.HOME.code())) {
+            onNavigateTo(NavTab.of(intent.getIntExtra(Constants.INTENT_EXTRA_GO_TO_MAIN_TAB, NavTab.HOME.code())))
         } else if (intent.hasExtra(Constants.INTENT_EXTRA_GO_TO_SE_TAB)) {
             onNavigateTo(NavTab.of(intent.getIntExtra(Constants.INTENT_EXTRA_GO_TO_SE_TAB, NavTab.EDITS.code())))
         } else if (intent.hasExtra(Constants.INTENT_EXTRA_PREVIEW_SAVED_READING_LISTS)) {
@@ -369,11 +380,7 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         }
     }
 
-    override fun onFeedSearchRequested(view: View) {
-        openSearchActivity(InvokeSource.FEED_BAR, null, view)
-    }
-
-    override fun onFeedVoiceSearchRequested() {
+    fun onFeedVoiceSearchRequested() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         try {
@@ -383,7 +390,7 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         }
     }
 
-    override fun onFeedSelectPage(entry: HistoryEntry, openInNewBackgroundTab: Boolean) {
+    fun onFeedSelectPage(entry: HistoryEntry, openInNewBackgroundTab: Boolean) {
         if (openInNewBackgroundTab) {
             TabUtil.openInNewBackgroundTab(entry)
             showTabCountsAnimation = true
@@ -393,47 +400,36 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         }
     }
 
-    override fun onFeedSelectPageWithAnimation(entry: HistoryEntry, sharedElements: Array<Pair<View, String>>) {
-        val options = ActivityOptions.makeSceneTransitionAnimation(requireActivity(), *sharedElements)
-        val intent = PageActivity.newIntentForNewTab(requireContext(), entry, entry.title)
-        if (sharedElements.isNotEmpty()) {
-            intent.putExtra(Constants.INTENT_EXTRA_HAS_TRANSITION_ANIM, true)
-        }
-        startActivity(intent, if (DimenUtil.isLandscape(requireContext()) || sharedElements.isEmpty()) null else options.toBundle())
+    fun onFeedSavePage(entry: HistoryEntry) {
+        SaveArticleSheetDialog.show(childFragmentManager, entry.title)
     }
 
-    override fun onFeedAddPageToList(entry: HistoryEntry, addToDefault: Boolean) {
-        ReadingListBehaviorsUtil.addToDefaultList(requireActivity(), entry.title, addToDefault, InvokeSource.FEED)
+    fun onFeedSharePage(entry: HistoryEntry) {
+        ShareUtil.shareText(requireContext(), entry.title.displayText, entry.title.uri)
     }
 
-    override fun onFeedMovePageToList(sourceReadingListId: Long, entry: HistoryEntry) {
-        ReadingListBehaviorsUtil.moveToList(requireActivity(), sourceReadingListId, entry.title, InvokeSource.FEED)
+    fun onFeedCopyLink(entry: HistoryEntry) {
+        ClipboardUtil.setPlainText(requireContext(), text = entry.title.uri)
+        FeedbackUtil.showMessage(requireActivity(), R.string.address_copied)
     }
 
-    override fun onFeedNewsItemSelected(card: NewsCard, view: NewsItemView) {
-        val options = ActivityOptions.makeSceneTransitionAnimation(requireActivity(), view.imageView, getString(R.string.transition_news_item))
-        view.newsItem?.let {
-            startActivity(NewsActivity.newIntent(requireActivity(), it, card.wikiSite()), if (it.thumb() != null) options.toBundle() else null)
-        }
+    fun onFeedNewsItemSelected(newsItem: NewsItem, wikiSite: WikiSite) {
+        startActivity(NewsActivity.newIntent(requireActivity(), newsItem, wikiSite))
     }
 
-    override fun onFeedSeCardFooterClicked() {
-        onNavigateTo(NavTab.EDITS)
-    }
-
-    override fun onFeedShareImage(card: FeaturedImageCard) {
-        val thumbUrl = card.baseImage().thumbnailUrl
-        val fullSizeUrl = card.baseImage().original.source
+    fun onFeedShareImage(image: FeaturedImage, age: Int) {
+        val thumbUrl = image.thumbnailUrl
+        val fullSizeUrl = image.original.source
         ImageService.loadImage(requireContext(), thumbUrl, onSuccess = { bitmap ->
             if (!isAdded) {
                 return@loadImage
             }
             ShareUtil.shareImage(lifecycleScope, requireContext(), bitmap, File(thumbUrl).name,
-                ShareUtil.getFeaturedImageShareSubject(requireContext(), card.age()), fullSizeUrl)
+                ShareUtil.getFeaturedImageShareSubject(requireContext(), age), fullSizeUrl)
         })
     }
 
-    override fun onFeedDownloadImage(image: FeaturedImage) {
+    fun onFeedDownloadImage(image: FeaturedImage) {
         pendingDownloadImage = image
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
@@ -443,25 +439,16 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
         }
     }
 
-    override fun onFeaturedImageSelected(card: FeaturedImageCard) {
-        startActivity(FilePageActivity.newIntent(requireActivity(), PageTitle(card.filename(), card.wikiSite())))
+    fun onFeaturedImageSelected(image: FeaturedImage) {
+        startActivity(FilePageActivity.newIntent(requireActivity(), image.toPageTitle()))
     }
 
-    override fun onLoginRequested() {
-        // startActivityForResult(LoginActivity.newIntent(requireContext(), LoginActivity.SOURCE_NAV),
-        //         Constants.ACTIVITY_REQUEST_LOGIN)
+    fun onLoginRequested() {
+        //startActivityForResult(LoginActivity.newIntent(requireContext(), LoginActivity.SOURCE_NAV),
+        //        Constants.ACTIVITY_REQUEST_LOGIN)
 
         OAuthClientImpl.instance.startLogin(PendingIntent.getActivity(WikipediaApp.instance, 0,
             MainActivity.newIntent(WikipediaApp.instance), PendingIntent.FLAG_MUTABLE))
-    }
-
-    override fun updateToolbarElevation(elevate: Boolean) {
-        callback()?.updateToolbarElevation(elevate)
-    }
-
-    fun requestUpdateToolbarElevation() {
-        val fragment = currentFragment
-        updateToolbarElevation(fragment is FeedFragment && fragment.shouldElevateToolbar())
     }
 
     override fun onLoadPage(entry: HistoryEntry) {
@@ -527,18 +514,14 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
 
     fun onGoOffline() {
         val fragment = currentFragment
-        if (fragment is FeedFragment) {
-            fragment.onGoOffline()
-        } else if (fragment is HistoryFragment) {
+        if (fragment is HistoryFragment) {
             fragment.refresh()
         }
     }
 
     fun onGoOnline() {
         val fragment = currentFragment
-        if (fragment is FeedFragment) {
-            fragment.onGoOnline()
-        } else if (fragment is HistoryFragment) {
+        if (fragment is HistoryFragment) {
             fragment.refresh()
         }
     }
@@ -568,24 +551,17 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
     fun openSearchActivity(source: InvokeSource, query: String?, transitionView: View?) {
         val intent = SearchActivity.newIntent(requireActivity(), source, query)
         val options = transitionView?.let {
-            ActivityOptions.makeSceneTransitionAnimation(requireActivity(), it, getString(R.string.transition_search_bar))
+            if (intent.component?.className == SearchActivity::class.java.name) {
+                ActivityOptions.makeSceneTransitionAnimation(requireActivity(), it, getString(R.string.transition_search_bar))
+            } else null
         }
         startActivityForResult(intent, Constants.ACTIVITY_REQUEST_OPEN_SEARCH_ACTIVITY, options?.toBundle())
     }
 
     private fun refreshContents() {
         when (val fragment = currentFragment) {
-            is FeedFragment -> fragment.refresh()
-            is ReadingListsFragment -> fragment.updateLists()
             is HistoryFragment -> fragment.refresh()
             is SuggestedEditsTasksFragment -> fragment.refreshContents()
-        }
-    }
-
-    private fun updateFeedHiddenCards() {
-        val fragment = currentFragment
-        if (fragment is FeedFragment) {
-            fragment.updateHiddenCards()
         }
     }
 
@@ -598,6 +574,51 @@ class MainFragment : Fragment(), BackPressedHandler, MenuProvider, FeedFragment.
                 .setNegativeButton(R.string.shareable_reading_lists_new_install_dialog_got_it, null)
                 .show()
             Prefs.importReadingListsNewInstallDialogShown = true
+        }
+    }
+
+    private fun maybeShowFeedNewModulesTooltip() {
+        if (Prefs.exploreFeedVisitCount == 0) {
+            // Explicitly consider this tooltip "shown", since we only want to show it to users
+            // who have used the Feed already, instead of completely new users.
+            Prefs.isHomeFeedUpdateTooltipShown = true
+        } else if (!Prefs.isHomeFeedUpdateTooltipShown) {
+            Prefs.isHomeFeedUpdateTooltipShown = true
+            binding.root.post {
+                if (isAdded) {
+                    FeedbackUtil.showTooltip(requireActivity(), binding.mainNavTabLayout.findViewById(NavTab.HOME.id), getString(R.string.home_feed_update_tooltip1), aboveOrBelow = true, autoDismiss = false, showDismissButton = true)
+                }
+            }
+        }
+    }
+
+    private fun maybeShowReadingListsUpdateTooltip() {
+        val endDate = LocalDate.of(2026, 9, 15)
+        // Only show the tooltip to existing users and expire after September 15, 2026
+        if (Prefs.exploreFeedVisitCount == 0) {
+            Prefs.isReadingListsUpdateTooltipShown = true
+        } else if (Prefs.isHomeFeedUpdateTooltipShown &&
+                !Prefs.isReadingListsUpdateTooltipShown &&
+                !LocalDate.now().isAfter(endDate)) {
+            Prefs.isReadingListsUpdateTooltipShown = true
+            binding.root.post {
+                if (isAdded) {
+                    FeedbackUtil.showTooltip(
+                        requireActivity(),
+                        binding.mainNavTabLayout.findViewById(NavTab.READING_LISTS.id),
+                        getString(R.string.reading_lists_update_tooltip),
+                        aboveOrBelow = true,
+                        autoDismiss = false,
+                        showDismissButton = true
+                    )
+                }
+            }
+        }
+    }
+
+    private fun maybeShowSearchWidgetInstallPrompt() {
+        if (DeviceUtil.areWidgetsSupported && !Prefs.searchWidgetInstallPromptShown && !SearchWidgetInstallDialog.isWidgetInstalled()) {
+            ExclusiveBottomSheetPresenter.show(childFragmentManager, SearchWidgetInstallDialog())
         }
     }
 

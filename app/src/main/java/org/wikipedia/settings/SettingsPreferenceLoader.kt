@@ -11,19 +11,22 @@ import org.wikipedia.BuildConfig
 import org.wikipedia.Constants
 import org.wikipedia.R
 import org.wikipedia.WikipediaApp
+import org.wikipedia.analytics.eventplatform.DonorExperienceEvent
 import org.wikipedia.analytics.eventplatform.RecommendedReadingListEvent
 import org.wikipedia.analytics.eventplatform.YearInReviewEvent
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.donate.DonateUtil
 import org.wikipedia.donate.donationreminder.DonationReminderActivity
 import org.wikipedia.donate.donationreminder.DonationReminderHelper
-import org.wikipedia.feed.configure.ConfigureActivity
+import org.wikipedia.edit.EDITOR_CHOICE_VE
+import org.wikipedia.edit.showEditorChoiceDialog
 import org.wikipedia.login.LoginActivity
 import org.wikipedia.page.ExclusiveBottomSheetPresenter
 import org.wikipedia.readinglist.recommended.RecommendedReadingListOnboardingActivity
 import org.wikipedia.readinglist.recommended.RecommendedReadingListSettingsActivity
 import org.wikipedia.readinglist.recommended.RecommendedReadingListSource
 import org.wikipedia.readinglist.sync.ReadingListSyncAdapter
+import org.wikipedia.settings.homefeed.HomeFeedSettingsActivity
 import org.wikipedia.settings.languages.WikipediaLanguagesActivity
 import org.wikipedia.theme.ThemeFittingRoomActivity
 import org.wikipedia.util.FeedbackUtil
@@ -44,9 +47,9 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
                     Constants.ACTIVITY_REQUEST_ADD_A_LANGUAGE)
             true
         }
-        findPreference(R.string.preference_key_customize_explore_feed).onPreferenceClickListener = Preference.OnPreferenceClickListener {
+        findPreference(R.string.preference_key_customize_home_feed).onPreferenceClickListener = Preference.OnPreferenceClickListener {
              activity.startActivityForResult(
-                 ConfigureActivity.newIntent(activity, Constants.InvokeSource.NAV_MENU.ordinal),
+                 HomeFeedSettingsActivity.newIntent(activity),
                     Constants.ACTIVITY_REQUEST_FEED_CONFIGURE)
             true
         }
@@ -54,6 +57,16 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
             it.setSummary(WikipediaApp.instance.currentTheme.nameId)
             it.onPreferenceClickListener = Preference.OnPreferenceClickListener {
                 activity.startActivity(ThemeFittingRoomActivity.newIntent(activity))
+                true
+            }
+        }
+        findPreference(R.string.preference_key_editor_mode_choice).let {
+            updateVisualEditorPreference(it)
+            it.onPreferenceClickListener = Preference.OnPreferenceClickListener { prefs ->
+                showEditorChoiceDialog(activity, isSettingsScreen = true) { editorChoice, _ ->
+                    Prefs.editorModeChoice = editorChoice
+                    prefs.setSummary(if (editorChoice == EDITOR_CHOICE_VE) R.string.editor_select_dialog_ve_title else R.string.editor_select_dialog_source_title)
+                }
                 true
             }
         }
@@ -84,11 +97,6 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
                     .setPositiveButton(R.string.year_in_review_disable_positive_button) { _, _ ->
                         YearInReviewEvent.submit(action = "yir_off_confirm_click", slide = "setting")
                         Prefs.yearInReviewModelData = emptyMap()
-                        YearInReviewViewModel.updateYearInReviewModel { model ->
-                            model.copy(slideViewedCount = 0)
-                        }
-                        Prefs.yearInReviewReadingListSurveyShown = false
-                        Prefs.yearInReviewReadingListVisitCount = 0
                         (preference as SwitchPreferenceCompat).isChecked = false
                     }
                     .setNegativeButton(R.string.year_in_review_disable_negative_button) { _, _ ->
@@ -128,14 +136,19 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
             (findPreference(R.string.preference_key_logout) as LogoutPreference).activity = activity
         }
 
-        val donationCategory = findPreference(R.string.preference_category_donations)
-        donationCategory.isVisible = DonationReminderHelper.isEnabled
-        findPreference(R.string.preference_key_donation_reminders).onPreferenceClickListener =
-            Preference.OnPreferenceClickListener {
-                activity.startActivity(DonationReminderActivity.newIntent(activity, isFromSettings = true))
-                true
-            }
+        findPreference(R.string.preference_key_donation_reminders).apply {
+            isVisible = DonationReminderHelper.isEnabled
+            onPreferenceClickListener =
+                Preference.OnPreferenceClickListener {
+                    activity.startActivity(DonationReminderActivity.newIntent(activity, isFromSettings = true))
+                    true
+                }
+        }
         findPreference(R.string.preference_key_delete_local_donation_history).onPreferenceClickListener = Preference.OnPreferenceClickListener {
+            DonorExperienceEvent.logDonationReminderAction(
+                activeInterface = "global_setting",
+                action = "clear_donation_hist_click"
+            )
             val hasDonations = Prefs.donationResults.isNotEmpty()
 
             if (hasDonations) {
@@ -168,10 +181,20 @@ internal class SettingsPreferenceLoader(fragment: PreferenceFragmentCompat) : Ba
 
     fun updateDonationRemindersDescription() {
         val articleFrequency = activity.resources.getQuantityString(R.plurals.donation_reminders_text_articles, Prefs.donationReminderConfig.articleFrequency, Prefs.donationReminderConfig.articleFrequency)
-        val description = if (Prefs.donationReminderConfig.isEnabled) activity.getString(R.string.donation_reminders_settings_description_on,
+        val description = if (Prefs.donationReminderConfig.userEnabled) activity.getString(R.string.donation_reminders_settings_description_on,
             DonateUtil.currencyFormat.format(Prefs.donationReminderConfig.donateAmount), articleFrequency) else
                 activity.getString(R.string.donation_reminders_settings_description_off)
         findPreference(R.string.preference_key_donation_reminders).summary = description
+    }
+
+    fun updateVisualEditorPreference(visualEditorPref: Preference = findPreference(R.string.preference_key_editor_mode_choice)) {
+        if (Prefs.visualEditorEnabled) {
+            visualEditorPref.isVisible = true
+            visualEditorPref.setSummary(if (Prefs.editorModeChoice == EDITOR_CHOICE_VE) R.string.editor_select_dialog_ve_title else R.string.editor_select_dialog_source_title)
+        } else {
+            visualEditorPref.isVisible = false
+            visualEditorPref.summary = null
+        }
     }
 
     private inner class SyncReadingListsListener : Preference.OnPreferenceChangeListener {

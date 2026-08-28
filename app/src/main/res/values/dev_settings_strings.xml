@@ -27,17 +27,18 @@
     <string name="preferences_developer_crash_title">Crash</string>
     <string name="preferences_developer_crash_summary">Tap here to crash the app</string>
     <string name="preferences_developer_session_timeout_title">Session timeout (minutes)</string>
-    <string name="preferences_developer_reading_list_category">Reading Lists</string>
+    <string name="preferences_developer_reading_list_category">Collections</string>
     <string name="preferences_developer_add_articles">Add articles</string>
-    <string name="preferences_developer_add_lists">Add reading lists</string>
-    <string name="preferences_developer_delete_lists">Delete reading lists</string>
-    <string name="preferences_developer_test_delete_lists">Delete Test reading lists</string>
+    <string name="preferences_developer_add_lists">Add collections</string>
+    <string name="preferences_developer_delete_lists">Delete collections</string>
+    <string name="preferences_developer_test_delete_lists">Delete test collections</string>
     <string name="preferences_developer_summary_configure_articles">Type the number of articles</string>
-    <string name="preferences_developer_summary_configure_reading_lists">Type the number of lists</string>
+    <string name="preferences_developer_summary_configure_reading_lists">Type the number of collections</string>
     <string name="preferences_developer_suggested_edits_category">Suggested edits</string>
     <string name="preferences_developer_suggested_edits_reactivation_notification_stage_one">Show the first stage local notification for editor re-activation</string>
     <string name="preferences_developer_suggested_edits_reactivation_notification_stage_two">Show the second stage local notification for editor re-activation</string>
-    
+
+    <string name="preference_developer_event_platform_intake_base_uri_list_title">Event Platform intake base URI</string>
     <string name="preference_developer_event_platform_intake_base_uri_title">Override Event Platform intake base URI</string>
     <string name="preference_developer_send_event_platform_test_event_title">Send test event</string>
     <string name="preference_developer_send_event_platform_test_event_summary">Send a test event to the configured Event Platform intake endpoint</string>

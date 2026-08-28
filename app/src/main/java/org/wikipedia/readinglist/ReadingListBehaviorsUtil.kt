@@ -29,6 +29,7 @@ import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.StringUtil
 import org.wikipedia.util.log.L
 import org.wikipedia.views.CircularProgressBar.Companion.MIN_PROGRESS
+import java.io.IOException
 
 object ReadingListBehaviorsUtil {
 
@@ -97,21 +98,9 @@ object ReadingListBehaviorsUtil {
             return
         }
         if (showDialog) {
-            MaterialAlertDialogBuilder(activity)
-                    .setMessage(activity.getString(R.string.reading_list_delete_confirm, readingList.title))
-                    .setPositiveButton(R.string.reading_list_delete_dialog_ok_button_text) { _, _ ->
-                        MainScope().launch(exceptionHandler) {
-                            AppDatabase.instance.readingListDao().deleteList(readingList)
-                            AppDatabase.instance.readingListPageDao()
-                                .markPagesForDeletion(readingList, readingList.pages, false)
-                            if (!activity.isStarted) {
-                                return@launch
-                            }
-                            callback.onCompleted()
-                        }
-                    }
-                    .setNegativeButton(R.string.reading_list_delete_dialog_cancel_button_text, null)
-                    .show()
+            confirmDeleteReadingList(activity, readingList) {
+                deleteReadingList(activity, readingList, false, callback)
+            }
         } else {
             MainScope().launch(exceptionHandler) {
                 AppDatabase.instance.readingListDao().deleteList(readingList)
@@ -123,6 +112,19 @@ object ReadingListBehaviorsUtil {
                 callback.onCompleted()
             }
         }
+    }
+
+    fun confirmDeleteReadingList(activity: Activity, readingList: ReadingList?, callback: Callback) {
+        if (readingList == null) {
+            return
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setMessage(activity.getString(R.string.reading_list_delete_confirm, readingList.title))
+            .setPositiveButton(R.string.reading_list_delete_dialog_ok_button_text) { _, _ ->
+                callback.onCompleted()
+            }
+            .setNegativeButton(R.string.reading_list_delete_dialog_cancel_button_text, null)
+            .show()
     }
 
     fun deleteReadingLists(activity: Activity, readingLists: List<ReadingList>, callback: Callback) {
@@ -167,6 +169,55 @@ object ReadingListBehaviorsUtil {
                 callback.onCompleted()
             }
         }
+    }
+
+    fun deletePagesFromLists(activity: Activity, selectedArticleCount: Int, lists: List<ReadingList>, snackbarCallback: SnackbarCallback, callback: Callback) {
+        val listsWithPagesToDelete = lists.filter { it.pages.isNotEmpty() }
+        if (selectedArticleCount == 0 || listsWithPagesToDelete.isEmpty()) {
+            return
+        }
+
+        val deletePages = {
+            MainScope().launch(exceptionHandler) {
+                AppDatabase.instance.readingListPageDao().markPagesForDeletionFromLists(listsWithPagesToDelete)
+                if (activity.isStarted) {
+                    showDeletePagesFromListsUndoSnackbar(activity, selectedArticleCount, listsWithPagesToDelete, snackbarCallback)
+                    callback.onCompleted()
+                }
+            }
+        }
+
+        if (listsWithPagesToDelete.any { !it.isDefault }) {
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(R.string.reading_lists_remove_articles_confirm_dialog_title)
+                .setMessage(activity.resources.getQuantityString(R.plurals.reading_lists_unsave_articles_confirm_dialog_message, selectedArticleCount, selectedArticleCount))
+                .setPositiveButton(R.string.reading_lists_remove_articles_confirm_button) { _, _ -> deletePages() }
+                .setNegativeButton(R.string.reading_list_delete_dialog_cancel_button_text, null)
+                .show()
+        } else {
+            deletePages()
+        }
+    }
+
+    private fun showDeletePagesFromListsUndoSnackbar(activity: Activity, selectedArticleCount: Int, lists: List<ReadingList>, callback: SnackbarCallback) {
+        val message = activity.resources.getQuantityString(R.plurals.reading_lists_articles_removed_from_collections, selectedArticleCount, selectedArticleCount)
+        FeedbackUtil.makeSnackbar(activity, message)
+            .setAction(R.string.reading_list_item_delete_undo) {
+                MainScope().launch(exceptionHandler) {
+                    lists.forEach { list ->
+                        val restoredPages = list.pages.map { page ->
+                            ReadingListPage(ReadingListPage.toPageTitle(page))
+                        }
+                        AppDatabase.instance.readingListPageDao()
+                            .addPagesToList(list, restoredPages, true)
+                    }
+                    if (!activity.isStarted) {
+                        return@launch
+                    }
+                    callback.onUndoDeleteClicked()
+                }
+            }
+            .show()
     }
 
     fun updateReadingListPage(item: ReadingListPage) {
@@ -362,7 +413,14 @@ object ReadingListBehaviorsUtil {
         if (addToDefault) {
             MainScope().launch(exceptionHandler) {
                 // If the title is a redirect, resolve it before saving to the reading list.
-                val pageInfo = ServiceFactory.get(title.wikiSite).getInfoByPageIdsOrTitles(null, title.prefixedText).query?.firstPage()
+                val pageInfo = try {
+                    ServiceFactory.get(title.wikiSite).getInfoByPageIdsOrTitles(null, title.prefixedText).query?.firstPage()
+                } catch (e: IOException) {
+                    // A network error (or being offline) during the redirect resolution is not a big deal,
+                    // and we can just proceed with the original title.
+                    L.e(e)
+                    null
+                }
                 val finalPageTitle = pageInfo?.let {
                     PageTitle(it.title, title.wikiSite, it.thumbUrl(), it.description, it.displayTitle(title.wikiSite.languageCode), null)
                 } ?: title
@@ -444,9 +502,6 @@ object ReadingListBehaviorsUtil {
         coroutineScope.launch(exceptionHandler) {
             allReadingLists = AppDatabase.instance.readingListDao().getAllLists()
             val list = withContext(Dispatchers.IO) { applySearchQuery(searchQuery, allReadingLists) }
-            if (searchQuery.isNullOrEmpty()) {
-                ReadingList.sortGenericList(list, Prefs.getReadingListSortMode(ReadingList.SORT_BY_NAME_ASC))
-            }
             callback.onCompleted(list)
         }
     }
