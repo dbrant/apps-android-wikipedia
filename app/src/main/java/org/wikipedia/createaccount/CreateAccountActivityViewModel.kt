@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,11 +42,20 @@ class CreateAccountActivityViewModel : ViewModel() {
         viewModelScope.launch(CoroutineExceptionHandler { _, throwable ->
             _authManagerState.value = AccountInfoState.Error(throwable)
         }) {
-            val response = ServiceFactory.get(WikipediaApp.instance.wikiSite).getAuthManagerInfo()
-            token = response.query?.createAccountToken()
+            val authManagerCall = async { ServiceFactory.get(WikipediaApp.instance.wikiSite).getAuthManagerInfo() }
+            val userInfoCall = async { ServiceFactory.get(WikipediaApp.instance.wikiSite).getUserInfo(assert = null) }
+
+            val userInfoResponse = userInfoCall.await()
+            if (userInfoResponse.query?.userInfo?.blockNoCreate == true) {
+                _authManagerState.value = AccountInfoState.Blocked
+                return@launch
+            }
+
+            val authManagerResponse = authManagerCall.await()
+            token = authManagerResponse.query?.createAccountToken()
             if (token.isNullOrEmpty()) {
                 _authManagerState.value = AccountInfoState.InvalidToken
-            } else if (response.query?.hasHCaptchaRequest() == true) {
+            } else if (authManagerResponse.query?.hasHCaptchaRequest() == true) {
                 val hCaptchaDisclaimerMessage = "hcaptcha-privacy-policy"
                 val message = ServiceFactory.get(WikipediaApp.instance.wikiSite).getMessages(hCaptchaDisclaimerMessage, null)
                     .query?.allmessages?.find { it.name == hCaptchaDisclaimerMessage }?.content.orEmpty()
@@ -117,6 +127,7 @@ class CreateAccountActivityViewModel : ViewModel() {
         data class HCaptchaDisclaimer(val disclaimerMessage: String) : AccountInfoState()
         data object InvalidToken : AccountInfoState()
         data class Error(val throwable: Throwable) : AccountInfoState()
+        data object Blocked : AccountInfoState()
     }
 
     open class CreateAccountState {

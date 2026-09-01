@@ -68,6 +68,8 @@ class MwServiceError(val code: String? = null,
         val blockTimeStamp: String = ""
         @SerialName("blockexpiry")
         val blockExpiry: String = ""
+        @SerialName("blocknocreate")
+        val blockNoCreate: Boolean = false
 
         val isBlocked: Boolean
             get() {

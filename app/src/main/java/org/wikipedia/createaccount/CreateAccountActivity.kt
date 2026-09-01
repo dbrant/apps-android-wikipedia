@@ -138,6 +138,9 @@ class CreateAccountActivity : BaseActivity() {
                             is CreateAccountActivityViewModel.AccountInfoState.Error -> {
                                 L.e(it.throwable)
                             }
+                            is CreateAccountActivityViewModel.AccountInfoState.Blocked -> {
+                                finishWithBlockedWarning()
+                            }
                         }
                     }
                 }
@@ -399,6 +402,20 @@ class CreateAccountActivity : BaseActivity() {
         instrument?.submitInteraction("success", actionContext = mapOf("invoke_source" to requestSource))
         DeviceUtil.hideSoftKeyboard(this@CreateAccountActivity)
         finish()
+    }
+
+    private fun finishWithBlockedWarning() {
+        setResult(RESULT_ACCOUNT_NOT_CREATED)
+        showProgressBar(false)
+        MaterialAlertDialogBuilder(this)
+            .setCancelable(false)
+            .setTitle("IP address blocked")
+            .setMessage(StringUtil.fromHtml("Unfortunately this IP address has been blocked from creating new accounts. Please try creating an account from a different device."))
+            .setPositiveButton(android.R.string.ok) { _, _ -> }
+            .setOnDismissListener {
+                finish()
+            }
+            .show()
     }
 
     private fun showProgressBar(enable: Boolean) {
