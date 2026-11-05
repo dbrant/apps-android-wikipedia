@@ -48,6 +48,8 @@ class ShareHandler(private val fragment: PageFragment, private val bridge: Commu
         }
         mode.menu.findItem(R.id.menu_text_select_annotate)?.run {
             isVisible = fragment.annotationHandler.isEnabled
+            // The floating toolbar lists "always" items first, so this places Annotate ahead of Copy, Share, etc.
+            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
             setOnMenuItemClickListener {
                 fragment.annotationHandler.annotateSelection { finishActionMode() }
                 true

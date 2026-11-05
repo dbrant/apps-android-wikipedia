@@ -22,8 +22,10 @@
 
     var style = document.createElement('style');
     style.textContent =
-        'mark.' + MARK_CLASS + ' { background-color: rgba(255, 204, 51, 0.45); color: inherit; border-radius: 2px; transition: background-color 0.4s; }' +
-        'mark.' + MARK_CLASS + '.' + FLASH_CLASS + ' { background-color: rgba(255, 170, 0, 0.9); }';
+        'mark.' + MARK_CLASS + ' { background-color: transparent; color: inherit; border-radius: 2px; transition: background-color 0.4s;' +
+        '  text-decoration: underline dotted 2px; text-underline-offset: 4px; text-decoration-skip-ink: none;' +
+        '  text-decoration-color: currentColor; text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); }' +
+        'mark.' + MARK_CLASS + '.' + FLASH_CLASS + ' { background-color: rgba(255, 204, 51, 0.5); }';
     document.head.appendChild(style);
 
     function getRoots() {
