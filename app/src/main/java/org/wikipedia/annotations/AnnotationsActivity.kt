@@ -46,6 +46,7 @@ import org.wikipedia.history.HistoryEntry
 import org.wikipedia.page.PageActivity
 import org.wikipedia.theme.Theme
 import org.wikipedia.util.DateUtil
+import org.wikipedia.util.FeedbackUtil
 import org.wikipedia.util.ShareUtil
 import java.util.Date
 
@@ -61,7 +62,7 @@ class AnnotationsActivity : BaseActivity() {
                     annotations = annotations,
                     onNavigateBack = { finish() },
                     onAnnotationClick = { openAnnotation(it) },
-                    onDeleteClick = { viewModel.delete(it) },
+                    onDeleteClick = { deleteAnnotation(it) },
                     onExportClick = { exportAnnotations() }
                 )
             }
@@ -72,6 +73,13 @@ class AnnotationsActivity : BaseActivity() {
         val entry = HistoryEntry(annotation.title, HistoryEntry.SOURCE_ANNOTATIONS)
         startActivity(PageActivity.newIntentForCurrentTab(this, entry, entry.title, squashBackstack = false)
             .putExtra(PageActivity.EXTRA_ANNOTATION_ID, annotation.id))
+    }
+
+    private fun deleteAnnotation(annotation: PageAnnotation) {
+        viewModel.delete(annotation)
+        FeedbackUtil.makeSnackbar(this, getString(R.string.annotation_deleted))
+            .setAction(R.string.annotation_delete_undo) { viewModel.restore(annotation) }
+            .show()
     }
 
     private fun exportAnnotations() {

@@ -2937,6 +2937,7 @@
     <string name="annotation_save">Save</string>
     <string name="annotation_delete">Delete</string>
     <string name="annotation_deleted">Annotation deleted</string>
+    <string name="annotation_delete_undo">Undo</string>
     <string name="annotation_selection_error">Unable to annotate the selected text.</string>
     <string name="annotation_not_found">This annotation could not be found in the current version of the article.</string>
     <string name="annotation_orphaned_label">Not found in the current version of the article</string>

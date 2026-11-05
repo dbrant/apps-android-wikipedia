@@ -18,9 +18,17 @@ class AnnotationsViewModel : ViewModel() {
     val annotations: StateFlow<List<PageAnnotation>?> = dao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val exceptionHandler = CoroutineExceptionHandler { _, t -> L.e(t) }
+
     fun delete(annotation: PageAnnotation) {
-        viewModelScope.launch(CoroutineExceptionHandler { _, t -> L.e(t) }) {
+        viewModelScope.launch(exceptionHandler) {
             dao.delete(annotation.id)
+        }
+    }
+
+    fun restore(annotation: PageAnnotation) {
+        viewModelScope.launch(exceptionHandler) {
+            dao.insert(annotation)
         }
     }
 

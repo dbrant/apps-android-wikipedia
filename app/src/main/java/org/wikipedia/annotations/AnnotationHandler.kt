@@ -72,11 +72,7 @@ class AnnotationHandler(private val fragment: PageFragment, private val bridge: 
         val title = fragment.title ?: return
         val id = result.getLong(AnnotationEditDialog.RESULT_ANNOTATION_ID)
         when (result.getString(AnnotationEditDialog.RESULT_ACTION)) {
-            AnnotationEditDialog.ACTION_DELETE -> {
-                bridge.execute(JavaScriptActionHandler.removeAnnotation(id))
-                MainScope().launch(exceptionHandler) { dao.delete(id) }
-                FeedbackUtil.showMessage(fragment, R.string.annotation_deleted)
-            }
+            AnnotationEditDialog.ACTION_DELETE -> deleteAnnotation(id, title)
             AnnotationEditDialog.ACTION_SAVE -> {
                 val note = result.getString(AnnotationEditDialog.RESULT_NOTE).orEmpty()
                 if (id != 0L) {
@@ -120,10 +116,32 @@ class AnnotationHandler(private val fragment: PageFragment, private val bridge: 
                 startOffset = selection.start,
                 endOffset = selection.end,
                 note = note
-            ).let { it.copy(id = dao.insert(it)) }
-            if (fragment.isAdded && isCurrentPage(title)) {
-                anchor(JavaScriptActionHandler.addAnnotation(JsonUtil.encodeToString(AnchorRequest.from(annotation)).orEmpty()), listOf(annotation), title)
+            )
+            insertAndHighlight(annotation, title)
+        }
+    }
+
+    private fun deleteAnnotation(id: Long, title: PageTitle) {
+        bridge.execute(JavaScriptActionHandler.removeAnnotation(id))
+        MainScope().launch(exceptionHandler) {
+            val annotation = dao.getById(id) ?: return@launch
+            dao.delete(id)
+            if (!fragment.isAdded) {
+                return@launch
             }
+            FeedbackUtil.makeSnackbar(fragment.requireActivity(), fragment.getString(R.string.annotation_deleted))
+                .setAction(R.string.annotation_delete_undo) {
+                    MainScope().launch(exceptionHandler) { insertAndHighlight(annotation, title) }
+                }
+                .show()
+        }
+    }
+
+    // Inserts the annotation, keeping its id if it already has one, and highlights it if its page is showing.
+    private suspend fun insertAndHighlight(annotation: PageAnnotation, title: PageTitle) {
+        val saved = annotation.copy(id = dao.insert(annotation))
+        if (fragment.isAdded && isCurrentPage(title)) {
+            anchor(JavaScriptActionHandler.addAnnotation(JsonUtil.encodeToString(AnchorRequest.from(saved)).orEmpty()), listOf(saved), title)
         }
     }
 
