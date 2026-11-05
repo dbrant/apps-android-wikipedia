@@ -2928,4 +2928,20 @@
     <string name="notifications_experiment_discover_interests_title">Because you\'re interested in %s</string>
     <string name="notifications_experiment_discover_saved_or_history_title">Because you read about %s</string>
     <string name="notifications_experiment_discover_message">We\'ve created a new reading list for you based on this and other interests.</string>
+    <!-- Annotations -->
+    <string name="menu_text_select_annotate">Annotate</string>
+    <string name="annotations_title">Annotations</string>
+    <string name="annotation_edit_title_new">Add annotation</string>
+    <string name="annotation_edit_title">Annotation</string>
+    <string name="annotation_note_hint">Add a note (optional)</string>
+    <string name="annotation_save">Save</string>
+    <string name="annotation_delete">Delete</string>
+    <string name="annotation_deleted">Annotation deleted</string>
+    <string name="annotation_selection_error">Unable to annotate the selected text.</string>
+    <string name="annotation_not_found">This annotation could not be found in the current version of the article.</string>
+    <string name="annotation_orphaned_label">Not found in the current version of the article</string>
+    <string name="annotations_empty_title">No annotations yet</string>
+    <string name="annotations_empty_message">While reading an article, select some text and tap \"Annotate\" to highlight it and add a note.</string>
+    <string name="annotations_export">Export annotations</string>
+    <string name="annotations_delete_content_description">Delete annotation</string>
 </resources>

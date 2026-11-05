@@ -11,6 +11,14 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/menu_text_select_annotate"
+        android:icon="@drawable/ic_annotation_24dp"
+        android:title="@string/menu_text_select_annotate"
+        android:visible="false"
+        app:iconTint="?attr/secondary_color"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/menu_text_edit_here"
         android:icon="@drawable/ic_mode_edit_white_24dp"
         android:title="@string/menu_text_select_edit_here"

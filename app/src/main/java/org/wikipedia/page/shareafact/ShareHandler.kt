@@ -46,6 +46,13 @@ class ShareHandler(private val fragment: PageFragment, private val bridge: Commu
                 setOnMenuItemClickListener(RequestTextSelectOnMenuItemClickListener(PAYLOAD_PURPOSE_DEFINE))
             }
         }
+        mode.menu.findItem(R.id.menu_text_select_annotate)?.run {
+            isVisible = fragment.annotationHandler.isEnabled
+            setOnMenuItemClickListener {
+                fragment.annotationHandler.annotateSelection { finishActionMode() }
+                true
+            }
+        }
         mode.menu.findItem(R.id.menu_text_edit_here)?.run {
             setOnMenuItemClickListener(RequestTextSelectOnMenuItemClickListener(PAYLOAD_PURPOSE_EDIT_HERE))
             fragment.page?.run {

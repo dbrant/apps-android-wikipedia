@@ -215,6 +215,28 @@ object JavaScriptActionHandler {
         return "pcs.c1.Highlight.clearHighlight()"
     }
 
+    // The functions below depend on annotations.js having been injected into the page.
+
+    fun getAnnotationSelection(): String {
+        return "(window.wikiAnnotations ? wikiAnnotations.describeSelection() : null)"
+    }
+
+    fun applyAnnotations(annotationsJson: String): String {
+        return "(window.wikiAnnotations ? wikiAnnotations.apply($annotationsJson) : null)"
+    }
+
+    fun addAnnotation(annotationJson: String): String {
+        return "(window.wikiAnnotations ? wikiAnnotations.add($annotationJson) : null)"
+    }
+
+    fun removeAnnotation(id: Long): String {
+        return "(window.wikiAnnotations ? wikiAnnotations.remove($id) : null)"
+    }
+
+    fun scrollToAnnotation(id: Long): String {
+        return "(window.wikiAnnotations ? wikiAnnotations.scrollTo($id) : false)"
+    }
+
     @Serializable
     class ImageHitInfo(val left: Float = 0f, val top: Float = 0f, val width: Float = 0f, val height: Float = 0f,
                        val src: String = "")

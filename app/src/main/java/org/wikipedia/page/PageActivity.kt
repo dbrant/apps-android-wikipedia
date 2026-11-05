@@ -735,10 +735,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
                     intent.getSerializableExtra(EXTRA_SEMANTIC_SEARCH_FUNNEL) as Funnel?)
             }
             val highlightText = intent.getStringExtra(EXTRA_HIGHLIGHT_TEXT)
+            val annotationId = intent.getLongExtra(EXTRA_ANNOTATION_ID, 0)
             when (intent.action) {
                 ACTION_LOAD_IN_NEW_TAB -> loadPage(title, historyEntry, TabPosition.NEW_TAB_FOREGROUND)
-                ACTION_LOAD_IN_CURRENT_TAB -> loadPage(title, historyEntry, TabPosition.CURRENT_TAB, highlightText)
-                ACTION_LOAD_IN_CURRENT_TAB_SQUASH -> loadPage(title, historyEntry, TabPosition.CURRENT_TAB_SQUASH, highlightText)
+                ACTION_LOAD_IN_CURRENT_TAB -> loadPage(title, historyEntry, TabPosition.CURRENT_TAB, highlightText, annotationId)
+                ACTION_LOAD_IN_CURRENT_TAB_SQUASH -> loadPage(title, historyEntry, TabPosition.CURRENT_TAB_SQUASH, highlightText, annotationId)
             }
             intent.getStringExtra(Constants.INTENT_EXTRA_REVERT_QNUMBER)?.let {
                 showDescriptionEditRevertDialog(it)
@@ -769,8 +770,9 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
      * @param position Whether to open this page in the current tab, a new background tab, or new
      * foreground tab.
      * @param highlightText Text to highlight and scroll to once the page loads, only for the current tab.
+     * @param annotationId Annotation to scroll to once the page loads, only for the current tab.
      */
-    private fun loadPage(pageTitle: PageTitle?, entry: HistoryEntry?, position: TabPosition, highlightText: String? = null) {
+    private fun loadPage(pageTitle: PageTitle?, entry: HistoryEntry?, position: TabPosition, highlightText: String? = null, annotationId: Long = 0) {
         if (isDestroyed || pageTitle == null || entry == null) {
             return
         }
@@ -794,6 +796,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
             // Close the link preview, if one is open.
             hideLinkPreview()
             onPageCloseActionMode()
+            pageFragment.model.pendingAnnotationId = annotationId
             when (position) {
                 TabPosition.CURRENT_TAB -> pageFragment.loadPage(pageTitle, entry, pushBackStack = true, squashBackstack = false, highlightText = highlightText)
                 TabPosition.CURRENT_TAB_SQUASH -> pageFragment.loadPage(pageTitle, entry, pushBackStack = true, squashBackstack = true, highlightText = highlightText)
@@ -1004,6 +1007,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, LinkPreviewDialog.Lo
         const val EXTRA_SEMANTIC_SEARCH_ID = "org.wikipedia.search.semantic.search_id"
         const val EXTRA_SEMANTIC_SEARCH_FUNNEL = "org.wikipedia.search.semantic.funnel"
         const val EXTRA_HIGHLIGHT_TEXT = "org.wikipedia.page.highlight_text"
+        const val EXTRA_ANNOTATION_ID = "org.wikipedia.page.annotation_id"
 
         fun newIntent(context: Context): Intent {
             return Intent(ACTION_RESUME_READING).setClass(context, PageActivity::class.java)

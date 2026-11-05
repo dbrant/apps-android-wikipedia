@@ -7,6 +7,8 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import org.wikipedia.WikipediaApp
+import org.wikipedia.annotations.db.PageAnnotation
+import org.wikipedia.annotations.db.PageAnnotationDao
 import org.wikipedia.categories.db.Category
 import org.wikipedia.categories.db.CategoryDao
 import org.wikipedia.edit.db.EditSummary
@@ -45,7 +47,7 @@ import org.wikipedia.topics.db.PageTopicDao
 import java.time.LocalDate
 
 const val DATABASE_NAME = "wikipedia.db"
-const val DATABASE_VERSION = 35
+const val DATABASE_VERSION = 36
 
 @Database(
     entities = [
@@ -64,7 +66,8 @@ const val DATABASE_VERSION = 35
         RecommendedPage::class,
         InterestTopic::class,
         InterestArticle::class,
-        PageTopic::class
+        PageTopic::class,
+        PageAnnotation::class
     ],
     version = DATABASE_VERSION
 )
@@ -93,6 +96,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun topicInterestDao(): InterestTopicDao
     abstract fun articleInterestDao(): InterestArticleDao
     abstract fun pageTopicDao(): PageTopicDao
+    abstract fun pageAnnotationDao(): PageAnnotationDao
 
     companion object {
         val MIGRATION_19_20 = object : Migration(19, 20) {
@@ -406,13 +410,38 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS PageAnnotation (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                        "uuid TEXT NOT NULL," +
+                        "authority TEXT NOT NULL," +
+                        "lang TEXT NOT NULL," +
+                        "namespace TEXT NOT NULL," +
+                        "apiTitle TEXT NOT NULL," +
+                        "displayTitle TEXT NOT NULL," +
+                        "revision INTEGER NOT NULL," +
+                        "exact TEXT NOT NULL," +
+                        "prefix TEXT NOT NULL," +
+                        "suffix TEXT NOT NULL," +
+                        "startOffset INTEGER NOT NULL," +
+                        "endOffset INTEGER NOT NULL," +
+                        "note TEXT NOT NULL," +
+                        "created INTEGER NOT NULL," +
+                        "modified INTEGER NOT NULL," +
+                        "orphaned INTEGER NOT NULL" +
+                        ")")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_PageAnnotation_lang_namespace_apiTitle ON PageAnnotation (lang, namespace, apiTitle)")
+            }
+        }
+
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(WikipediaApp.instance, AppDatabase::class.java, DATABASE_NAME)
                 .addMigrations(MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
                     MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
                     MIGRATION_26_28, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
                     MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34,
-                    MIGRATION_34_35)
+                    MIGRATION_34_35, MIGRATION_35_36)
                 .fallbackToDestructiveMigration(false)
                 .build()
         }

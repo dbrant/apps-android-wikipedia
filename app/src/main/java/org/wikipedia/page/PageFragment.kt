@@ -43,6 +43,7 @@ import kotlinx.serialization.json.float
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import org.wikipedia.BackPressedHandler
 import org.wikipedia.Constants
 import org.wikipedia.Constants.InvokeSource
@@ -57,6 +58,8 @@ import org.wikipedia.analytics.eventplatform.EditAttemptStepEvent
 import org.wikipedia.analytics.eventplatform.EventPlatformClient
 import org.wikipedia.analytics.eventplatform.PlacesEvent
 import org.wikipedia.analytics.eventplatform.WatchlistAnalyticsHelper
+import org.wikipedia.annotations.AnnotationEditDialog
+import org.wikipedia.annotations.AnnotationHandler
 import org.wikipedia.auth.AccountUtil
 import org.wikipedia.bridge.CommunicationBridge
 import org.wikipedia.bridge.JavaScriptActionHandler
@@ -190,6 +193,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
 
     lateinit var sidePanelHandler: SidePanelHandler
     lateinit var shareHandler: ShareHandler
+    lateinit var annotationHandler: AnnotationHandler
     lateinit var editHandler: EditHandler
     var revision = 0L
 
@@ -254,6 +258,10 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
         sidePanelHandler = SidePanelHandler(this, bridge)
         leadImagesHandler = LeadImagesHandler(this, webView, binding.pageHeaderView, callback())
         shareHandler = ShareHandler(this, bridge)
+        annotationHandler = AnnotationHandler(this, bridge)
+        childFragmentManager.setFragmentResultListener(AnnotationEditDialog.REQUEST_KEY, viewLifecycleOwner) { _, result ->
+            annotationHandler.onEditResult(result)
+        }
         pageFragmentLoadState = PageFragmentLoadState(model, this, webView, bridge, leadImagesHandler, currentTab)
 
         if (callback() != null) {
@@ -779,6 +787,7 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
             bridge.onPcsReady()
             articleInteractionEvent?.logLoaded()
             callback()?.onPageLoadComplete()
+            annotationHandler.onPageReady()
 
             JsonUtil.decodeFromElement<PageMetadata>(payload)?.let { metadata ->
                 // Persist the list of topics for this article.
@@ -911,6 +920,11 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 }
             }
         }
+        bridge.addListener("annotation_clicked") { _, messagePayload ->
+            messagePayload?.get("id")?.jsonPrimitive?.longOrNull?.let {
+                annotationHandler.onAnnotationClicked(it)
+            }
+        }
         bridge.addListener("read_more_titles_retrieved") { _, _ -> }
         bridge.addListener("view_license") { _, _ ->
             UriUtil.visitInExternalBrowser(requireContext(), Uri.parse(getString(R.string.cc_by_sa_4_url)))
@@ -1019,6 +1033,9 @@ class PageFragment : Fragment(), BackPressedHandler, CommunicationBridge.Communi
                 model.title?.fragment = title.fragment
                 model.pendingHighlightText = highlightText
                 jumpToHighlightOrSection(title.fragment, highlightText)
+                if (!bridge.isLoading) {
+                    annotationHandler.scrollToPendingAnnotation()
+                }
             }
             return
         }

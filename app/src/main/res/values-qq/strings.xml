@@ -2660,4 +2660,19 @@
   <string name="notifications_experiment_discover_interests_title">Title message telling the user that a new recommended reading list is ready, based on an article marked as an interest. %s will be replaced by the title of an article marked as interest</string>
   <string name="notifications_experiment_discover_saved_or_history_title">Title message telling the user that a new recommended reading list is ready, based on a saved or read article. %s will be replaced by the title of an article the user has read or saved</string>
   <string name="notifications_experiment_discover_message">Notification message informing the user a new reading list is ready</string>
+  <string name="menu_text_select_annotate">Menu item caption, shown when text is selected in an article, for highlighting the selected text and attaching a note to it.</string>
+  <string name="annotations_title">Title of the screen that lists all of the user\'s annotations (highlighted passages of articles with optional notes).</string>
+  <string name="annotation_edit_title_new">Title of the panel for adding a note to a newly highlighted passage of an article.</string>
+  <string name="annotation_edit_title">Title of the panel for viewing or editing an existing annotation (a highlighted passage of an article with an optional note).</string>
+  <string name="annotation_note_hint">Placeholder text in the field where the user can type a note about the highlighted passage.</string>
+  <string name="annotation_save">Button label for saving an annotation.\n{{Identical|Save}}</string>
+  <string name="annotation_delete">Button label for deleting an annotation.\n{{Identical|Delete}}</string>
+  <string name="annotation_deleted">Message shown after an annotation is deleted.</string>
+  <string name="annotation_selection_error">Message shown when the selected text could not be used for creating an annotation.</string>
+  <string name="annotation_not_found">Message shown when opening an annotation whose highlighted passage could no longer be found in the article, because the article was changed.</string>
+  <string name="annotation_orphaned_label">Label shown on an annotation in the list of annotations, when its highlighted passage could no longer be found in the article, because the article was changed.</string>
+  <string name="annotations_empty_title">Title shown when the user has no annotations.</string>
+  <string name="annotations_empty_message">Message shown when the user has no annotations, explaining how to create one. The quoted word should match {{msg-wm|Wikipedia-android-strings-menu_text_select_annotate}}.</string>
+  <string name="annotations_export">Content description of the button for exporting all annotations as a file that can be shared with other apps.</string>
+  <string name="annotations_delete_content_description">Content description of the button for deleting an annotation from the list of annotations.</string>
 </resources>

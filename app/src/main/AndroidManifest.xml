@@ -251,6 +251,8 @@
 
         <activity android:name=".feed.didyouknow.DidYouKnowActivity"/>
 
+        <activity android:name=".annotations.AnnotationsActivity"/>
+
         <activity android:name=".feed.onthisday.OnThisDayActivity"
             android:configChanges="orientation|screenSize"/>
 
